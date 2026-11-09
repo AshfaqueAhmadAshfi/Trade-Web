@@ -238,6 +238,11 @@
       if (row.barSell) row.barSell.style.width = (total ? 100 - pct : 0) + '%';
     });
     if (ui.updated) ui.updated.textContent = 'UPDATED ' + new Date().toLocaleTimeString();
+    // Public aggregate for chart-workspace.js. This identifies pressure, not
+    // the owner of anonymous exchange prints; never label it as a company.
+    window.dispatchEvent(new CustomEvent('orderflow:update', {
+      detail: { symbol: selectedSymbol, buy: totals.buy, sell: totals.sell, buyPct, sellPct }
+    }));
   }
 
   function render(id, withTape) {

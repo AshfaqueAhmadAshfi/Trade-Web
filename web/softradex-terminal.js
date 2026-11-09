@@ -966,6 +966,26 @@
       detail: { symbol: currentSymbol, min: plotMin, max: plotMax, height: candleH }
     }));
 
+    // Same mapping the candles use, for the indicator layer (MSB-OB, WaveTrend,
+    // ICT Killzones): one slot per bar, right edge fixed, pan in pixels.
+    window.dispatchEvent(new CustomEvent('chart:geometry', {
+      detail: {
+        symbol: currentSymbol,
+        tf: currentInterval,
+        width: width,
+        chartW: chartW,
+        candleH: candleH,
+        slot: candleSlot,
+        visible: visibleCandlesCount,
+        rightEdgeX: rightEdgeX,
+        panOffset: panOffset,
+        count: klines.length,
+        lastTime: klines.length ? klines[klines.length - 1].time : 0,
+        plotMin: plotMin,
+        plotMax: plotMax
+      }
+    }));
+
     function priceToY(p) {
       return candleH - ((p - plotMin) / plotRange) * candleH;
     }

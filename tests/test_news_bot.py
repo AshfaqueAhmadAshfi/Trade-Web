@@ -559,6 +559,23 @@ class TestNewsBot(unittest.TestCase):
         self.assertAlmostEqual(bot.stats["realized"], 4.25, places=2)
 
 
+    def test_self_closed_trade_is_counted_once(self):
+        """A scheduled exit is booked in _close_position; the next _track pass
+        must not book the same disappearance again (stats were inflated ~2x)."""
+        bot = self.bot
+        bot.symbol, bot.symbol_ok = "XAUUSDm", True
+        pos = live_pos(9101, "buy", 4100.0, net=3.0)
+        with patch("backend.news_bot.mt5") as m:
+            self._mt5(m)
+            m.positions_get.return_value = [pos]
+            bot.tick()                                # learns the position
+            self.assertTrue(bot._close_position(pos, "scheduled"))
+            m.positions_get.return_value = []
+            bot.tick()                                # sees it gone
+        self.assertEqual(bot.stats["closed"], 1)
+        self.assertEqual(bot.stats["wins"], 1)
+        self.assertAlmostEqual(bot.stats["realized"], 3.0, places=2)
+
     def test_compute_market_impacts(self):
         # USD Bullish -> Gold SELL, DXY BUY, USDJPY BUY, EURUSD SELL, BTC SELL
         usd_bull = {"title": "ISM Services PMI", "country": "USD", "forecast": 55.7, "previous": 55.4}

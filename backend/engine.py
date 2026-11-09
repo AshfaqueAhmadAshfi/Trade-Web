@@ -247,6 +247,8 @@ class Engine:
                     if self.mode == "live":
                         self._tick_live()
                 self._tick_ea()
+                # the calendar is not an MT5 feature - keep it live when logged out
+                self._tick_news()
                 self._compute()
                 self._publish()
             except Exception as exc:  # never let the loop die
@@ -478,6 +480,24 @@ class Engine:
         self.bot5.cfg["running"] = False
         self.bot5.enabled = False
         self.bot5_status = self._bot5_stub()
+        # Bot 6 / Bot 7 must be stopped here too: the tick loop re-reads the
+        # persisted config on every pass and fires on `running`, so leaving
+        # these two armed meant a user could log out and silently resume live
+        # trading (magic 777006 / 777007) on the next login.
+        if self.bot6.cfg.get("running"):
+            persisted6 = dict(cfg.CONFIG.get("bot6") or {})
+            persisted6["running"] = False
+            cfg.update_config(bot6=persisted6)
+        self.bot6.cfg["running"] = False
+        self.bot6.enabled = False
+        self.bot6_status = self._bot6_stub()
+        if self.bot7.cfg.get("running"):
+            persisted7 = dict(cfg.CONFIG.get("bot7") or {})
+            persisted7["running"] = False
+            cfg.update_config(bot7=persisted7)
+        self.bot7.cfg["running"] = False
+        self.bot7.enabled = False
+        self.bot7_status = self._bot7_stub()
         self._seen_open.clear()
         self._seen_closed.clear()
         self._session_start_ts = 0
@@ -1514,6 +1534,44 @@ class Engine:
         }
 
     # ---------------------------------------------------------------- ticks
+    def _tick_news(self) -> None:
+        """Economic calendar: refresh + publish with or without an MT5 session.
+
+        The news panel (📰 All Economic News, Next Event, the chart NEWS card) is
+        a *display* feature, but the only call that started the fetch thread lived
+        inside _tick_live(), which the loop runs only while mode == "live". So a
+        logged-out dashboard never started the feed: it showed whatever
+        data/news_cache.json held at boot, every cached event was already in the
+        past, news_total stayed 0 and the cards read "no news mapped to XAUUSD
+        yet" forever - with no error anywhere, because the fetch that never ran
+        cannot fail.
+
+        Nothing here touches the terminal: the feed is four public HTTP sources,
+        and NewsBot.status() guards every MT5 read, so this is safe to run on the
+        disconnected path.
+        """
+        try:
+            self.bot5.update_config(cfg.CONFIG.get("bot5") or {})
+        except Exception as exc:
+            self._log_event("error", f"Bot5 config (offline) failed: {exc}")
+        try:
+            self.bot5.feed.ensure_started()
+        except Exception as exc:
+            self._log_event("error", f"News feed start failed: {exc}")
+        if self.mode == "live":
+            return          # _tick_live() owns the full bot-5 status while live
+        # status() also builds the outlook / session / impact boards, so offline
+        # it refreshes every two seconds rather than on every 400 ms loop pass
+        # (the dashboard countdowns are computed from absolute epochs anyway)
+        now = time.time()
+        if now - getattr(self, "_news_status_ts", 0.0) < 2.0:
+            return
+        self._news_status_ts = now
+        try:
+            self.bot5_status = self.bot5.status()
+        except Exception as exc:
+            self._log_event("error", f"Bot5 status (offline) failed: {exc}")
+
     def _tick_live(self) -> None:
         if not self.mt5.connected:
             # A transient IPC drop can clear the flag. Try the same quiet
@@ -1755,7 +1813,9 @@ class Engine:
                 if t:
                     self._log_event("trade",
                                     f"Closed {t.get('symbol')} {t.get('side')} {t.get('volume')} -> {t.get('net_profit', 0):+.2f}")
-        self._seen_closed |= current_closed
+        # replace, never accumulate: the mixed window is the newest 200 closes,
+        # so `|=` grew without bound on a long-lived process
+        self._seen_closed = current_closed
 
         hosted = bool(cfg.HOSTED)
         source = "none"

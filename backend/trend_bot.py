@@ -53,6 +53,20 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional
 
+
+def _f(v, default: float) -> float:
+    """Safe numeric coercion for config values.
+
+    A value typed into the panel ("2.5", "abc", "") must never raise out of
+    update_config: the tick loop catches the exception, skips tick() and never
+    refreshes status(), so the bot stayed silently dead while the UI still said
+    running = true.
+    """
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return float(default)
+
 try:  # pragma: no cover
     import MetaTrader5 as mt5  # type: ignore
 except Exception:  # pragma: no cover
@@ -254,12 +268,12 @@ class TrendStructureBot:
             self._last_trend_check_ts = 0.0
             self._trend_history.clear()
 
-        # Sanitize numeric fields
-        self.cfg["lot"] = self._round_lot(float(self.cfg.get("lot") or 0.01))
-        self.cfg["max_trades"] = max(1, int(self.cfg.get("max_trades") or 1))
-        self.cfg["tp"] = max(0.01, round(float(self.cfg.get("tp") or 0.10), 2))
-        self.cfg["sl"] = max(0.05, round(float(self.cfg.get("sl") or 2.00), 2))
-        self.cfg["trend_check_interval"] = max(1.0, float(self.cfg.get("trend_check_interval") or 2.5))
+        # Sanitize numeric fields (never raise: see _f)
+        self.cfg["lot"] = self._round_lot(_f(self.cfg.get("lot"), 0.01))
+        self.cfg["max_trades"] = min(20, max(1, int(_f(self.cfg.get("max_trades"), 1))))
+        self.cfg["tp"] = max(0.01, round(_f(self.cfg.get("tp"), 0.10), 2))
+        self.cfg["sl"] = max(0.05, round(_f(self.cfg.get("sl"), 2.00), 2))
+        self.cfg["trend_check_interval"] = max(1.0, _f(self.cfg.get("trend_check_interval"), 2.5))
         # lock trend_check_interval to the strict 2.5s trade timer unless set deliberately
         if "trend_check_interval" not in (patch or {}):
             self.cfg["trend_check_interval"] = 2.5
@@ -807,12 +821,17 @@ class TrendStructureBot:
         return self.check_trend(force=False, sym=sym)
 
     # ------------------------------------------------------------- positions
+    # True when the last MT5 exposure read failed. "Unknown" must never be
+    # mistaken for "flat", or the tick arms a second straddle on top of the first.
+    _exposure_unknown = False
+
     def _all_positions(self, any_symbol: bool = False) -> List[Dict[str, Any]]:
         if mt5 is None:
             return []
         try:
             raw = mt5.positions_get(symbol=None if any_symbol else self.symbol) or []
         except Exception:
+            self._exposure_unknown = True
             raw = []
         magic = int(self.cfg.get("magic") or 777002)
         out: List[Dict[str, Any]] = []
@@ -858,6 +877,13 @@ class TrendStructureBot:
                 return
 
         positions = self._all_positions()
+        # A failed MT5 read is unknown, not flat: arming on top of an existing
+        # straddle would rest a second BuyStop/SellStop pair (both legs can then
+        # fill and be closed at the spread loss). Skip this cycle instead.
+        if self._exposure_unknown:
+            self._exposure_unknown = False
+            self._log("warn", "MT5 exposure read failed - tick skipped")
+            return
 
         # 1) Manage open positions: Check TP ($) and SL ($)
         self._manage_positions(positions)

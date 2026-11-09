@@ -140,10 +140,17 @@ def _f(v: Any, default: float) -> float:
 
 
 def _same(a: Any, b: Any) -> bool:
+    """True when two config values are the same setting.
+
+    Numeric values compare by number; everything else compares by value, not by
+    truthiness - "buy" and "sell" are both truthy, so the old boolean compare
+    made a side flip look unchanged and the pre-trade kept firing the old
+    direction while the panel showed the new one.
+    """
     try:
         return abs(float(a) - float(b)) < 1e-9
     except (TypeError, ValueError):
-        return bool(a) == bool(b)
+        return str(a).strip().lower() == str(b).strip().lower()
 
 
 class PreTradeEntryBot:
@@ -546,12 +553,17 @@ class PreTradeEntryBot:
         return (kept, why)
 
     # ------------------------------------------------------------ exposure
+    # True when the last MT5 exposure read failed. "Unknown" must never be
+    # mistaken for "flat", or the tick arms a second straddle on top of the first.
+    _exposure_unknown = False
+
     def _all_positions(self, any_symbol: bool = False) -> List[Dict[str, Any]]:
         if mt5 is None:
             return []
         try:
             raw = mt5.positions_get(symbol=None if any_symbol else self.symbol) or []
         except Exception:
+            self._exposure_unknown = True
             raw = []
         magic = int(self.cfg.get("magic") or 777006)
         out: List[Dict[str, Any]] = []
@@ -573,6 +585,7 @@ class PreTradeEntryBot:
         try:
             raw = mt5.orders_get()
         except Exception:
+            self._exposure_unknown = True
             return []
         magic = int(self.cfg.get("magic") or 777006)
         out: List[Dict[str, Any]] = []
@@ -1014,6 +1027,13 @@ class PreTradeEntryBot:
 
         positions = self._all_positions()
         orders = self._all_orders()
+        # A failed MT5 read is unknown, not flat: arming on top of an existing
+        # straddle would rest a second BuyStop/SellStop pair (both legs can then
+        # fill and be closed at the spread loss). Skip this cycle instead.
+        if self._exposure_unknown:
+            self._exposure_unknown = False
+            self._log("warn", "MT5 exposure read failed - tick skipped")
+            return
 
         self._track(positions)
         self._sync(positions, orders)

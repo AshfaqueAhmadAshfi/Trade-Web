@@ -23,9 +23,9 @@
 
   var TAPE_MS = 12000;        // whale tape refresh
   var NEWS_MS = 20000;        // news card repaint
-  var MAX_NEWS = 4;
-  var MAX_WHALES = 3;
-  var HORIZON_SEC = 12 * 3600;
+  var MAX_NEWS = 50;          // all selected-market events in the 24h window
+  var MAX_WHALES = 6;
+  var HORIZON_SEC = 24 * 3600;
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -33,6 +33,13 @@
   var box = null;
   var symbol = '';
   var digits = 2;
+
+  // LARGE FLOW is a floating readout: the reader can park it anywhere over the
+  // chart (TradingView frame or the indicator panes) and the spot survives
+  // reloads. Stored as a fraction of the free travel so it stays put when the
+  // chart box changes size between the two chart modes.
+  var DRAG_KEY = 'softradex.chart.flowcard';
+  var dragPos = null;
 
   var prints = [];
   var tapeAt = 0;
@@ -147,9 +154,11 @@
     if (!wrap) return;
     var st = whaleStats();
     if (!st.total) {
-      wrap.innerHTML = '<div class="tvo-empty">waiting for big prints…</div>';
+      wrap.innerHTML = '<div class="tvo-empty">waiting for large-flow prints…</div>';
       return;
     }
+    var bias = st.partPct >= 56 ? 'BUY' : st.partPct <= 44 ? 'SELL' : 'WAIT';
+    var confidence = Math.min(100, Math.abs(st.partPct - 50) * 2);
     var rows = prints.slice(0, MAX_WHALES).map(function (p) {
       var isBuy = String(p.side || '').toUpperCase() !== 'SELL';
       var part = Math.max(1, Number(p.ticks) || 1);
@@ -162,6 +171,7 @@
     }).join('');
 
     wrap.innerHTML =
+      '<div class="tvo-flow-call ' + bias.toLowerCase() + '"><span>LARGE-FLOW ADVISORY</span><b>' + bias + '</b><em>' + confidence + '% confidence</em></div>' +
       '<div class="tvo-w-split">' +
         '<div class="tvo-w-col buy"><span>BUY</span><b>' + st.buy + '</b><em>' + st.buyPart + ' trades</em></div>' +
         '<div class="tvo-w-col sell"><span>SELL</span><b>' + st.sell + '</b><em>' + st.sellPart + ' trades</em></div>' +
@@ -217,12 +227,12 @@
       if (!(ts > nowSec - 120) || ts > nowSec + HORIZON_SEC) continue;
       out.push(e);
     }
-    // Only events the calendar maps onto THIS market. An EUR print has no
-    // predicted move for BTCUSDTm, so showing it here would invent a signal -
-    // the card says "nothing mapped" instead.
-    var withImpact = out.filter(function (e) { return !!impactFor(e); });
-    var strong = withImpact.filter(function (e) { return String(e.impact || '').toLowerCase() !== 'low'; });
-    return (strong.length ? strong : withImpact).slice(0, MAX_NEWS);
+    // Only events mapped by backend.news_bot.compute_market_impacts onto THIS
+    // market. Keep low + medium + high, sort by release time, and preserve the
+    // complete next-24-hour list; the scrollable terminal owns presentation.
+    return out.filter(function (e) { return !!impactFor(e); })
+      .sort(function (a, b) { return Number(a.ts) - Number(b.ts); })
+      .slice(0, MAX_NEWS);
   }
 
   function renderNews() {
@@ -235,16 +245,20 @@
       var imp = impactFor(e);
       var side = eventSide(e, imp);
       var mv = eventMove(e, imp);
+      var level = String(e.impact || 'low').toLowerCase();
+      if (['low', 'medium', 'high'].indexOf(level) < 0) level = 'low';
       if (side === 'UP') up += mv.amount;
       else if (side === 'DOWN') down += mv.amount;
       var cls = side === 'UP' ? 'buy' : side === 'DOWN' ? 'sell' : 'wait';
       var chip = side === 'UP' ? '▲ BUY' : side === 'DOWN' ? '▼ SELL' : '• WAIT';
       var move = mv.text ? '<b class="tvo-n-move ' + cls + '">' + esc(mv.text) + '</b>' : '';
-      return '<li class="tvo-n-row">' +
+      var at = new Date(Number(e.ts) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return '<li class="tvo-n-row impact-' + level + '">' +
+        '<span class="tvo-n-level">' + level.toUpperCase() + '</span>' +
         '<span class="tvo-n-chip ' + cls + '">' + chip + '</span>' +
         '<span class="tvo-n-main">' +
           '<span class="tvo-n-title">' + esc(String(e.title || '—')) + '</span>' +
-          '<span class="tvo-n-sub">' + esc(String(e.currency || '')) + ' · ' + esc(fmtMin(Number(e.ts))) + '</span>' +
+          '<span class="tvo-n-sub">' + esc(at) + ' · ' + esc(String(e.currency || '')) + ' · ' + esc(fmtMin(Number(e.ts))) + '</span>' +
         '</span>' + move +
         '</li>';
     }).join('');
@@ -260,8 +274,8 @@
 
     wrap.innerHTML =
       '<div class="tvo-n-totals">' +
-        '<div class="tvo-n-total buy"><span>EXPECTED UP</span><b>' + upTxt + '</b></div>' +
-        '<div class="tvo-n-total sell"><span>EXPECTED DOWN</span><b>' + downTxt + '</b></div>' +
+        '<div class="tvo-n-total buy"><span>EST. UP · 24H</span><b>' + upTxt + '</b></div>' +
+        '<div class="tvo-n-total sell"><span>EST. DOWN · 24H</span><b>' + downTxt + '</b></div>' +
       '</div>' +
       '<div class="tvo-bar news"><i class="buy" style="width:' + upPct + '%"></i><i class="sell" style="width:' + (100 - upPct) + '%"></i></div>' +
       '<ul class="tvo-n-list">' + html + '</ul>';
@@ -305,19 +319,101 @@
     root.className = 'tvo';
     root.id = 'tv-chart-overlay';
     root.innerHTML =
-      '<div class="tvo-card tvo-whales">' +
-        '<div class="tvo-head"><span class="tvo-dot"></span>WHALE FLOW · CHART' +
+        '<div class="tvo-card tvo-whales">' +
+        '<div class="tvo-head"><span class="tvo-dot"></span>LARGE FLOW · CHART' +
           '<button type="button" class="tvo-hint" id="tvo-candle-hint"' +
             ' title="Whale buy/sell arrows on the candles - opens the candle chart">🐋 arrows</button>' +
           '<em id="tvo-w-src">TAPE</em></div>' +
         '<div id="tvo-w-body"><div class="tvo-empty">loading big prints…</div></div>' +
       '</div>' +
-      '<div class="tvo-card tvo-news">' +
-        '<div class="tvo-head"><span class="tvo-dot news"></span>NEWS → BUY / SELL' +
-          '<em id="tvo-n-src">CALENDAR</em></div>' +
+        '<div class="tvo-card tvo-news">' +
+        '<div class="tvo-head"><span class="tvo-dot news"></span>MARKET NEWS · NEXT 24H' +
+          '<em id="tvo-n-src">AI ESTIMATE</em></div>' +
         '<div id="tvo-n-body"><div class="tvo-empty">loading the calendar…</div></div>' +
       '</div>';
     box.appendChild(root);
+  }
+
+  /* ------------------------------------------------------ drag position -- */
+  function loadDragPos() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(DRAG_KEY) || 'null');
+      if (raw && isFinite(raw.x) && isFinite(raw.y)) {
+        return { x: Math.max(0, Math.min(1, Number(raw.x))), y: Math.max(0, Math.min(1, Number(raw.y))) };
+      }
+    } catch (e) { /* a broken preference just keeps the default corner */ }
+    return null;
+  }
+
+  function applyDragPos() {
+    var card = root && root.querySelector('.tvo-whales');
+    if (!card || !box) return;
+    if (!dragPos) {
+      card.classList.remove('tvo-free');
+      card.style.left = '';
+      card.style.top = '';
+      card.style.right = '';
+      return;
+    }
+    card.classList.add('tvo-free');
+    var freeX = Math.max(0, box.clientWidth - card.offsetWidth);
+    var freeY = Math.max(0, box.clientHeight - card.offsetHeight);
+    card.style.left = Math.round(dragPos.x * freeX) + 'px';
+    card.style.top = Math.round(dragPos.y * freeY) + 'px';
+    card.style.right = 'auto';
+  }
+
+  function makeDraggable() {
+    var card = root.querySelector('.tvo-whales');
+    var head = card && card.querySelector('.tvo-head');
+    if (!head) return;
+    var drag = null;
+
+    head.addEventListener('pointerdown', function (ev) {
+      if (ev.button !== 0) return;
+      // the whale-arrow hint inside the head stays a button, not a handle
+      if (ev.target && ev.target.closest && ev.target.closest('button')) return;
+      var rect = card.getBoundingClientRect();
+      var boxRect = box.getBoundingClientRect();
+      drag = {
+        id: ev.pointerId,
+        dx: ev.clientX - rect.left,
+        dy: ev.clientY - rect.top,
+        w: rect.width,
+        h: rect.height,
+        boxRect: boxRect
+      };
+      card.classList.add('dragging');
+      try { if (head.setPointerCapture) head.setPointerCapture(ev.pointerId); } catch (e) {}
+      ev.preventDefault();
+    });
+
+    head.addEventListener('pointermove', function (ev) {
+      if (!drag || ev.pointerId !== drag.id) return;
+      var maxX = Math.max(0, drag.boxRect.width - drag.w);
+      var maxY = Math.max(0, drag.boxRect.height - drag.h);
+      var x = Math.max(0, Math.min(maxX, ev.clientX - drag.boxRect.left - drag.dx));
+      var y = Math.max(0, Math.min(maxY, ev.clientY - drag.boxRect.top - drag.dy));
+      card.style.left = Math.round(x) + 'px';
+      card.style.top = Math.round(y) + 'px';
+      card.style.right = 'auto';
+      ev.preventDefault();
+    });
+
+    function endDrag() {
+      if (!drag) return;
+      card.classList.remove('dragging');
+      var maxX = Math.max(0, drag.boxRect.width - drag.w);
+      var maxY = Math.max(0, drag.boxRect.height - drag.h);
+      var x = parseFloat(card.style.left) || 0;
+      var y = parseFloat(card.style.top) || 0;
+      dragPos = { x: maxX > 0 ? x / maxX : 0, y: maxY > 0 ? y / maxY : 0 };
+      try { localStorage.setItem(DRAG_KEY, JSON.stringify(dragPos)); } catch (e) {}
+      drag = null;
+    }
+
+    head.addEventListener('pointerup', endDrag);
+    head.addEventListener('pointercancel', endDrag);
   }
 
   function onMarket(sym, meta) {
@@ -337,6 +433,17 @@
   function init() {
     build();
     if (!root) return;
+
+    dragPos = loadDragPos();
+    makeDraggable();
+    applyDragPos();
+    // The chart box resizes between the TradingView frame and the indicator
+    // panes (and on window resize): keep the parked card inside it.
+    window.addEventListener('resize', applyDragPos);
+    window.addEventListener('chart:refresh', applyDragPos);
+    if (typeof ResizeObserver === 'function') {
+      try { new ResizeObserver(function () { applyDragPos(); }).observe(box); } catch (e) {}
+    }
 
     // One click back to the candle chart, where the whale markers sit on the
     // exact candle the print happened in.
@@ -370,6 +477,23 @@
     window.addEventListener('chart:refresh', function () {
       fetchTape();
       refreshNewsSource();
+    });
+
+    // Buyer/seller pressure aggregated by chart-workspace.js from the open
+    // multi-venue board. It is overlaid on the chart but remains an advisory.
+    window.addEventListener('chart:pressure', function (ev) {
+      var d = (ev && ev.detail) || {};
+      if (d.symbol && !marketMatch(d.symbol, symbol)) return;
+      var el = $('tvo-pressure');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'tvo-pressure';
+        el.className = 'tvo-pressure';
+        box.appendChild(el);
+      }
+      var side = String(d.side || 'WAIT');
+      el.className = 'tvo-pressure ' + side.toLowerCase();
+      el.innerHTML = '<span>BUYER ' + esc(d.buyPct) + '%</span><b>' + esc(side) + '</b><span>SELLER ' + esc(d.sellPct) + '%</span><em>' + esc(d.confidence) + '% confidence · advisory</em>';
     });
 
     setInterval(function () { if (!document.hidden) fetchTape(); }, TAPE_MS);

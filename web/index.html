@@ -14,9 +14,13 @@
     <link rel="stylesheet" href="/static/styles-ultra.css?v=20261025_flowboard3" />
     <link rel="stylesheet" href="/static/styles-mech.css?v=20261018_mktflow" />
     <!-- Clean white & blue glassmorphism theme — must load last so it wins the cascade -->
-    <link rel="stylesheet" href="/static/styles-glass.css?v=20261102_chartfix2" />
+    <link rel="stylesheet" href="/static/styles-glass.css?v=flowdrag2" />
+    <link rel="stylesheet" href="/static/chart-indicators.css?v=drag2" />
     <!-- Full-coverage glass pass: closes the remaining 185 unstyled classes -->
     <link rel="stylesheet" href="/static/styles-glass-v2.css?v=20261030_glassfull1" />
+    <!-- Fullscreen workspace, 24h market-news terminal and chart pressure overlay -->
+    <link rel="stylesheet" href="/static/workspace-enhanced.css?v=20261106_pressuretop2" />
+    <link rel="stylesheet" href="/static/mobile-overflow-fix.css?v=20261106_contain2" />
     <link rel="stylesheet" href="/static/about.css?v=20261030_about3" />
     <link rel="stylesheet" href="/static/extreme-levels.css?v=20261102_levels2" />
   <link rel="icon" type="image/jpeg" href="/static/logo.jpg" />
@@ -314,6 +318,9 @@
                 </div>
               </div>
             </div>
+            <button type="button" class="term-expand-btn" id="binance-term-expand" title="Expand chart + order flow workspace" aria-pressed="false">
+              <span id="b-expand-icon">⛶</span> <span id="b-expand-text">Expand</span>
+            </button>
             <button type="button" class="term-toggle-btn" id="binance-term-toggle" title="Toggle Terminal Visibility">
               <span id="b-toggle-icon">−</span> <span id="b-toggle-text">Collapse</span>
             </button>
@@ -335,6 +342,27 @@
               <span class="b-legend-ind sma25">SMA(25): <strong id="b-sma-25">--</strong></span>
               <span class="b-legend-ind whale-ind" id="b-whale-status" title="Real-time Whale Order Tracking on Candles"><span class="whale-dot"></span> 🐋 Whales: <strong id="b-whale-stat-txt">LIVE</strong></span>
             </div>
+            <!-- Indicator selector for the three /Indicator Pine scripts. The
+                 hosted TradingView embed refuses custom Pine, so a selection
+                 switches to the built-in chart the ported studies draw on. -->
+            <div class="chart-indicator-bar" id="chart-indicator-bar" aria-label="Chart indicators">
+              <span class="chart-ind-kicker">Indicators</span>
+              <button type="button" class="chart-indicator-btn" data-indicator="msb" aria-pressed="false"
+                title="Market Structure Break & Order Block (Indicator/Chart Indicator 1.txt) — zigzag MSB, Bu-OB / Be-OB and break blocks">
+                <span class="chart-ind-dot"></span>MSB · OB
+              </button>
+              <button type="button" class="chart-indicator-btn" data-indicator="wavetrend" aria-pressed="false"
+                title="WaveTrend [LazyBear] (Indicator/chart indicator 2.txt) — WT1 / WT2 with ±53 and ±60 bands">
+                <span class="chart-ind-dot"></span>WaveTrend
+              </button>
+              <button type="button" class="chart-indicator-btn" data-indicator="killzones" aria-pressed="false"
+                title="ICT Killzones & Pivots [TFO] (Indicator/chart indicator 3.txt) — Asia/London/NY session boxes, session pivots, previous day and week levels">
+                <span class="chart-ind-dot"></span>ICT Killzones
+              </button>
+              <span class="chart-indicator-hint"
+                title="The TradingView widget cannot load custom Pine scripts, so the ported indicators draw on the built-in chart">Pine port · built-in chart</span>
+            </div>
+
             <div class="binance-canvas-box" id="binance-canvas-box">
               <canvas id="binance-candlestick-canvas"></canvas>
               <div class="chart-zoom-controls" aria-label="Chart zoom controls">
@@ -379,6 +407,22 @@
                 <span>12 VENUES <b id="vfb-venue-buy">$0.00</b> BUY / <b id="vfb-venue-sell">$0.00</b> SELL</span>
                 <span>BINANCE <b id="vfb-binance-buy">$0.00</b> BUY / <b id="vfb-binance-sell">$0.00</b> SELL</span>
                 <span>TRADERS POSITIONS <b id="vfb-pos-buy">$0.00</b> BUY / <b id="vfb-pos-sell">$0.00</b> SELL</span>
+              </div>
+              <div class="vfb-advisory" id="vfb-advisory" aria-live="polite">
+                <div class="vfb-advisory-main">
+                  <span>FLOW ADVISORY</span><b id="vfb-advisory-side">WAIT</b>
+                  <em id="vfb-advisory-confidence">0% confidence</em>
+                </div>
+                <div class="vfb-advisory-bar"><i id="vfb-advisory-buy"></i></div>
+                <small id="vfb-advisory-reason">Waiting for verified live flow. Estimates are not trade guarantees.</small>
+              </div>
+              <div class="market-news-terminal" id="market-news-terminal" aria-label="Selected market next 24 hour news impact terminal">
+                <div class="mnt-head">
+                  <div><span class="mnt-live"></span><strong id="mnt-market">MARKET</strong> NEWS · NEXT 24H</div>
+                  <span id="mnt-count">0 EVENTS</span>
+                </div>
+                <div class="mnt-legend"><span class="low">LOW</span><span class="medium">MEDIUM</span><span class="high">HIGH</span><em>AI dollar moves are estimates</em></div>
+                <div class="mnt-list" id="mnt-list"><div class="mnt-empty">Loading selected-market impact scan…</div></div>
               </div>
               <div class="vfb-list" id="vfb-list"></div>
               <div class="vfb-foot"><span>12 VENUE 45s FLOW + BINANCE SESSION + TRADERS POSITIONS · READ-ONLY</span><span id="vfb-updated">—</span></div>
@@ -2051,18 +2095,21 @@
     </form>
   </div>
 
-  <script src="/static/softradex-terminal.js?v=20261102_chartfix2"></script>
+  <script src="/static/softradex-terminal.js?v=pane1"></script>
   <script src="/static/chart-news-events.js?v=20261029_news14"></script>
-  <script src="/static/app.js?v=20261101_levels1"></script>
+  <script src="/static/app.js?v=lightdials20261106"></script>
   <script src="/static/traders-terminal.js?v=20261022_globalflow3"></script>
   <script src="/static/binance-order-flow-terminal.js?v=20261025_open14v1"></script>
-  <script src="/static/multi-exchange-order-flow.js?v=20261025_venues8"></script>
+  <script src="/static/multi-exchange-order-flow.js?v=20261106_pressure1"></script>
   <script src="/static/whale-flow.js?v=20261028_cpanel1"></script>
-  <script src="/static/tv-chart.js?v=20261102_chartfix2"></script>
+  <script src="/static/tv-chart.js?v=tvmarket3"></script>
   <!-- Whales + news cards drawn inside the TradingView chart -->
-  <script src="/static/chart-overlay.js?v=20261029_whales2"></script>
+  <script src="/static/chart-overlay.js?v=flowdrag1"></script>
+  <!-- Expanded/fullscreen workspace + selected-market 24h news terminal -->
+  <script src="/static/chart-workspace.js?v=20261106_marketnews1"></script>
   <script src="/static/about-me.js?v=20261030_about1"></script>
   <script src="/static/extreme-levels.js?v=20261102_levels2"></script>
+  <script src="/static/chart-indicators.js?v=kz3"></script>
 </body>
 
 </html>

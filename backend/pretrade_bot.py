@@ -373,12 +373,17 @@ class PreTradeBot:
         return wanted
 
     # ------------------------------------------------------------ exposure
+    # True when the last MT5 exposure read failed. "Unknown" must never be
+    # mistaken for "flat", or the tick arms a second straddle on top of the first.
+    _exposure_unknown = False
+
     def _all_positions(self, any_symbol: bool = False) -> List[Dict[str, Any]]:
         if mt5 is None:
             return []
         try:
             raw = mt5.positions_get(symbol=None if any_symbol else self.symbol) or []
         except Exception:
+            self._exposure_unknown = True
             raw = []
         magic = int(self.cfg.get("magic") or 777004)
         out: List[Dict[str, Any]] = []
@@ -401,6 +406,7 @@ class PreTradeBot:
         try:
             raw = mt5.orders_get()
         except Exception:
+            self._exposure_unknown = True
             return []
         magic = int(self.cfg.get("magic") or 777004)
         out: List[Dict[str, Any]] = []
@@ -912,6 +918,13 @@ class PreTradeBot:
 
         positions = self._all_positions()
         orders = self._all_orders()
+        # A failed MT5 read is unknown, not flat: arming on top of an existing
+        # straddle would rest a second BuyStop/SellStop pair (both legs can then
+        # fill and be closed at the spread loss). Skip this cycle instead.
+        if self._exposure_unknown:
+            self._exposure_unknown = False
+            self._log("warn", "MT5 exposure read failed - tick skipped")
+            return
 
         # 1) stats: opened / externally closed positions
         self._track(positions)

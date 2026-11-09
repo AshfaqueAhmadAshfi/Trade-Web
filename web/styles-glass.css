@@ -1517,7 +1517,48 @@ body {
   letter-spacing: .04em;
   color: #64748b;
   background: #ffffff;
+  z-index: 2;
 }
+/* tv-chart.js keeps the placeholder in the DOM and only lifts it once the
+   embed has actually fired `load`, so a blocked embed can never leave a
+   white-on-white void where the candles should be. */
+#tv-chart-box.tv-frame-ready .tv-chart-placeholder { display: none; }
+
+/* Shown over the built-in chart when the TradingView embed could not load. */
+.binance-chart-wrapper .tv-offline-notice {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translate(-50%, -8px);
+  z-index: 9;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  background: rgba(255, 251, 235, 0.96);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 12px 26px -20px rgba(15, 23, 42, 0.55);
+  color: #92400e;
+  font: 700 10px/1.35 "JetBrains Mono", monospace;
+  pointer-events: auto;
+}
+.binance-chart-wrapper .tv-offline-notice.show { display: flex; }
+.binance-chart-wrapper .tv-offline-notice .tv-offline-icon { font-size: 12px; }
+.binance-chart-wrapper .tv-offline-notice .tv-offline-retry {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(217, 119, 6, 0.45);
+  background: #fff7ed;
+  color: #9a3412;
+  font: 800 9px "JetBrains Mono", monospace;
+  cursor: pointer;
+}
+.binance-chart-wrapper .tv-offline-notice .tv-offline-retry:hover { background: #ffedd5; }
 .binance-chart-wrapper.tv-mode #tv-chart-box { display: block; }
 .binance-chart-wrapper.tv-mode .binance-canvas-box,
 .binance-chart-wrapper.tv-mode .binance-chart-legend { display: none; }
@@ -1533,46 +1574,6 @@ body {
 #dash .tv-chart-btn.tv-na { opacity: 0.5; }
 #dash .tv-chart-icon { font-size: 12px; }
 
-#dash .tv-cross-badge {
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  min-width: 154px;
-  min-height: 34px;
-  padding: 5px 9px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #f8fafc;
-  color: #475569;
-  font-family: "JetBrains Mono", monospace;
-  line-height: 1.1;
-  box-sizing: border-box;
-}
-#dash .tv-cross-badge .tv-cross-label {
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: .04em;
-}
-#dash .tv-cross-badge .tv-cross-sub {
-  color: #64748b;
-  font-size: 8px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-#dash .tv-cross-badge.golden {
-  border-color: #eab308;
-  background: #fef9c3;
-  color: #854d0e;
-}
-#dash .tv-cross-badge.golden .tv-cross-sub { color: #a16207; }
-#dash .tv-cross-badge.death {
-  border-color: #ef4444;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-#dash .tv-cross-badge.death .tv-cross-sub { color: #dc2626; }
-#dash .tv-cross-badge.pending { opacity: .7; }
 
 /* ------------------------------------------- chart overlay: whales + news ---
    chart-overlay.js puts these two cards INSIDE the TradingView chart box: the
@@ -1603,6 +1604,14 @@ body {
 }
 #tv-chart-box .tvo-whales { top: 8px; right: 72px; }
 #tv-chart-box .tvo-news { bottom: 34px; left: 8px; }
+
+/* LARGE FLOW is draggable: its header is the grip and the parked spot is kept
+   (chart-overlay.js writes left/top and the tvo-free class). */
+#tv-chart-box .tvo-whales.tvo-free { right: auto; bottom: auto; }
+#tv-chart-box .tvo-whales .tvo-head { pointer-events: auto; }
+#tv-chart-box .tvo-whales .tvo-head { cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; }
+#tv-chart-box .tvo-whales.dragging .tvo-head { cursor: grabbing; }
+#tv-chart-box .tvo-whales.dragging { z-index: 6; box-shadow: 0 18px 38px -18px rgba(15, 23, 42, 0.6); }
 
 #tv-chart-box .tvo-head {
   display: flex;
@@ -1714,6 +1723,9 @@ body {
    becomes readable at a glance. Gold = MA9 above MA21, red = below. */
 #dash .tv-cross-badge {
   display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 250px;
   flex-direction: column;
   gap: 1px;
   padding: 4px 11px;
@@ -1728,11 +1740,15 @@ body {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #dash .tv-cross-badge .tv-cross-sub {
   font-size: 9px;
   font-weight: 700;
   opacity: 0.82;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #dash .tv-cross-badge.golden {
   background: #f8fafc;
@@ -1759,3 +1775,129 @@ body {
 @media (max-width: 700px) {
   #dash .tv-cross-badge { display: none; }
 }
+
+/* ==================================================== LAYOUT SAFETY PASS ----
+   Two horizontal-overflow defects pushed dashboard content past the right edge
+   of the window, so the DEATH CROSS chip and the order-flow sidebar could only
+   be reached by scrolling sideways:
+
+   (1) #market-ticker-bar is width:100% while the glass theme adds 16px side
+       margins, making the strip viewport+32px wide at every screen size.
+   (2) The chart toolbar kept the price strip, timeframe tabs, TradingView
+       toggle, crossover chip, open-volume chips and Collapse button in one
+       nowrap row, and the workspace grid track was plain 1fr (whose automatic
+       minimum is the chart's min-content), so a wider font metric or browser
+       zoom pushed the trailing chips outside the viewport instead of wrapping
+       them. */
+#app > .market-ticker-bar {
+  width: auto !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  align-self: stretch;
+}
+#dash .softradex-term-topbar,
+#dash .binance-term-topbar {
+  flex-wrap: wrap !important;
+  row-gap: 6px;
+  column-gap: 10px;
+  min-width: 0;
+}
+#dash .binance-term-topbar > * { min-width: 0; }
+#dash .binance-term-actions {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 4px;
+  column-gap: 8px;
+  min-width: 0;
+}
+#dash .binance-open-vol-strip { flex-wrap: wrap; min-width: 0; }
+#dash .binance-term-workspace,
+#dash .softradex-term-workspace {
+  grid-template-columns: minmax(0, 1fr) 430px !important;
+}
+#dash .binance-chart-wrapper,
+#dash .binance-book-sidebar { min-width: 0; }
+@media (max-width: 1200px) {
+  #dash .binance-term-workspace,
+  #dash .softradex-term-workspace {
+    grid-template-columns: minmax(0, 1fr) 380px !important;
+  }
+}
+@media (max-width: 900px) {
+  #dash .binance-term-workspace,
+  #dash .softradex-term-workspace {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* ================================================================= LIGHT DIALS
+   The pressure dial face and the AI-direction pills were still painted with
+   the dark mechanical skin (near-black gradients + light text) inside an
+   otherwise white glass dashboard, so the readings were unreadable. These are
+   the same widgets on a white machine face. */
+#dash .watch-case {
+  background: linear-gradient(180deg, #ffffff 0%, #f5f9fd 62%, #e9f0f9 100%) !important;
+  border: 1px solid rgba(37, 99, 235, 0.16) !important;
+  box-shadow: inset 0 1px 0 #ffffff, 0 12px 26px -22px rgba(15, 23, 42, 0.4) !important;
+}
+#dash .watch-bezel {
+  background: radial-gradient(circle at 50% 42%, #ffffff 0%, #f7fbff 64%, #e8f0fa 100%) !important;
+  border: 1px solid rgba(37, 99, 235, 0.12) !important;
+  box-shadow: inset 0 0 22px rgba(37, 99, 235, 0.06) !important;
+}
+#dash .watch-bezel-rim { border: 1px dashed rgba(15, 23, 42, 0.16) !important; }
+#dash .watch-glass-sheen {
+  background: radial-gradient(ellipse at 34% 22%, rgba(255, 255, 255, 0.85) 0%, transparent 62%) !important;
+}
+#dash .watch-hand-counterweight {
+  background: linear-gradient(180deg, #e2e8f0, #cbd5e1) !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+}
+#dash .lance-core { background: #0f172a; }
+#dash .vu-meter-rack {
+  background: rgba(226, 232, 240, 0.55) !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08) !important;
+}
+#dash .machine-specs-row {
+  background: #f8fafc !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+}
+/* gauge etchings: light-on-dark text reversed for the white face */
+#dash .gauge-tech-hash { fill: #94a3b8 !important; }
+#dash .gauge-label-buy { fill: #059669 !important; }
+#dash .gauge-sub-buy { fill: #047857 !important; }
+#dash .gauge-label-sell { fill: #dc2626 !important; }
+#dash .gauge-sub-sell { fill: #b91c1c !important; }
+#dash .gauge-center-zero { fill: #0284c7 !important; }
+
+/* AI direction pills */
+#dash .outlook-pill {
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+#dash .outlook-pill b { color: #0f172a !important; }
+#dash .outlook-pill span,
+#dash .outlook-pill em,
+#dash .outlook-pill small { color: inherit !important; }
+#dash .outlook-pill.buy { background: #ecfdf5 !important; border-color: rgba(5, 150, 105, 0.35) !important; }
+#dash .outlook-pill.sell { background: #fef2f2 !important; border-color: rgba(220, 38, 38, 0.35) !important; }
+#dash .outlook-pill.mixed { background: #fffbeb !important; border-color: rgba(245, 158, 11, 0.38) !important; }
+#dash .outlook-pill.buy .outlook-verdict { color: #047857 !important; }
+#dash .outlook-pill.sell .outlook-verdict { color: #b91c1c !important; }
+#dash .outlook-pill.mixed .outlook-verdict { color: #b45309 !important; }
+#dash .outlook-count { color: #64748b !important; }
+#dash .outlook-date-row { background: transparent !important; }
+
+/* ============================================== ORDER-FLOW TERMINAL HEIGHT
+   Each exchange terminal was a fixed 330px box while its tape only ever holds
+   a handful of prints, so scrolling to the bottom left a big empty strip
+   inside the card - very visible once the skin is white. A quiet card is now
+   only as tall as its prints; a busy one is capped and its tape scrolls. */
+.multi-order-flow-grid { align-items: start; }
+.multi-order-flow-terminal { height: auto; max-height: 330px; }
+.multi-order-flow-terminal .mof-tape { flex: 0 1 auto; }

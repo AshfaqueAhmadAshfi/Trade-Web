@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import csv
 import hashlib
+import hmac
 import io
 import json
 import os
@@ -28,6 +29,7 @@ if __package__ in (None, ""):
     from backend.chart_feed import ChartUnavailable, TF_SEC as CHART_TFS, get_feed
     from backend import bd_feed
     from backend import order_flow_feed as order_flow
+    from backend import webauth
 else:
     from . import config as cfg
     from .engine import Engine
@@ -37,6 +39,7 @@ else:
     from .chart_feed import ChartUnavailable, TF_SEC as CHART_TFS, get_feed
     from . import bd_feed
     from . import order_flow_feed as order_flow
+    from . import webauth
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
@@ -248,6 +251,28 @@ app = FastAPI(title=cfg.APP_NAME, version=cfg.VERSION, docs_url="/api/docs",
 
 
 @app.middleware("http")
+async def require_dashboard_session(request: Request, call_next):
+    """C1: every state-changing API call needs a logged-in dashboard session.
+
+    These routes place, modify and close real orders, and until now the only
+    check was a literal string inside web/app.js - i.e. no check at all for
+    anyone who reads the source or simply posts to the URL. See
+    backend/webauth.py for when the gate is on (always, once the server is not
+    bound to loopback).
+    """
+    path = request.url.path
+    if path.startswith("/api") and webauth.is_mutating(request.method, path) \
+            and webauth.auth_required(cfg.CONFIG.get):
+        token = webauth.token_from_cookie(request.headers.get("cookie", ""))
+        if not webauth.session_valid(token):
+            return JSONResponse(
+                {"ok": False, "error": "unauthorized",
+                 "detail": "Dashboard login required - POST /api/login"},
+                status_code=401)
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def add_no_cache_headers(request: Request, call_next):
     response = await call_next(request)
     if request.url.path.startswith("/static"):
@@ -269,7 +294,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 @app.get("/api/config")
-async def api_config() -> Dict[str, Any]:
+async def api_config(request: Request = None) -> Dict[str, Any]:
     # the lookup can hit a (rate-limited) full drive scan - keep it off the
     # event loop so the dashboard never stalls while it runs. A hosted
     # deployment has no terminal at all, so it skips the scan entirely.
@@ -301,18 +326,76 @@ async def api_config() -> Dict[str, Any]:
         "servers": cfg.EXNESS_SERVERS,
         "common_servers": cfg.server_list(),
         "known_servers": cfg.known_servers(),
+        # C1: the dashboard needs to know whether its password gate is enforced
+        # server-side now, so the unlock dialog can call POST /api/login.
+        **_auth_state(request),
     }
 
 
 @app.post("/api/ea-token")
-async def api_ea_token() -> Dict[str, Any]:
+async def api_ea_token(request: Request) -> Dict[str, Any]:
     """EA bridge token for the DashboardBridge inputs.
 
-    POST-only on purpose: a cross-origin page cannot send a JSON body without a
-    preflight (there is no CORS middleware), so the token cannot be skimmed by
-    drive-by scripts the way it could from a plain GET.
+    C2: this used to answer the secret to any caller on the internet, which
+    turned the token that guards /api/ea/event into public information. It now
+    requires the same dashboard session as every other privileged call; the
+    token is also printed (masked) at startup and stored in config/config.json,
+    which is where an operator setting up the EA should read it from.
     """
-    return {"ea_secret": cfg.CONFIG.get("ea_secret", "")}# ------------------------------------------------------------------ news
+    if webauth.auth_required(cfg.CONFIG.get) and not webauth.session_valid(
+            webauth.token_from_cookie(request.headers.get("cookie", ""))):
+        raise HTTPException(401, "Dashboard login required")
+    return {"ea_secret": cfg.CONFIG.get("ea_secret", "")}
+
+
+# ------------------------------------------------------------ dashboard login
+def _auth_state(request: Optional[Request]) -> Dict[str, Any]:
+    required = webauth.auth_required(cfg.CONFIG.get)
+    token = webauth.token_from_cookie(request.headers.get("cookie", "")) if request else ""
+    return {"auth_required": bool(required), "authed": bool(token) and webauth.session_valid(token)}
+
+
+@app.get("/api/auth")
+async def api_auth(request: Request) -> Dict[str, Any]:
+    """Does this browser need to log in, and is its session still valid?"""
+    return {"ok": True, **_auth_state(request), "ttl_sec": webauth.SESSION_TTL_SEC}
+
+
+@app.post("/api/login")
+async def api_login(request: Request, payload: Dict[str, Any] = Body(default={})) -> Dict[str, Any]:
+    """Turns the dashboard password into an HttpOnly session cookie.
+
+    The password itself lives in config/config.json (``dashboard_password``,
+    default "0186"); the EA bridge token is accepted as an equivalent
+    credential because an operator who can configure the EA can configure this.
+    """
+    ip = webauth.client_ip(request.headers, request.client.host if request.client else "")
+    if webauth.too_many_failures(ip):
+        return {"ok": False, "error": "too many attempts - wait 5 minutes"}
+    if not webauth.password_ok(str(payload.get("password", "")), cfg.CONFIG.get):
+        webauth.note_failure(ip)
+        return {"ok": False, "error": "incorrect password"}
+    webauth.note_success(ip)
+    response = JSONResponse({"ok": True, "auth_required": True, "authed": True,
+                             "ttl_sec": webauth.SESSION_TTL_SEC})
+    # https_only=False keeps a local http://127.0.0.1 session usable; behind
+    # Caddy/https the browser will still send it, and SameSite=Lax plus no CORS
+    # is what stops a third-party page from riding along.
+    response.set_cookie(key=webauth.COOKIE_NAME, value=webauth.login(cfg.CONFIG.get),
+                        max_age=webauth.SESSION_TTL_SEC, httponly=True, samesite="lax",
+                        secure=bool(request.url.scheme == "https"), path="/")
+    return response
+
+
+@app.post("/api/logout")
+async def api_logout(request: Request) -> Dict[str, Any]:
+    webauth.logout(webauth.token_from_cookie(request.headers.get("cookie", "")))
+    response = JSONResponse({"ok": True})
+    response.delete_cookie(webauth.COOKIE_NAME, path="/")
+    return response
+
+
+# ------------------------------------------------------------------ news
 # The economic calendar is ~1 MB of 460 headlines and it used to ride along on
 # every /api/state poll (2.5 s) - on cPanel that is a megabyte every two and a
 # half seconds, which is what made the dashboard crawl. The browser keeps the
@@ -872,15 +955,25 @@ async def api_bot7_close() -> Dict[str, Any]:
 
 # --------------------------------------------------------------- EA bridge
 def _check_secret(request: Request, payload: Optional[Dict[str, Any]] = None) -> bool:
-    secret = cfg.CONFIG.get("ea_secret", "")
+    """EA bridge authentication (header first, query string last).
+
+    Two fixes over the original: an unset secret no longer means "allow" (it
+    fails closed, because a blank `ea_secret` silently opened the bridge to
+    anyone), and the comparison is constant-time. The query-string form is kept
+    for the minimal MQL5 WebRequest, but a secret in a URL also lands in access
+    logs, so the header is preferred and documented as such.
+    """
+    secret = str(cfg.CONFIG.get("ea_secret", "") or "")
     if not secret:
-        return True
+        return False
     supplied = request.headers.get("x-ea-token") or request.headers.get("x-ea-secret")
     if not supplied and payload:
         supplied = payload.get("secret")
     if not supplied:
         supplied = request.query_params.get("secret")
-    return bool(supplied) and supplied == secret
+    if not supplied:
+        return False
+    return hmac.compare_digest(str(supplied), secret)
 
 
 @app.post("/api/ea/event")
@@ -897,15 +990,26 @@ async def api_ea_event_get(request: Request) -> Dict[str, Any]:
         raise HTTPException(401, "invalid EA token")
     q = dict(request.query_params)
     payload: Dict[str, Any] = {"type": q.get("type", "heartbeat")}
+    # H10: tickets, position ids and magics are integral identifiers. Coercing
+    # them to float here made engine._do_ea_event write "123456789.0" into
+    # store.upsert_trades, whose row key is (account, position_id) - so the same
+    # closed trade was stored twice and its net_profit was counted twice in
+    # /api/history, the stats and the CSV export.
+    int_keys = ("ticket", "position_id", "magic", "time", "open_time", "close_time")
+    float_keys = ("profit", "commission", "swap", "net_profit", "volume", "price",
+                  "price_open", "open_price", "close_price", "sl", "tp")
     for k, v in q.items():
         if k in ("type", "secret"):
             continue
-        if k in ("profit", "commission", "swap", "net_profit", "volume", "price", "price_open",
-                 "open_price", "close_price", "sl", "tp", "ticket", "position_id", "magic", "time",
-                 "open_time", "close_time"):
+        if k in int_keys:
+            try:
+                payload[k] = int(float(v))
+            except (TypeError, ValueError):
+                payload[k] = v
+        elif k in float_keys:
             try:
                 payload[k] = float(v)
-            except ValueError:
+            except (TypeError, ValueError):
                 payload[k] = v
         else:
             payload[k] = v

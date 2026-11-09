@@ -1483,6 +1483,9 @@ class NewsBot:
         self._active: Dict[str, Any] = {}      # the trade currently being managed
         self._bias: Dict[str, Any] = {}        # last computed bias + reason
         self._known_positions: Dict[int, Dict[str, Any]] = {}
+        # tickets this bot closed itself -> _track must not book them a second
+        # time (closed / wins / realized were inflated ~2x on every scheduled exit)
+        self._self_closed: set = set()
         self._plan: str = ""                   # human readable "what happens next"
         self._last_decision_ts: float = 0.0
         self._exit_at: float = 0.0             # when the current news trade must end
@@ -1818,6 +1821,10 @@ class NewsBot:
             return False
         if retcode in RETCODE_SUCCESS:
             net = float(p.get("net") or 0.0)
+            try:
+                self._self_closed.add(int(ticket))
+            except (TypeError, ValueError):
+                pass
             self.stats["closed"] += 1
             self.stats["realized"] = round(float(self.stats.get("realized") or 0.0) + net, 2)
             if net >= 0:
@@ -2324,14 +2331,18 @@ class NewsBot:
         for ticket, p in list(self._known_positions.items()):
             if ticket not in current:
                 net = float(p.get("net") or 0.0)
-                self.stats["closed"] += 1
-                self.stats["realized"] = round(float(self.stats.get("realized") or 0.0) + net, 2)
-                if net >= 0:
-                    self.stats["wins"] += 1
-                    self._log("success", f"News trade won {net:+.2f}")
+                if ticket in self._self_closed:
+                    # already counted in _close_position
+                    self._self_closed.discard(ticket)
                 else:
-                    self.stats["losses"] += 1
-                    self._log("warn", f"News trade lost {net:+.2f}")
+                    self.stats["closed"] += 1
+                    self.stats["realized"] = round(float(self.stats.get("realized") or 0.0) + net, 2)
+                    if net >= 0:
+                        self.stats["wins"] += 1
+                        self._log("success", f"News trade won {net:+.2f}")
+                    else:
+                        self.stats["losses"] += 1
+                        self._log("warn", f"News trade lost {net:+.2f}")
                 if self._active.get("ticket") == ticket:
                     self._active = {}
         self._known_positions = current

@@ -1263,15 +1263,15 @@ function generateGaugeSvg(sym, dominant, buyerPct, sellerPct) {
       </defs>
 
       <!-- Recessed Machine Guide Channel -->
-      <path d="M 35.7 71.3 A 82 82 0 0 1 184.3 71.3" fill="none" stroke="rgba(15, 23, 42, 0.95)" stroke-width="13" stroke-linecap="round" />
-      <path d="M 35.7 71.3 A 82 82 0 0 1 184.3 71.3" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1.2" stroke-linecap="round" />
+      <path d="M 35.7 71.3 A 82 82 0 0 1 184.3 71.3" fill="none" stroke="rgba(203, 213, 225, 0.95)" stroke-width="13" stroke-linecap="round" />
+      <path d="M 35.7 71.3 A 82 82 0 0 1 184.3 71.3" fill="none" stroke="rgba(15, 23, 42, 0.07)" stroke-width="1.2" stroke-linecap="round" />
 
       <!-- Glowing High-Voltage Pressure Arcs -->
       <path d="M 35.7 71.3 A 82 82 0 0 1 110 24" fill="none" stroke="url(#mGradBuy)" stroke-width="8" stroke-linecap="round" filter="url(#mGlowGreen)" opacity="1" />
       <path d="M 110 24 A 82 82 0 0 1 184.3 71.3" fill="none" stroke="url(#mGradSell)" stroke-width="8" stroke-linecap="round" filter="url(#mGlowRed)" opacity="1" />
 
       <!-- Concentric Micro-Track -->
-      <path d="M 42 75 A 72 72 0 0 1 178 75" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1" stroke-dasharray="3 3" />
+      <path d="M 42 75 A 72 72 0 0 1 178 75" fill="none" stroke="rgba(15, 23, 42, 0.12)" stroke-width="1" stroke-dasharray="3 3" />
 
       <!-- Precision Radiated Ticks -->
       ${ticksSvg}

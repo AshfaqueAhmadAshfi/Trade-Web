@@ -136,6 +136,15 @@ def _as_dict(obj: Any) -> Dict[str, Any]:
         return {}
 
 
+def _f(v, default: float) -> float:
+    """Safe numeric coercion: a bad UI value must degrade, never raise out of
+    update_config (that would skip every later tick while still showing running)."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return float(default)
+
+
 class GoldBot:
     """The strategy. One instance lives on the engine thread."""
 
@@ -192,13 +201,16 @@ class GoldBot:
             self.symbol_ok = False
             self._resolve_ts = 0.0
             self._last_bar = 0
-        # numeric sanity
-        self.cfg["lot"] = self._round_lot(float(self.cfg.get("lot") or 0.01))
-        self.cfg["distance"] = max(float(self.cfg.get("distance") or 2.0), 0.1)
-        self.cfg["sl_distance"] = max(float(self.cfg.get("sl_distance") or 0.0), 0.0)
-        self.cfg["lock_trigger"] = max(float(self.cfg.get("lock_trigger") or 0.0), 0.0)
-        self.cfg["lock_amount"] = max(float(self.cfg.get("lock_amount") or 0.0), 0.0)
-        self.cfg["trail_start"] = max(float(self.cfg.get("trail_start") or 0.0), 0.0)
+        # numeric sanity (safe coercion - see _f)
+        self.cfg["lot"] = self._round_lot(_f(self.cfg.get("lot"), 0.01))
+        self.cfg["distance"] = max(_f(self.cfg.get("distance"), 2.0), 0.1)
+        self.cfg["sl_distance"] = max(_f(self.cfg.get("sl_distance"), 0.0), 0.0)
+        self.cfg["lock_trigger"] = max(_f(self.cfg.get("lock_trigger"), 0.0), 0.0)
+        self.cfg["lock_amount"] = max(_f(self.cfg.get("lock_amount"), 0.0), 0.0)
+        self.cfg["trail_start"] = max(_f(self.cfg.get("trail_start"), 0.0), 0.0)
+        # magic 0 disabled the ownership filter, so Bot 1 adopted and closed
+        # every other bot's positions. Every other module coerces to 77700x.
+        self.cfg["magic"] = int(_f(self.cfg.get("magic"), 777001)) or 777001
         return dict(self.cfg)
 
     def _round_lot(self, lot: float) -> float:
@@ -440,12 +452,17 @@ class GoldBot:
         return 2
 
     # ------------------------------------------------------------- exposure
+    # True when the last MT5 exposure read failed. "Unknown" must never be
+    # mistaken for "flat", or the tick arms a second straddle on top of the first.
+    _exposure_unknown = False
+
     def _all_positions(self, any_symbol: bool = False) -> List[Dict[str, Any]]:
         if mt5 is None:
             return []
         try:
             raw = mt5.positions_get()
         except Exception:
+            self._exposure_unknown = True
             return []
         out = []
         magic = int(self.cfg.get("magic") or 0)
@@ -469,6 +486,7 @@ class GoldBot:
         try:
             raw = mt5.orders_get()
         except Exception:
+            self._exposure_unknown = True
             return []
         out = []
         magic = int(self.cfg.get("magic") or 0)
@@ -515,6 +533,13 @@ class GoldBot:
 
         positions = self._all_positions()
         orders = self._all_orders()
+        # A failed MT5 read is unknown, not flat: arming on top of an existing
+        # straddle would rest a second BuyStop/SellStop pair (both legs can then
+        # fill and be closed at the spread loss). Skip this cycle instead.
+        if self._exposure_unknown:
+            self._exposure_unknown = False
+            self._log("warn", "MT5 exposure read failed - tick skipped")
+            return
 
         # safety: never run Buy and Sell at the same time. If both legs filled
         # together, wipe them and arm a fresh straddle (same rule as an SL hit).
@@ -719,6 +744,21 @@ class GoldBot:
 
     # --------------------------------------------------------------- trades
     def _arm(self) -> None:
+        # Re-verify exposure here as well: tick() already skips an unknown read,
+        # but _arm() is also reachable straight after a config change, and a
+        # second BuyStop/SellStop pair on top of a live one ends with both legs
+        # filled and closed at the spread loss.
+        positions = self._all_positions()
+        orders = self._all_orders()
+        unknown = self._exposure_unknown
+        self._exposure_unknown = False
+        if unknown:
+            self._log("warn", "arm skipped - MT5 exposure could not be read")
+            return
+        if positions or orders:
+            self._log("warn", f"arm skipped - {len(positions)} position(s) and "
+                              f"{len(orders)} pending order(s) already open")
+            return
         sym = self.symbol
         try:
             info = mt5.symbol_info(sym)

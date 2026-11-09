@@ -779,7 +779,17 @@ def _get_all_market_watches_locked(custom_symbols: Optional[List[str]] = None, f
 
     # Calculate watch data for each symbol (top 10 covers both 5-market rows;
     # the flow-selected extras follow right after them)
-    watches = [_calculate_symbol_watch_locked(s)
+    # H9: the stale-tick check compares MT5 tick.time (broker server clock)
+    # against a reference. It used to receive None, which fell back to the UTC
+    # wall clock, so the difference was always negative and a halted feed kept
+    # reporting OPEN. Pass the broker's own clock instead.
+    ref_now = 0.0
+    if mt5 is not None:
+        try:
+            ref_now = float(mt5.server_now() or 0.0)
+        except Exception:
+            ref_now = 0.0
+    watches = [_calculate_symbol_watch_locked(s, max_ref_time=ref_now)
                for s in ordered_syms[:dial_count]]
 
     market_statuses: Dict[str, Dict[str, Any]] = {}

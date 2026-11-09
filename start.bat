@@ -1,56 +1,52 @@
 @echo off
 REM ============================================================
-REM  Exness Trading Dashboard - one click launcher
+REM  SoftradeX Trade - one click launcher
+REM  Double-click to run. The very first time it will call
+REM  setup.bat automatically (needs internet, a few minutes),
+REM  then starts the dashboard and opens your browser.
+REM  Stop the app by closing this window (Ctrl+C also works).
 REM ============================================================
-setlocal
+setlocal EnableExtensions
 cd /d "%~dp0"
-title Exness Trading Dashboard
+title SoftradeX Trade
 
-REM the project venv wins if it exists - a system Python without the project's
-REM pinned dependencies must never be preferred over it
-set "PY="
-for %%P in (
-  "%~dp0.venv\Scripts\python.exe"
-  "C:\Python312\python.exe"
-  "C:\Python311\python.exe"
-  "C:\Python310\python.exe"
-  "%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
-  "%LOCALAPPDATA%\Programs\Python\Python313\python.exe"
-  "%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
-  "%USERPROFILE%\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe"
-) do (
-  if not defined PY if exist %%P set "PY=%%~P"
+set "VPY=%~dp0.venv\Scripts\python.exe"
+
+REM ---------- first run: set the app up automatically ----------
+if not exist "%VPY%" (
+  echo   First run detected - preparing the app, one moment...
+  echo.
+  call setup.bat auto
+  if errorlevel 1 (
+    echo.
+    echo   [X] Setup failed. Open setup.bat to see the reason.
+    pause
+    exit /b 1
+  )
+  echo.
 )
 
-if not defined PY (
-  py -3.12 -c "import sys" >nul 2>nul && set "PY=py -3.12"
-)
-if not defined PY (
-  py -3 -c "import sys" >nul 2>nul && set "PY=py -3"
-)
-if not defined PY (
-  python -c "import sys" >nul 2>nul && set "PY=python"
-)
-if not defined PY (
-  echo.
-  echo   Python 3 was not found on this PC.
-  echo   Install it from https://www.python.org/downloads/ and run this file again.
-  echo.
+REM ---------- read the dashboard port from config ----------
+set "PORT=8777"
+for /f "usebackq delims=" %%P in (`"%VPY%" -c "import json;print(json.load(open(r'config\config.json',encoding='utf-8')).get('port',8777))" 2^>nul`) do set "PORT=%%P"
+
+REM ---------- already running? just open the browser ----------
+"%VPY%" -c "import socket;socket.create_connection(('127.0.0.1',%PORT%),1).close()" >nul 2>nul
+if not errorlevel 1 (
+  echo   SoftradeX Trade is already running on port %PORT%.
+  start "" "http://127.0.0.1:%PORT%/"
   pause
-  exit /b 1
+  exit /b 0
 )
 
-echo   Using Python: %PY%
-REM verify every runtime dependency, not just the two obvious ones - a
-REM partially provisioned interpreter must not pass and crash later
-%PY% -c "import fastapi, uvicorn, websockets, MetaTrader5" >nul 2>nul
-if errorlevel 1 (
-  echo   Installing required packages (first run only)...
-  %PY% -m pip install --disable-pip-version-check -r requirements.txt
-)
+REM ---------- open the browser as soon as the server is up ----------
+start "" /min powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=%PORT%;for($i=0;$i -lt 60;$i++){try{$c=New-Object Net.Sockets.TcpClient;$c.Connect('127.0.0.1',$p);$c.Close();break}catch{Start-Sleep -Milliseconds 500}};Start-Process ('http://127.0.0.1:'+$p+'/')"
 
+echo   Starting SoftradeX Trade on http://127.0.0.1:%PORT%/ ...
+echo   Keep this window open while the app runs; close it to stop.
 echo.
-%PY% "backend\app.py"
+"%VPY%" "backend\app.py"
+
 echo.
 echo   Dashboard stopped.
 pause

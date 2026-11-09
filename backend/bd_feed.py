@@ -439,7 +439,10 @@ def session_info(ts: Optional[float] = None) -> Dict[str, Any]:
         for d in range(span_days, span_days + 7):
             day2 = day + d
             if not _is_weekend(day2):
-                cand = (day2 + 1) * 86400 - BDT_OFFSET + target
+                # day2 is already the Dhaka local day index, and a Dhaka day
+                # starts at day*86400 - BDT_OFFSET. The +1 here made every
+                # countdown 24 h late and skipped the Sunday session.
+                cand = day2 * 86400 - BDT_OFFSET + target
                 if cand > t:
                     return int(cand)
         return int(t + 86400)

@@ -1126,6 +1126,11 @@ class ChartFeed:
             "last_print": 0.0,
             "pending": deque(maxlen=20),
             "prints": deque(maxlen=80),
+            # H6: the 10 fps sampler thread writes this deque while /api/chart/tape
+            # reads it from the event loop. Once it is full, appendleft pops the
+            # tail in the middle of list(), which raised
+            # RuntimeError: deque mutated during iteration -> intermittent 500s.
+            "prints_lock": threading.Lock(),
             "print_id": 0,
         }
         self._states[symbol] = state
@@ -1211,7 +1216,8 @@ class ChartFeed:
                 "mv": _round_price(abs(move), digits),
                 "src": "live",
             }
-            state["prints"].appendleft(print_row)
+            with state["prints_lock"]:
+                state["prints"].appendleft(print_row)
             state["pending"].append({
                 "id": pid,
                 "at": now,
@@ -1261,7 +1267,8 @@ class ChartFeed:
         state = self._states.get(symbol)
         if not state:
             return []
-        return list(state["prints"])[:limit]
+        with state["prints_lock"]:
+            return list(state["prints"])[:limit]
 
 
 _FEED: Optional[ChartFeed] = None

@@ -1,0 +1,27 @@
+/* Final containment pass: legacy dashboard sections have fixed/min-content widths.
+   Keep the normal page inside the viewport; expanded workspace already has its
+   own stronger sizing rules in workspace-enhanced.css. */
+html,body,#app,#dash{max-width:100%;overflow-x:clip}
+#dash>*{max-width:100%;min-width:0}
+#dash .flow,#dash .flow-stage,#dash .panel,#dash .account-strip,#dash .perf-grid,#dash .perf-table-wrap,#dash .sessions-board,#dash .sess-row{min-width:0;max-width:100%}
+#dash .sess-row.live.peak{width:100%;box-sizing:border-box}
+@media(max-width:900px){
+  #dash{width:100%!important;min-width:0!important;padding-left:8px!important;padding-right:8px!important;box-sizing:border-box!important}
+  #dash .softradex-terminal-section,#dash .binance-terminal-section{width:100%!important;min-width:0!important;max-width:100%!important}
+  #dash .binance-term-topbar,#dash .binance-term-actions{width:100%!important;min-width:0!important;max-width:100%!important;flex-wrap:wrap!important}
+  #dash .binance-symbol-tabs{width:100%!important;min-width:0!important;overflow-x:auto!important;overflow-y:hidden!important}
+  #dash .binance-term-workspace{width:100%!important;min-width:0!important;max-width:100%!important;grid-template-columns:minmax(0,1fr)!important}
+  #dash .binance-chart-wrapper,#dash .binance-book-sidebar,#dash .venue-flow-board{width:100%!important;min-width:0!important;max-width:100%!important}
+  #dash .account-strip,#dash .flow,#dash .perf-grid,#dash .positions-grid,#dash .sessions-board{width:100%!important;min-width:0!important;max-width:100%!important}
+}
+@media(max-width:480px){
+  #dash{padding-left:4px!important;padding-right:4px!important}
+  #dash .binance-chart-wrapper{height:420px!important;min-height:420px!important}
+  #dash .binance-book-sidebar{height:520px!important;min-height:420px!important;overflow:auto!important}
+  /* A 238px LARGE FLOW card plus a centred pressure badge cannot share the top
+     of a 358px chart: keep the badge on the very top and push the card below
+     it instead of letting them overlap at 375px. */
+  #dash #tv-chart-box .tvo-pressure{top:8px!important;font-size:7px!important;gap:4px!important;max-width:82%;white-space:nowrap}
+  #dash #tv-chart-box .tvo-whales{top:58px!important}
+  #dash .mnt-row{grid-template-columns:52px 38px minmax(0,1fr) 32px 44px!important}
+}

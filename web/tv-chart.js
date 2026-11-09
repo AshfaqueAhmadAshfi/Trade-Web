@@ -22,7 +22,17 @@
   'use strict';
 
   var STORAGE_KEY = 'softradex.chart.tv';   // '1' TradingView, '0' built-in
-  var FRAME_BASE = 'https://www.tradingview-widget.com/embed-widget/advanced-chart/?locale=en#';
+  var FRAME_BASE = 'https://www.tradingview-widget.com/embed-widget/advanced-chart/';
+
+  // The frame is third-party: when it is blocked (ISP/regional filtering, a
+  // captive portal, an ad-blocker, no internet) it either never fires `load`
+  // or fires it over TradingView's own error page. Both used to leave the
+  // chart slot empty forever with the toggle still reading "ON", so the embed
+  // is now watched: no answer inside LOAD_TIMEOUT_MS = fall back to the
+  // built-in candle chart and say why.
+  var LOAD_TIMEOUT_MS = 12000;
+  var RETRY_AFTER_MS = 60000;   // automatic second chance after a failure
+  var MAX_AUTO_RETRIES = 2;     // then only the Retry button / toggle retries
 
   function $(id) { return document.getElementById(id); }
 
@@ -124,10 +134,13 @@
   }
 
   // The embed reads its whole configuration from the URL fragment, so a new
-  // symbol/timeframe is just a new fragment: the frame keeps its slot and
-  // only its content reloads.
-  function frameSrc(symbol, interval) {
-    return FRAME_BASE + encodeURIComponent(JSON.stringify({
+  // symbol/timeframe only changes the fragment. That alone does NOT reload the
+  // widget (a fragment-only src change is a same-document navigation), so the
+  // caller passes a one-off marker that changes the document URL instead.
+  function frameKey() { return tvSymbol + '|' + tvInterval; }
+
+  function frameSrc(symbol, interval, marker) {
+    var cfg = encodeURIComponent(JSON.stringify({
       symbol: symbol,
       interval: interval,
       timezone: 'Etc/UTC',
@@ -140,6 +153,7 @@
       save_image: false,
       support_host: 'https://www.tradingview.com'
     }));
+    return FRAME_BASE + (marker ? '?locale=en&sdx=' + marker : '?locale=en') + '#' + cfg;
   }
 
   /* ------------------------------------------------------------ state ---- */
@@ -147,12 +161,173 @@
   var box = null;            // #tv-chart-box
   var frame = null;          // the embed <iframe>
   var btn = null;            // toolbar toggle
+  var notice = null;         // "TradingView unavailable" banner
 
   var tvSymbol = 'OANDA:XAUUSD';
   var tvInterval = '5';
   var hasMapping = true;     // current market has a TradingView symbol
   var wantActive = true;     // user preference, persisted
   try { wantActive = localStorage.getItem(STORAGE_KEY) !== '0'; } catch (e) {}
+
+  var frameReady = false;    // the current src actually painted something
+  var tvBroken = false;      // embed unreachable -> the built-in chart draws
+  var brokenReason = '';
+  var loadTimer = null;
+  var retryTimer = null;
+  var autoRetries = 0;
+  var frameSeq = 0;          // bumps on every real chart load (see frameSrc)
+
+  function clearLoadTimer() {
+    if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+  }
+
+  function clearRetry() {
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+  }
+
+  function armLoadTimer() {
+    clearLoadTimer();
+    loadTimer = setTimeout(function () {
+      loadTimer = null;
+      if (!frameReady) markBroken('timeout');
+    }, LOAD_TIMEOUT_MS);
+  }
+
+  /* -------------------------------------------------- failure handling --- */
+  // Called when the embed never answers. The built-in candle chart is put back
+  // on screen (it draws from this server, so it works without TradingView) and
+  // the reason is shown instead of an empty grey box.
+  function markBroken(reason) {
+    clearLoadTimer();
+    if (tvBroken) return;
+    tvBroken = true;
+    frameReady = false;
+    brokenReason = reason || 'timeout';
+    showNotice();
+    applyVisibility();
+    if (autoRetries < MAX_AUTO_RETRIES) {
+      autoRetries++;
+      clearRetry();
+      retryTimer = setTimeout(function () { retryTimer = null; retryNow(); }, RETRY_AFTER_MS);
+    }
+  }
+
+  function markOk() {
+    clearLoadTimer();
+    clearRetry();
+    frameReady = true;
+    autoRetries = 0;
+    if (tvBroken) {
+      tvBroken = false;
+      brokenReason = '';
+      hideNotice();
+    }
+    // Always refresh the visibility: the loading placeholder is only removed
+    // by the `tv-frame-ready` class, which applyVisibility() owns. Returning
+    // early on a healthy frame left "Loading …" painted on top of a chart that
+    // had already drawn - it disappeared only after toggling TradingView
+    // off and on again.
+    applyVisibility();
+  }
+
+  // Reload the same symbol/timeframe: re-assigning an identical src is a
+  // no-op for the browser, so the dataset guard has to be cleared first.
+  function retryNow() {
+    clearRetry();
+    clearLoadTimer();
+    tvBroken = false;
+    frameReady = false;
+    brokenReason = '';
+    hideNotice();
+    if (frame) {
+      frame.dataset.tv = '';
+      applyFrame();
+    } else {
+      mountWidget();
+    }
+    applyVisibility();
+  }
+
+  function ensureNotice() {
+    if (notice && notice.isConnected) return notice;
+    if (!wrapper) return null;
+    notice = document.createElement('div');
+    notice.className = 'tv-offline-notice';
+    notice.id = 'tv-offline-notice';
+    notice.setAttribute('role', 'status');
+    notice.innerHTML = '<span class="tv-offline-icon">⚠</span>' +
+      '<span class="tv-offline-text">TradingView did not answer.</span>' +
+      '<button type="button" class="tv-offline-retry">Retry TradingView</button>';
+    var retryBtn = notice.querySelector('.tv-offline-retry');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        autoRetries = 0;
+        retryNow();
+      });
+    }
+    wrapper.appendChild(notice);
+    return notice;
+  }
+
+  function showNotice() {
+    var el = ensureNotice();
+    if (!el) return;
+    var text = el.querySelector('.tv-offline-text');
+    if (text) {
+      text.textContent = brokenReason === 'offline'
+        ? 'No internet connection - TradingView cannot load, so the built-in chart is drawing the candles.'
+        : 'TradingView did not answer (blocked or offline) - the built-in chart is drawing the candles.';
+    }
+    el.classList.add('show');
+  }
+
+  function hideNotice() {
+    if (notice) notice.classList.remove('show');
+  }
+
+  function onFrameLoad() {
+    // A freshly appended iframe fires one synthetic load for its blank
+    // document before any src is applied - only the real embed counts.
+    if (!frame) return;
+    var src = frame.getAttribute('src') || '';
+    if (src.indexOf('tradingview-widget.com') === -1) return;
+    markOk();
+  }
+
+  // The dashboard mounts this module while #dash is still display:none (the
+  // unlock gate) and a 0x0 iframe is never painted by TradingView - the slot
+  // stayed on "loading" until the toggle remounted it. Load the embed the
+  // first time the slot has a real size instead.
+  var sizeWatcher = null;
+  var sizePolls = 0;
+
+  function boxHasSize() {
+    return !!(box && box.clientWidth > 4 && box.clientHeight > 4);
+  }
+
+  function watchBoxSize() {
+    if (!box) return;
+    if (typeof ResizeObserver !== 'undefined') {
+      if (sizeWatcher) return;
+      sizeWatcher = new ResizeObserver(function () {
+        if (!boxHasSize() || !wantActive || !hasMapping) return;
+        if (!frame) { mountWidget(); return; }
+        if (frame.dataset.tv !== frameKey() || !frameReady) applyFrame();
+      });
+      sizeWatcher.observe(box);
+      return;
+    }
+    // no ResizeObserver: poll for a bounded two minutes
+    if (sizePolls >= 120) return;
+    sizePolls++;
+    setTimeout(function () {
+      if (!boxHasSize()) { watchBoxSize(); return; }
+      sizePolls = 0;
+      if (wantActive && hasMapping) applyFrame();
+    }, 1000);
+  }
 
   function mountWidget() {
     if (frame || !box) return;
@@ -166,49 +341,79 @@
     // http://127.0.0.1:8787 shows "Something went wrong" inside the frame).
     // The chart is read-only, so nothing here needs a referrer.
     frame.setAttribute('referrerpolicy', 'no-referrer');
-    applyFrame();
-    var placeholder = box.querySelector('.tv-chart-placeholder');
-    if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+    frame.addEventListener('load', onFrameLoad);
+    frame.addEventListener('error', function () { markBroken('blocked'); });
     box.appendChild(frame);
+    applyFrame();
   }
 
   // Point the frame at the current symbol/timeframe - a no-op when it already
   // shows them, so a redraw of the dashboard does not reload the chart.
   function applyFrame() {
     if (!frame) return;
-    var src = frameSrc(tvSymbol, tvInterval);
-    if (frame.dataset.tv === src) return;
-    frame.dataset.tv = src;
-    frame.src = src;
+    // Still hidden (locked dashboard): wait for the slot to get a size.
+    if (!boxHasSize()) { watchBoxSize(); return; }
+    var key = frameKey();
+    if (frame.dataset.tv === key) {
+      // Already requested - keep the watchdog armed if the frame is still
+      // silent, otherwise a re-entrant applyVisibility() would disarm it.
+      if (!frameReady && !loadTimer) armLoadTimer();
+      return;
+    }
+    frame.dataset.tv = key;
+    frameReady = false;
+    if (box) box.classList.remove('tv-frame-ready');
+    armLoadTimer();
+    // The embed keeps its whole config in the URL fragment, so switching a
+    // symbol only changes the fragment - and a fragment-only src assignment is
+    // a same-document navigation: the widget never reloads and the chart kept
+    // drawing the first market. A one-off query marker makes it a real load.
+    frameSeq++;
+    frame.src = frameSrc(tvSymbol, tvInterval, frameSeq);
   }
 
   function updateButton() {
     if (!btn) return;
-    var show = wantActive && hasMapping;
+    var show = wantActive && hasMapping && !tvBroken;
     btn.classList.toggle('active', show);
-    btn.classList.toggle('tv-na', wantActive && !hasMapping);
+    btn.classList.toggle('tv-na', wantActive && (!hasMapping || tvBroken));
     var label = $('tv-toggle-text');
     if (label) {
       label.textContent = show ? 'TradingView · ON'
-        : (wantActive ? 'TradingView · n/a' : 'TradingView · OFF');
+        : (tvBroken ? 'TradingView · retry'
+          : (wantActive ? 'TradingView · n/a' : 'TradingView · OFF'));
     }
-    if (btn.title) {
-      btn.title = !hasMapping
+    btn.title = tvBroken
+      ? 'TradingView could not be reached - the built-in chart is on screen; click to try TradingView again'
+      : (!hasMapping
         ? 'TradingView has no symbol for this market - the built-in chart stays'
-        : 'Switch the candle chart between TradingView and the built-in chart';
+        : 'Switch the candle chart between TradingView and the built-in chart');
+  }
+
+  // `persist` false = a temporary switch: the indicator layer needs the
+  // built-in chart to draw the ported studies, but the reader's TradingView
+  // preference must survive a reload.
+  function setWantActive(value, persist) {
+    wantActive = !!value;
+    if (persist) {
+      try { localStorage.setItem(STORAGE_KEY, wantActive ? '1' : '0'); } catch (e) {}
     }
+    applyVisibility();
   }
 
   function applyVisibility() {
-    var show = wantActive && hasMapping;
+    var show = wantActive && hasMapping && !tvBroken;
     if (wrapper) wrapper.classList.toggle('tv-mode', show);
+    if (box) box.classList.toggle('tv-frame-ready', show && frameReady);
 
     var wasActive = window.SOFT_TV_ACTIVE === true;
     window.SOFT_TV_ACTIVE = show;
     updateButton();
+    window.dispatchEvent(new CustomEvent('chart:tv-mode', { detail: { active: show } }));
 
     if (show) {
-      mountWidget();
+      watchBoxSize();      // a hidden slot cannot paint the embed
+      mountWidget();       // mounts + arms the load watchdog
       applyFrame();
       if (box) box.style.display = 'block';
       var canvasBox = wrapper && wrapper.querySelector('.binance-canvas-box');
@@ -362,11 +567,29 @@
 
     if (btn) {
       btn.addEventListener('click', function () {
-        wantActive = !wantActive;
-        try { localStorage.setItem(STORAGE_KEY, wantActive ? '1' : '0'); } catch (e) {}
-        applyVisibility();
+        // While the embed is known-bad the button means "try again", so a user
+        // who clicks it is not silently flipped back to a broken preference.
+        if (tvBroken) { autoRetries = 0; retryNow(); return; }
+        setWantActive(!wantActive, true);
       });
     }
+
+    // Network state changes are the usual reason a third-party embed dies, so
+    // react to them instead of waiting for the next timer.
+    window.addEventListener('offline', function () {
+      if (window.SOFT_TV_ACTIVE === true || (wantActive && hasMapping)) markBroken('offline');
+    });
+    window.addEventListener('online', function () {
+      if (!tvBroken) return;
+      autoRetries = 0;
+      retryNow();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && tvBroken && autoRetries < MAX_AUTO_RETRIES) {
+        autoRetries++;
+        retryNow();
+      }
+    });
 
     // The terminal announces every market change - map it and follow along.
     window.addEventListener('chart:market', function (ev) {
@@ -408,6 +631,19 @@
   // Small surface for debugging from the browser console.
   window.TvChartHost = {
     symbolFor: tvSymbolFor,
-    current: function () { return { symbol: tvSymbol, interval: tvInterval, active: window.SOFT_TV_ACTIVE === true }; }
+    current: function () {
+      return {
+        symbol: tvSymbol,
+        interval: tvInterval,
+        active: window.SOFT_TV_ACTIVE === true,
+        ready: frameReady,
+        broken: tvBroken,
+        reason: brokenReason
+      };
+    },
+    retry: function () { autoRetries = 0; retryNow(); },
+    // Switch the chart without touching the saved preference (the indicator
+    // layer uses this so TradingView comes back on the next reload).
+    setActive: function (value, persist) { setWantActive(value, persist !== false); }
   };
 })();

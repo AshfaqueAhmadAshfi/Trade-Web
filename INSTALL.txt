@@ -1,0 +1,66 @@
+=====================================================================
+  SOFTRADE X  TRADE  -  INSTALL / RUN GUIDE
+  Exness / MT5 Trading Dashboard (FastAPI + web UI)
+=====================================================================
+
+WHAT YOU NEED
+---------------------------------------------------------------------
+  - Windows 10 or 11 (64-bit)
+  - Python 3.10 - 3.13 installed  ->  https://www.python.org/downloads/
+      (during install, tick "Add python.exe to PATH")
+  - Internet connection for the FIRST run only (installs packages)
+  - Optional: a running MetaTrader 5 terminal for live account data.
+      Without MT5 the dashboard still works on its public market feed.
+
+HOW TO RUN (one click)
+---------------------------------------------------------------------
+  1. Unzip this package to a folder, e.g.  C:\SoftradeX-Trade
+  2. Double-click  start.bat
+     - The first run takes a few minutes: it creates a private
+       Python environment (.venv) in the folder and installs the
+       required packages. This happens only once.
+     - The dashboard then opens automatically in your browser at
+       http://127.0.0.1:8777/
+  3. Keep the black window open while the app runs.
+     Close the window to stop the app.
+
+  Next times: double-click start.bat again - it starts in seconds
+  and re-opens the browser by itself. If the app is already running
+  it just opens the browser instead of starting a second copy.
+
+OPTIONAL: SETUP ONLY
+---------------------------------------------------------------------
+  Double-click  setup.bat  to install everything without starting
+  the app. Safe to re-run any time; it also repairs a broken
+  installation.
+
+FILES
+---------------------------------------------------------------------
+  start.bat          one-click run (auto-setup on first run)
+  setup.bat          install / repair the Python environment
+  backend\           FastAPI app (API + WebSocket + UI server)
+  web\               dashboard front-end
+  config\config.json settings: port, bots, MT5 terminal path...
+  data\              local history database
+  ea\                MetaTrader Expert Advisor for the EA bridge
+  requirements.txt   python dependencies
+
+STOP / UNINSTALL
+---------------------------------------------------------------------
+  Stop:    close the app window.
+  Remove:  delete the folder - nothing is written elsewhere.
+
+TROUBLESHOOTING
+---------------------------------------------------------------------
+  "Python was not found"  -> install Python from python.org and
+                             tick "Add python.exe to PATH".
+  Package install fails   -> check internet, run setup.bat again.
+  Browser does not open   -> open http://127.0.0.1:8777/ manually.
+  Port busy               -> change "port" in config\config.json
+                             and restart.
+
+SECURITY NOTE
+---------------------------------------------------------------------
+  config\config.json contains your MT5 terminal path, saved login
+  and the EA bridge secret. This package is for YOUR machines -
+  do not share the folder as-is.
