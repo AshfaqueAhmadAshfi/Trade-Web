@@ -1,0 +1,275 @@
+/* Indicator selector above the chart + the overlay canvas the port draws on. */
+
+.chart-indicator-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 10px 7px;
+  margin: 0 0 6px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.chart-indicator-bar .chart-ind-kicker {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-right: 2px;
+}
+
+.chart-indicator-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.9);
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chart-indicator-btn:hover {
+  border-color: rgba(59, 130, 246, 0.55);
+  color: #1d4ed8;
+}
+
+.chart-indicator-btn.active {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.75);
+  color: #1d4ed8;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.18);
+}
+
+.chart-indicator-btn .chart-ind-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.7);
+}
+
+.chart-indicator-btn.active .chart-ind-dot {
+  background: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+.chart-indicator-hint {
+  margin-left: auto;
+  font-size: 9px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chart-indicator-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Three separate study panes, stacked inside the chart panel. While they are
+   on, the TradingView frame and the built-in candle box step aside. */
+.binance-chart-wrapper.ind-stack-on .binance-canvas-box { display: none !important; }
+
+/* The TradingView frame steps aside, but its overlay layer stays: the LARGE
+   FLOW tape card, the 24h market-news card and the pressure badge are live
+   market data, not studies, so they keep showing above the panes. The layer
+   itself is pointer-transparent so zoom/pan still reach the panes underneath. */
+.binance-chart-wrapper.ind-stack-on #tv-chart-box {
+  display: block !important;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: var(--ind-stack-top, 0px);
+  z-index: 9;
+  background: transparent !important;
+  border-radius: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.binance-chart-wrapper.ind-stack-on #tv-chart-box .tv-chart-frame,
+.binance-chart-wrapper.ind-stack-on #tv-chart-box .tv-chart-placeholder { display: none !important; }
+
+.binance-chart-wrapper.ind-stack-on #tv-chart-box .tvo { display: block; }
+.binance-chart-wrapper.ind-stack-on #tv-chart-box .tvo-card { pointer-events: auto; }
+/* Only the header of the large-flow card takes the pointer: its grip drags the
+   card, while a wheel or drag over its body still pans/zooms the chart below. */
+.binance-chart-wrapper.ind-stack-on #tv-chart-box .tvo-whales { pointer-events: none; }
+.binance-chart-wrapper.ind-stack-on #tv-chart-box .tvo-whales .tvo-head { pointer-events: auto; }
+.binance-chart-wrapper.ind-stack-on #tv-chart-box .tvo-pressure { pointer-events: none; }
+
+.chart-indicator-stack {
+  display: none;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 0 0;
+}
+
+.binance-chart-wrapper.ind-stack-on .chart-indicator-stack { display: flex; }
+
+/* three studies need room: the chart panel grows while the stack is on */
+@media (min-width: 901px) {
+  .binance-chart-wrapper.ind-stack-on { min-height: 560px; }
+  #dash .binance-term-workspace:has(.binance-chart-wrapper.ind-stack-on) {
+    height: auto !important;
+    min-height: 660px;
+  }
+  #dash .binance-book-sidebar { max-height: 660px; }
+}
+
+.chart-ind-pane {
+  display: none;
+  flex: 1 1 0;
+  min-height: 56px;
+  flex-direction: column;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.chart-ind-pane.on { display: flex; }
+
+.chart-ind-pane-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 2px 8px 3px;
+  background: rgba(248, 250, 252, 0.92);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.chart-ind-pane-head b {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+}
+
+.chart-ind-pane-head span {
+  font-size: 8px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chart-ind-pane-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.chart-ind-pane-canvas.dragging { cursor: grabbing; }
+
+.chart-ind-pane-head .chart-ind-pane-zoom {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.chart-ind-pane-canvas canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* One-off note on the chart when a study selection moves the chart from the
+   TradingView embed to the built-in renderer. */
+.chart-ind-toast {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translate(-50%, -6px);
+  z-index: 14;
+  max-width: 80%;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  font-size: 10px;
+  line-height: 1.3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.chart-ind-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Notice inside the TradingView frame when a study is selected but the embed
+   is on screen (a widget cannot run custom Pine). */
+.chart-ind-note {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 7;
+  display: none;
+  max-width: 268px;
+  padding: 8px 10px 9px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(37, 99, 235, 0.26);
+  box-shadow: 0 12px 26px -20px rgba(15, 23, 42, 0.85);
+  font-size: 10px;
+  line-height: 1.35;
+  color: #475569;
+}
+
+.chart-ind-note.show { display: block; }
+
+.chart-ind-note b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+}
+
+.chart-ind-note span { display: block; margin-bottom: 6px; }
+
+.chart-ind-note button {
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(37, 99, 235, 0.45);
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chart-ind-note button:hover { background: rgba(37, 99, 235, 0.18); }
+
+@media (max-width: 720px) {
+  .chart-indicator-hint { display: none; }
+  .chart-indicator-btn { font-size: 10px; padding: 3px 7px; }
+}

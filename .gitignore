@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite Databases & WAL files
+data/*.db
+data/*.db-shm
+data/*.db-wal
+*.db
+*.db-shm
+*.db-wal
+
+# Local environment (DOMAIN etc.) - never commit
+.env
+
+# Local runtime settings and fetched market/news data
+config/config.json
+data/*.json
+data/*.pid
+link_check_tmp.py
+
+# Freebuff / IDE / Logs
+.freebuff/
+.idea/
+.vscode/
+*.log
+data/_*.json
+data/*.log
+
+# Private Python environment & build output
+.venv/
+dist/
+
+# Archives & Backup bundles
+*.rar
+*.zip
+*.tar.gz
+
+# Temporary screenshot harnesses & captures
+data/shot-*.png
+web/_shot_*.html
+
+# Generated artifacts and private chat imports
+.cloud-attachments/
+outputs/
+verify/
