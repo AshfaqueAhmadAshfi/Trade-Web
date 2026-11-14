@@ -23,7 +23,7 @@ from __future__ import annotations
 import queue
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from . import config as cfg
@@ -151,7 +151,7 @@ class Engine:
         self.bot_fast = False
 
         self.mode: Optional[str] = None          # None | 'live'
-        self.status = "disconnected"             # disconnected | connecting | connected | error
+        self.status = "connected" if cfg.PUBLIC_ONLY else "disconnected"
         self.connecting = False
         self.error: Optional[Dict[str, Any]] = None
         self.connected_at: Optional[int] = None
@@ -208,6 +208,9 @@ class Engine:
             self._thread.join(timeout=5)
 
     def submit(self, cmd: str, payload: Optional[Dict[str, Any]] = None, timeout: float = 90.0) -> Dict[str, Any]:
+        if cfg.PUBLIC_ONLY:
+            if cmd not in ("stop", "settings", "bot5_config") or (cmd == "bot5_config" and (payload or {}).get("running")):
+                return {"ok": False, "error": {"code": "public_only", "message": "Broker connections and order execution are unavailable in this API-only dashboard."}}
         reply = _Reply()
         self._commands.put((cmd, payload or {}, reply))
         if cmd == "stop":
@@ -512,6 +515,8 @@ class Engine:
     def _do_settings(self, p: Dict[str, Any]) -> Dict[str, Any]:
         if "poll_interval_ms" in p:
             self.poll_interval = max(float(p["poll_interval_ms"]) / 1000.0, 0.1)
+            if cfg.HOSTED:
+                self.poll_interval = max(self.poll_interval, 2.5)
         if "history_interval_ms" in p:
             self.history_interval = max(float(p["history_interval_ms"]) / 1000.0, 0.5)
         if "history_days" in p:
@@ -1100,7 +1105,7 @@ class Engine:
                 lot=_num(self.bot5.cfg.get("lot"), 0.01),
                 timeframe_key=str(self.bot5.cfg.get("ai_timeframe") or ai_mod.DEFAULT_TIMEFRAME),
                 markets=self.bot5.available_symbols(),
-                source="no terminal"),
+                source="public"),
             "mode": str(self.bot5.cfg.get("mode") or "anticipate"),
             "config": {**self.bot5.cfg, **persisted},
             "news": [],
@@ -1127,6 +1132,8 @@ class Engine:
     def _do_bot5_config(self, p: Dict[str, Any]) -> Dict[str, Any]:
         """Start / stop the news trader or change its settings."""
         patch: Dict[str, Any] = {}
+        if cfg.PUBLIC_ONLY:
+            patch["running"] = False
         if "running" in p:
             patch["running"] = bool(p["running"])
         if "auto_close_after_news" in p:
@@ -1551,7 +1558,7 @@ class Engine:
         disconnected path.
         """
         try:
-            self.bot5.update_config(cfg.CONFIG.get("bot5") or {})
+            self.bot5.update_config({**(cfg.CONFIG.get("bot5") or {}), "running": False} if cfg.PUBLIC_ONLY else cfg.CONFIG.get("bot5") or {})
         except Exception as exc:
             self._log_event("error", f"Bot5 config (offline) failed: {exc}")
         try:
@@ -1704,6 +1711,9 @@ class Engine:
             self._reload_closed()
 
     def _tick_ea(self) -> None:
+        if cfg.PUBLIC_ONLY:
+            self.status = "connected"
+            return
         if self.mode == "live":
             return
         if self.locked:
@@ -1834,8 +1844,9 @@ class Engine:
             "connected": hosted or (bool(account) and source != "none"),
             "locked": False if hosted else self.locked,
             "hosted": hosted,
+            "public_only": cfg.PUBLIC_ONLY,
             "status": self.status,
-            "mode": self.mode or ("ea" if source == "ea" else None),
+            "mode": "public" if hosted else self.mode or ("ea" if source == "ea" else None),
             "source": source,
             "connecting": self.connecting,
             "error": self.error,
@@ -1854,13 +1865,13 @@ class Engine:
             "history": self.closed_cache[:HISTORY_LIMIT],
             "history_total": self.store.count_trades(account=key) if key else 0,
             "events": self.events[:MAX_EVENTS],
-            "server_time": datetime.utcfromtimestamp(server_now).strftime("%Y-%m-%d %H:%M:%S"),
+            "server_time": datetime.fromtimestamp(server_now, timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
             "server_epoch": int(server_now),
             "server_utc_offset": self.mt5.server_offset() if self.mode == "live" else 0.0,
             "day_start": day_start,
             "session_start": self._session_start_ts,
             "connected_at": self.connected_at,
-            "terminal": self.mt5.terminal_path,
+            "terminal": "" if hosted else self.mt5.terminal_path,
             # a hosted deployment can never use a terminal, so scanning for one
             # on every pass (a full drive scan on Windows) is pure waste
             "terminals": [] if hosted else find_terminals(),
@@ -1874,6 +1885,9 @@ class Engine:
             "now_ms": int(time.time() * 1000),
         }
         self._attach_price_maps(self._snapshot_data)
+        if cfg.PUBLIC_ONLY:
+            for bot_key in ("bot", "bot2", "bot3", "bot4", "bot5", "bot6", "bot7"):
+                self._snapshot_data[bot_key]["running"] = False
 
     # ------------------------------------------------------- price map helper
     def _build_map(self, magic: int, symbol: str, price: float,
@@ -1998,7 +2012,7 @@ class Engine:
         computation rides along inside the same frame, so a dial always shows a
         consistent pair of numbers while its price moves on every real tick.
         """
-        if self.watch_publisher is None:
+        if cfg.PUBLIC_ONLY or self.watch_publisher is None:
             return
         if self.watch_active is not None:
             try:
@@ -2047,7 +2061,7 @@ class Engine:
         nothing but read the latest tick of the watched symbols - no order, no
         login, no store access - and it stays idle while no browser is attached.
         """
-        if self.watch_publisher is None:
+        if cfg.PUBLIC_ONLY or self.watch_publisher is None:
             return
         if self._watch_thread and self._watch_thread.is_alive():
             return
@@ -2255,7 +2269,7 @@ class Engine:
     def _log_event(self, kind: str, message: str) -> None:
         # wall-clock stamp (not the broker clock) so the feed stays in order
         ev = {"ts": int(time.time() * 1000),
-              "server_time": datetime.utcfromtimestamp(time.time()).strftime("%H:%M:%S"),
+              "server_time": datetime.fromtimestamp(time.time(), timezone.utc).strftime("%H:%M:%S"),
               "kind": kind, "message": message}
         self.events.insert(0, ev)
         del self.events[MAX_EVENTS:]
@@ -2268,10 +2282,10 @@ class Engine:
         self.poll_interval = max(cfg.CONFIG.get("poll_interval_ms", 400) / 1000.0, 0.1)
         if cfg.HOSTED:
             # Shared hosting is CPU-limited and every pass hits the public REST
-            # feeds; ~1.5 s keeps the dials live without burning the quota.
-            self.poll_interval = max(self.poll_interval, 1.5)
+            # feeds; match the 2.5 s HTTP snapshot poll without burning the quota.
+            self.poll_interval = max(self.poll_interval, 2.5)
         self.watch_tick_sec = max(cfg.CONFIG.get("watch_tick_ms", WATCH_TICK_SEC * 1000) / 1000.0, 0.02)
         self.history_interval = max(cfg.CONFIG.get("history_interval_ms", 2000) / 1000.0, 0.5)
         self.history_days = int(cfg.CONFIG.get("history_days", 60))
-        if not self.mt5.terminal_path:
+        if not cfg.PUBLIC_ONLY and not self.mt5.terminal_path:
             self.mt5.terminal_path = cfg.CONFIG.get("terminal_path", "") or ""

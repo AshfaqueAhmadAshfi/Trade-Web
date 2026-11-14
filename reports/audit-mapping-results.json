@@ -1,0 +1,131 @@
+{
+  "mismatches": [
+    {
+      "symbol": "AAPLm",
+      "chart": "NASDAQ:AAPL",
+      "quote": ""
+    },
+    {
+      "symbol": "MSFTm",
+      "chart": "NASDAQ:MSFT",
+      "quote": ""
+    },
+    {
+      "symbol": "AMZNm",
+      "chart": "NASDAQ:AMZN",
+      "quote": ""
+    },
+    {
+      "symbol": "GOOGLm",
+      "chart": "NASDAQ:GOOGL",
+      "quote": ""
+    },
+    {
+      "symbol": "TSLAm",
+      "chart": "NASDAQ:TSLA",
+      "quote": ""
+    },
+    {
+      "symbol": "NVDAm",
+      "chart": "NASDAQ:NVDA",
+      "quote": ""
+    },
+    {
+      "symbol": "METAm",
+      "chart": "NASDAQ:META",
+      "quote": ""
+    },
+    {
+      "symbol": "INTCm",
+      "chart": "NASDAQ:INTC",
+      "quote": ""
+    },
+    {
+      "symbol": "AMDm",
+      "chart": "NASDAQ:AMD",
+      "quote": ""
+    },
+    {
+      "symbol": "NEFLm",
+      "chart": "NASDAQ:NFLX",
+      "quote": ""
+    },
+    {
+      "symbol": "JPMm",
+      "chart": "NYSE:JPM",
+      "quote": ""
+    },
+    {
+      "symbol": "BAm",
+      "chart": "NYSE:BA",
+      "quote": ""
+    },
+    {
+      "symbol": "DISm",
+      "chart": "NYSE:DIS",
+      "quote": ""
+    },
+    {
+      "symbol": "NKEm",
+      "chart": "NYSE:NKE",
+      "quote": ""
+    },
+    {
+      "symbol": "COINm",
+      "chart": "NYSE:COIN",
+      "quote": ""
+    },
+    {
+      "symbol": "PFEm",
+      "chart": "NYSE:PFE",
+      "quote": ""
+    },
+    {
+      "symbol": "Vm",
+      "chart": "NYSE:V",
+      "quote": ""
+    },
+    {
+      "symbol": "MAm",
+      "chart": "NYSE:MA",
+      "quote": ""
+    },
+    {
+      "symbol": "KOm",
+      "chart": "NYSE:KO",
+      "quote": ""
+    },
+    {
+      "symbol": "WMTm",
+      "chart": "NYSE:WMT",
+      "quote": ""
+    },
+    {
+      "symbol": "XOMm",
+      "chart": "NYSE:XOM",
+      "quote": ""
+    },
+    {
+      "symbol": "USDTRYm",
+      "chart": "FX_IDC:USDTRY",
+      "quote": "OANDA:USDTRY"
+    },
+    {
+      "symbol": "ADAUSDm",
+      "chart": "BINANCE:ADAUSDT",
+      "quote": "OANDA:ADAUSD"
+    }
+  ],
+  "runtime": [
+    {
+      "symbol": "AAPLm",
+      "status": 503,
+      "error": "TradingView has no symbol mapping for AAPLm"
+    },
+    {
+      "symbol": "ADAUSDm",
+      "status": 503,
+      "error": "TradingView request failed: HTTP Error 404: Not Found"
+    }
+  ]
+}

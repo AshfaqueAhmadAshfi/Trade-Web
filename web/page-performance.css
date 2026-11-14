@@ -1,0 +1,26 @@
+/* Keep the existing surfaces; avoid rendering offscreen rows and nested blur passes. */
+#bots-drawer .news-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+  flex-shrink: 0;
+}
+body.softradex-glass-ui #dash .flow-stage :is(.panel, .sessions-board, .watch-grid, .ai-board, .venues-flow-terminal) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+/* Each outer sheet already diffuses the canvas; its children need no second pass. */
+body.softradex-glass-ui #binance-terminal-section *,
+body.softradex-glass-ui #bots-drawer *,
+body.softradex-glass-ui .topbar .icon-btn {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+/* Release the closed drawer immediately, even if a busy compositor delays its slide. */
+#dash:not(.drawer-right-open) #bots-drawer {
+  visibility: hidden;
+  pointer-events: none;
+}
+#stage-outlook, #stage-sessions, #stage-ai {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}

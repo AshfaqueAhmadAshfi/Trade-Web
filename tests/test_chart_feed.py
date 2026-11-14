@@ -21,6 +21,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from backend import chart_feed as CF
 
 
+def setUpModule():
+    # Exercise the retained adapter only with FakeMT5. Production stays public.
+    global _hosted_patch
+    _hosted_patch = patch("backend.config.HOSTED", False)
+    _hosted_patch.start()
+
+
+def tearDownModule():
+    _hosted_patch.stop()
+
+
 def rates(count=600, base=2000.0, volume=120):
     arr = np.zeros(int(count), dtype=[("time", "i8"), ("open", "f8"), ("high", "f8"),
                                      ("low", "f8"), ("close", "f8"), ("tick_volume", "i8"),

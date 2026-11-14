@@ -1,0 +1,8 @@
+{
+  "cached_expired_seconds_ago": 3600,
+  "old_value_returned": true,
+  "provider_available": false,
+  "raw_quote_age_seconds": 3600.0,
+  "api_quote_age_seconds": 0.0,
+  "api_source": "public"
+}

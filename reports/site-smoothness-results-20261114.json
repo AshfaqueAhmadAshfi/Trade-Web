@@ -1,0 +1,143 @@
+{
+  "checks": [
+    "access page has English content and a centred access button",
+    "orbit pause keeps cards still",
+    "mobile access page has no horizontal overflow",
+    "dashboard defers the closed News list",
+    "live tapes preserve unchanged rows, remove expired rows and reset market keys",
+    "all current economic News rows remain available",
+    "News enters fullscreen",
+    "closing fullscreen News restores scrolling and releases the overlay",
+    "mobile dashboard header keeps Logout in the viewport",
+    "mobile Escape closes fullscreen News",
+    "Logout returns to the access page",
+    "no uncaught page-script errors"
+  ],
+  "samples": [
+    {
+      "page": "desktop access",
+      "visibility": "visible",
+      "frames": 269,
+      "frameP95Ms": 16.90000000000009,
+      "longTasks": 2,
+      "longestTaskMs": 99,
+      "longTaskTotalMs": 156
+    },
+    {
+      "page": "mobile access",
+      "visibility": "visible",
+      "frames": 299,
+      "frameP95Ms": 16.900000000001455,
+      "longTasks": 0,
+      "longestTaskMs": 0,
+      "longTaskTotalMs": 0
+    },
+    {
+      "page": "desktop dashboard",
+      "visibility": "visible",
+      "frames": 199,
+      "frameP95Ms": 33.30000000000018,
+      "longTasks": 5,
+      "longestTaskMs": 589,
+      "longTaskTotalMs": 1762
+    },
+    {
+      "page": "mobile dashboard",
+      "visibility": "visible",
+      "frames": 222,
+      "frameP95Ms": 16.899999999999636,
+      "longTasks": 5,
+      "longestTaskMs": 562,
+      "longTaskTotalMs": 1545
+    }
+  ],
+  "script_errors": [],
+  "invalid_requests": [],
+  "clicks": [
+    {
+      "selector": "#orbit-toggle",
+      "x": 1170.1875,
+      "y": 450.0703125,
+      "hit": true,
+      "text": "\u2161\nPause orbit",
+      "disabled": false,
+      "scroll": 433
+    },
+    {
+      "selector": "#orbit-toggle",
+      "x": 1164.8984375,
+      "y": 450.0703125,
+      "hit": true,
+      "text": "\u25b7\nResume orbit",
+      "disabled": false,
+      "scroll": 433
+    },
+    {
+      "selector": ".access-button",
+      "x": 632.5,
+      "y": 450.3671875,
+      "hit": true,
+      "text": "ACCESS\nTHE DASHBOARD",
+      "scroll": 182
+    },
+    {
+      "selector": "#rail-bots",
+      "x": 1248,
+      "y": 450,
+      "hit": true,
+      "text": "\u203a\nNews",
+      "disabled": false,
+      "scroll": 0
+    },
+    {
+      "selector": "#bots-fs-toggle",
+      "x": 1160.4140625,
+      "y": 29,
+      "hit": true,
+      "text": "\u26f6\nFULLSCREEN",
+      "disabled": false,
+      "scroll": 0
+    },
+    {
+      "selector": "#bots-drawer [data-drawer-close]",
+      "x": 1240.046875,
+      "y": 29,
+      "hit": true,
+      "text": "\u2715",
+      "disabled": false,
+      "scroll": 0
+    },
+    {
+      "selector": "#rail-bots",
+      "x": 364.5,
+      "y": 422,
+      "hit": true,
+      "text": "\u203a",
+      "disabled": false,
+      "scroll": 0
+    },
+    {
+      "selector": "#bots-fs-toggle",
+      "x": 316.4326477050781,
+      "y": 29,
+      "hit": true,
+      "text": "\u26f6\nFULLSCREEN",
+      "disabled": false,
+      "scroll": 0
+    },
+    {
+      "selector": "#dashboard-logout",
+      "x": 1184.75,
+      "y": 47,
+      "hit": true,
+      "text": "Logout",
+      "disabled": false,
+      "scroll": 0
+    }
+  ],
+  "logout_requests": [
+    "http://127.0.0.1:8784/api/logout"
+  ],
+  "initial_dashboard_nodes": 4884,
+  "loaded_news_rows": 460
+}

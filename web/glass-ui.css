@@ -1,0 +1,425 @@
+/* Final dashboard theme. Keep layout and live-data states in their own sheets. */
+body.softradex-glass-ui {
+  --gx-ink: #19253d;
+  --gx-muted: #58677e;
+  --gx-accent: #3e63dd;
+  --gx-line: rgba(89, 113, 166, .16);
+  --gx-edge: rgba(255, 255, 255, .88);
+  --gx-surface: linear-gradient(145deg, rgba(255, 255, 255, .78), rgba(243, 247, 255, .52));
+  --gx-card: linear-gradient(145deg, rgba(255, 255, 255, .86), rgba(246, 248, 255, .64));
+  --gx-inset: rgba(255, 255, 255, .55);
+  --gx-shadow: inset 0 1px 0 rgba(255, 255, 255, .94), 0 14px 36px -22px rgba(43, 60, 112, .32), 0 2px 8px rgba(43, 60, 112, .035);
+  --gx-card-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), 0 8px 22px -16px rgba(43, 60, 112, .28);
+  --gx-blur: blur(18px) saturate(145%);
+  --gx-canvas:
+    radial-gradient(ellipse at 4% 0%, rgba(124, 161, 247, .32), transparent 46%),
+    radial-gradient(ellipse at 96% 18%, rgba(110, 219, 225, .22), transparent 42%),
+    radial-gradient(ellipse at 58% 88%, rgba(174, 153, 244, .24), transparent 52%),
+    linear-gradient(135deg, #edf2fc, #e9eefb 48%, #edf5fa);
+  --txt: var(--gx-ink);
+  --txt-dim: var(--gx-muted);
+  --txt-muted: var(--gx-muted);
+  --accent: var(--gx-accent);
+  --line: var(--gx-line);
+  --glass-card-bg: var(--gx-surface);
+  --glass-subcard-bg: var(--gx-inset);
+  --glass-card-shadow: var(--gx-shadow);
+  --glass-blur: var(--gx-blur);
+  background: var(--gx-canvas) !important;
+  background-attachment: fixed !important;
+  color: var(--gx-ink) !important;
+}
+
+/* Static ambient colour gives the frosted surfaces something to diffuse. */
+body.softradex-glass-ui #app::before {
+  background:
+    radial-gradient(ellipse at 12% 4%, rgba(135, 165, 242, .22), transparent 60%),
+    radial-gradient(ellipse at 84% 12%, rgba(125, 217, 224, .2), transparent 60%);
+  filter: none;
+}
+body.softradex-glass-ui #app::after {
+  background: radial-gradient(ellipse at 70% 95%, rgba(172, 151, 235, .2), transparent 66%);
+  filter: none;
+}
+
+body.softradex-glass-ui #app > .topbar,
+body.softradex-glass-ui #app > .market-ticker-bar {
+  background: var(--gx-surface) !important;
+  border-color: var(--gx-edge) !important;
+  box-shadow: var(--gx-shadow) !important;
+  -webkit-backdrop-filter: var(--gx-blur) !important;
+  backdrop-filter: var(--gx-blur) !important;
+}
+body.softradex-glass-ui #app > .topbar { border-radius: 22px !important; }
+body.softradex-glass-ui :is(.brand-mark, .clock, .conn-widget) {
+  background: var(--gx-inset) !important;
+  border-color: var(--gx-edge) !important;
+  box-shadow: var(--gx-card-shadow) !important;
+}
+body.softradex-glass-ui .brand-text strong {
+  color: var(--gx-ink) !important;
+  -webkit-text-fill-color: var(--gx-ink) !important;
+}
+
+/* Main sheets and analysis panels share one surface and elevation. */
+body.softradex-glass-ui #dash #binance-terminal-section,
+body.softradex-glass-ui #dash :is(.panel, .sessions-board, .watch-grid, .ai-board, .flow-stage, .whale-flow-section, .venues-flow-terminal) {
+  background: var(--gx-surface) !important;
+  border-color: var(--gx-edge) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--gx-shadow) !important;
+  -webkit-backdrop-filter: var(--gx-blur) !important;
+  backdrop-filter: var(--gx-blur) !important;
+}
+body.softradex-glass-ui #dash :is(.binance-term-topbar, .binance-ticker-strip, .binance-tf-tabs, .binance-term-actions) {
+  background: var(--gx-inset) !important;
+  border-color: var(--gx-line) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+}
+body.softradex-glass-ui #dash #binance-symbol-tabs {
+  background: transparent !important;
+  border-color: var(--gx-line) !important;
+}
+
+/* Small controls remain light; selected controls have a clear blue accent. */
+body.softradex-glass-ui .icon-btn,
+body.softradex-glass-ui #dash :is(.exness-cat-btn, .b-tab-btn, .b-tf-btn, .chart-indicator-btn, .term-expand-btn, .market-list-toggle, .bset-btn) {
+  background: rgba(255, 255, 255, .62) !important;
+  color: #40516d !important;
+  border-color: rgba(101, 126, 181, .2) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 2px 5px rgba(43, 60, 112, .035) !important;
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease, color .16s ease;
+}
+body.softradex-glass-ui #dash :is(.exness-cat-btn, .b-tab-btn, .b-tf-btn, .chart-indicator-btn) {
+  border-radius: 10px !important;
+}
+body.softradex-glass-ui .icon-btn:hover,
+body.softradex-glass-ui #dash :is(.exness-cat-btn, .b-tab-btn, .b-tf-btn, .chart-indicator-btn, .term-expand-btn, .market-list-toggle, .bset-btn):hover {
+  background: rgba(232, 239, 255, .9) !important;
+  color: #314eaa !important;
+  border-color: rgba(62, 99, 221, .38) !important;
+}
+body.softradex-glass-ui #dash :is(.exness-cat-btn, .b-tab-btn, .b-tf-btn, .chart-indicator-btn, .term-expand-btn).active {
+  background: linear-gradient(135deg, #3e63dd, #6655cf) !important;
+  color: #fff !important;
+  border-color: rgba(62, 99, 221, .52) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), 0 5px 12px -7px rgba(62, 99, 221, .65) !important;
+}
+body.softradex-glass-ui #dash .b-tab-btn.active :is(.b-sym, .b-pair) { color: #fff !important; }
+body.softradex-glass-ui #dash .chart-indicator-btn.active .chart-ind-dot {
+  background: #fff !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .16) !important;
+}
+body.softradex-glass-ui .icon-btn:focus-visible,
+body.softradex-glass-ui #dash :is(.exness-cat-btn, .b-tab-btn, .b-tf-btn, .chart-indicator-btn, .term-expand-btn, .market-list-toggle, .bset-btn, .exness-market-search):focus-visible {
+  outline: 2px solid var(--gx-accent);
+  outline-offset: 2px;
+}
+body.softradex-glass-ui #dash .exness-market-search {
+  background: rgba(255, 255, 255, .7) !important;
+  border-color: var(--gx-line) !important;
+  border-radius: 11px !important;
+  color: var(--gx-ink) !important;
+  box-shadow: inset 0 1px 3px rgba(43, 60, 112, .035) !important;
+}
+body.softradex-glass-ui #dash .exness-market-search::placeholder { color: var(--gx-muted); }
+
+/* Frost the chart shell, keeping candle canvases and price labels crisp. */
+body.softradex-glass-ui #dash .binance-chart-wrapper {
+  background: var(--gx-card) !important;
+  border-color: var(--gx-edge) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--gx-card-shadow) !important;
+}
+body.softradex-glass-ui #dash :is(.chart-workspace-tools, .chart-indicator-bar, .chart-ind-pane-head) {
+  background: rgba(242, 246, 255, .76) !important;
+  border-color: var(--gx-line) !important;
+  box-shadow: none !important;
+}
+body.softradex-glass-ui #dash .chart-ind-pane {
+  background: rgba(255, 255, 255, .96) !important;
+  border-color: var(--gx-line) !important;
+  border-radius: 12px !important;
+}
+body.softradex-glass-ui #dash #tv-chart-box .tvo-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, .94), rgba(237, 244, 255, .84)) !important;
+  border-color: var(--gx-edge) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--gx-shadow) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(135%) !important;
+  backdrop-filter: blur(12px) saturate(135%) !important;
+}
+body.softradex-glass-ui #dash #tv-chart-box .tvo-head { color: #40516d !important; }
+
+/* Side rails: upcoming news, swing, running releases and stop liquidity. */
+body.softradex-glass-ui #dash #binance-book-sidebar,
+body.softradex-glass-ui #dash #running-news-panel,
+body.softradex-glass-ui #dash #stop-liquidity-panel {
+  background: var(--gx-card) !important;
+  border-color: var(--gx-edge) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--gx-card-shadow) !important;
+}
+body.softradex-glass-ui #dash #venue-flow-board { background: transparent !important; border-color: var(--gx-line) !important; }
+body.softradex-glass-ui #dash #market-news-terminal {
+  background: var(--gx-card) !important;
+  border-color: var(--gx-line) !important;
+}
+body.softradex-glass-ui #dash .swing-ai-board,
+body.softradex-glass-ui #dash .tv-setup-board {
+  background: var(--gx-card) !important;
+  border-color: var(--gx-edge) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--gx-card-shadow) !important;
+}
+body.softradex-glass-ui #dash :is(.mnt-head, .live-panel-head, .sai-head, .tvs-head, .vft-head, .sessions-head) {
+  background: linear-gradient(110deg, rgba(234, 241, 255, .45), rgba(255, 255, 255, .18)) !important;
+  color: var(--gx-ink) !important;
+  border-color: var(--gx-line) !important;
+}
+body.softradex-glass-ui #dash :is(.mnt-window, .live-panel-meta, .sai-why, .sai-foot, .sai-src, .slz-foot, .sessions-summary, .sessions-sub, .sessions-updated, .vft-foot, .tvs-foot) {
+  color: var(--gx-muted) !important;
+}
+
+/* Row tints communicate impact and side without adding more blur layers. */
+body.softradex-glass-ui #dash .mnt-row {
+  background: rgba(255, 255, 255, .28) !important;
+  border-top-color: var(--gx-line) !important;
+}
+body.softradex-glass-ui #dash .mnt-row.low { background: rgba(225, 248, 238, .4) !important; }
+body.softradex-glass-ui #dash .mnt-row.medium { background: rgba(255, 245, 221, .5) !important; }
+body.softradex-glass-ui #dash .mnt-row.high { background: rgba(255, 234, 238, .5) !important; }
+body.softradex-glass-ui #dash .mnt-row.running {
+  background: linear-gradient(110deg, rgba(221, 233, 255, .7), rgba(240, 236, 255, .45)) !important;
+  border-left-color: var(--gx-accent) !important;
+}
+body.softradex-glass-ui #dash :is(.mnt-summary, .slz-row summary):hover { background: rgba(62, 99, 221, .065) !important; }
+body.softradex-glass-ui #dash :is(.mnt-details, .slz-details) {
+  background: rgba(255, 255, 255, .48) !important;
+  border-color: var(--gx-line) !important;
+}
+body.softradex-glass-ui #dash :is(.mnt-plan > div, .mnt-provider, .sai-cell, .sai-chip, .vft-total) {
+  background: var(--gx-inset) !important;
+  border-color: var(--gx-line) !important;
+  border-radius: 9px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+}
+body.softradex-glass-ui #dash :is(.mnt-source-report, .mnt-timing-guide, .mnt-bias-note) {
+  background: rgba(227, 237, 255, .58) !important;
+  border-color: var(--gx-line) !important;
+}
+body.softradex-glass-ui #dash .sai-timer {
+  background: linear-gradient(120deg, rgba(223, 235, 255, .68), rgba(235, 226, 255, .4)) !important;
+  border-color: rgba(62, 99, 221, .18) !important;
+  border-radius: 12px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85) !important;
+}
+body.softradex-glass-ui #dash :is(.mnt-timer, #sai-clock, #sbi-clock, .sess-count, .vft-total b) { font-variant-numeric: tabular-nums; }
+body.softradex-glass-ui #dash :is(.sai-cell small, .mnt-plan small) { color: var(--gx-muted) !important; }
+body.softradex-glass-ui #dash .slz-row {
+  background: rgba(255, 255, 255, .45) !important;
+  border-color: var(--gx-line) !important;
+  border-radius: 9px !important;
+}
+body.softradex-glass-ui #dash .slz-row.buy { background: rgba(224, 248, 236, .48) !important; border-color: rgba(5, 150, 105, .17) !important; }
+body.softradex-glass-ui #dash .slz-row.sell { background: rgba(255, 231, 237, .48) !important; border-color: rgba(220, 38, 38, .15) !important; }
+body.softradex-glass-ui #dash :is(.slz-disclosure, .mnt-entry-timer) { background: rgba(255, 241, 207, .68) !important; border-color: rgba(180, 115, 19, .14) !important; }
+
+/* Sessions and venue rows have softer inset surfaces and clear live states. */
+body.softradex-glass-ui #dash :is(.sess-row, .sessions-radar-panel, .sess-fc-card, .watch-card) {
+  background: var(--gx-inset) !important;
+  border-color: var(--gx-line) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--gx-card-shadow) !important;
+}
+body.softradex-glass-ui #dash .sess-row.live {
+  background: linear-gradient(145deg, rgba(228, 244, 250, .85), rgba(234, 241, 255, .62)) !important;
+  border-color: rgba(62, 99, 221, .27) !important;
+}
+body.softradex-glass-ui #dash .sess-fc-card.buy { background: rgba(222, 246, 234, .68) !important; border-color: rgba(5, 150, 105, .18) !important; }
+body.softradex-glass-ui #dash .sess-fc-card.sell { background: rgba(255, 230, 236, .66) !important; border-color: rgba(220, 38, 38, .16) !important; }
+body.softradex-glass-ui #dash .sess-fc-card.buy :is(.sess-fc-amt, .sess-fc-tag) { color: #047857 !important; }
+body.softradex-glass-ui #dash .sess-fc-card.sell :is(.sess-fc-amt, .sess-fc-tag) { color: #b91c1c !important; }
+body.softradex-glass-ui #dash .vft-columns { background: rgba(229, 237, 254, .58) !important; border-color: var(--gx-line) !important; color: #40516d !important; }
+body.softradex-glass-ui #dash :is(.vft-row, .tvs-row, .flow-step-row) { background: rgba(255, 255, 255, .25) !important; border-top-color: var(--gx-line) !important; }
+body.softradex-glass-ui #dash .vft-row:nth-child(even) { background: rgba(236, 242, 255, .45) !important; }
+body.softradex-glass-ui #dash .vft-row:hover { background: rgba(225, 234, 255, .66) !important; }
+
+body.softradex-glass-ui :is(.modal-card, .toast),
+body.softradex-glass-ui #dash .feed-panel-drawer {
+  background: linear-gradient(145deg, rgba(255, 255, 255, .94), rgba(239, 245, 255, .9)) !important;
+  border-color: var(--gx-edge) !important;
+  box-shadow: var(--gx-shadow) !important;
+  -webkit-backdrop-filter: var(--gx-blur) !important;
+  backdrop-filter: var(--gx-blur) !important;
+}
+body.softradex-glass-ui .drawer-scrim { background: rgba(31, 45, 82, .22) !important; }
+
+/* Fullscreen needs its own canvas because the body is behind the top layer. */
+body.softradex-glass-ui #dash #binance-terminal-section.workspace-expanded,
+body.softradex-glass-ui #binance-terminal-section:fullscreen {
+  background: var(--gx-canvas) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (max-width: 900px) {
+  body.softradex-glass-ui { --gx-blur: blur(10px) saturate(130%); background-attachment: scroll !important; }
+}
+
+/* A solid fallback preserves contrast on browsers/devices without backdrop blur. */
+.softradex-glass-ui #dash .vft-table { overflow: auto; min-width: 0; }
+.softradex-glass-ui #dash :is(.vft-columns, .vft-row) {
+  min-width: 630px;
+  grid-template-columns: 1.2fr .8fr .9fr .9fr .9fr 1.25fr 1.15fr;
+}
+.softradex-glass-ui #dash .vft-rows { min-width: 630px; overflow-x: hidden; }
+.softradex-glass-ui #dash .vft-pair { font-size: 8px; overflow-wrap: anywhere; }
+.softradex-glass-ui #dash .vft-status { font-size: 8px; color: var(--gx-muted); }
+.softradex-glass-ui #dash .vft-row[data-status="LIVE"] .vft-status { color: #047857; }
+.softradex-glass-ui #dash .vft-row[data-status="UNAVAILABLE"] .vft-status { color: #b45309; }
+.softradex-glass-ui #dash .outlook-window { color: var(--gx-muted); font-size: 10px; margin-bottom: 6px; }
+.softradex-glass-ui #dash #watch-outlook-chips {
+  container: market-outlook / inline-size;
+  min-width: 0;
+  width: 100%;
+}
+.softradex-glass-ui #dash #stage-outlook .outlook-window {
+  width: 100%;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border-radius: 10px !important;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.softradex-glass-ui #dash #stage-outlook .outlook-date-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 6px;
+  width: 100%;
+  max-height: 380px;
+  /* The older generic chip rule gives direct children a 999px radius.
+     A scroll container needs square enough corners to keep every row visible. */
+  border-radius: 10px !important;
+  border: 1px solid var(--gx-line) !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.softradex-glass-ui #dash #stage-outlook .outlook-pill {
+  display: grid !important;
+  grid-template-columns: minmax(80px, .85fr) 62px minmax(130px, 1.4fr) minmax(125px, 1.2fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px 10px !important;
+  border-radius: 8px !important;
+  white-space: normal;
+  font-size: 11px !important;
+  line-height: 1.5;
+}
+.softradex-glass-ui #dash #stage-outlook .outlook-pill > * { min-width: 0; overflow-wrap: anywhere; }
+.softradex-glass-ui #dash #stage-outlook .outlook-pill b { font-size: 11px; }
+.softradex-glass-ui #dash #stage-outlook .outlook-forecast { font-size: 10px; }
+.softradex-glass-ui #dash #stage-outlook .outlook-count { font-size: 10px; text-align: right; color: var(--gx-muted) !important; }
+.softradex-glass-ui #dash #stage-outlook .outlook-pill.selected { outline: 2px solid var(--gx-accent, #2563eb); outline-offset: -1px; }
+@container market-outlook (max-width: 500px) {
+  .softradex-glass-ui #dash #stage-outlook .outlook-pill { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 8px; }
+  .softradex-glass-ui #dash #stage-outlook .outlook-verdict { text-align: right; }
+  .softradex-glass-ui #dash #stage-outlook .outlook-forecast,
+  .softradex-glass-ui #dash #stage-outlook .outlook-count { grid-column: 1 / -1; text-align: left; }
+}
+.softradex-glass-ui #dash .tt-filter-btn:disabled { opacity: .45; cursor: default; }
+
+/* Next event: show the actual per-market estimates, including unresolved data. */
+.softradex-glass-ui #dash :is(#watch-next-impacted-chips, #bot5-next-impacted-chips) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  max-height: 228px;
+  overflow: auto;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 6px;
+  scrollbar-gutter: stable;
+}
+.softradex-glass-ui #dash :is(#watch-next-impacted-chips, #bot5-next-impacted-chips) .imp-market-pill {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  padding: 8px 10px;
+  min-width: 0;
+  border-radius: 8px !important;
+  font-size: 10px;
+}
+.softradex-glass-ui #dash .imp-detail { grid-column: 1 / -1; font-size: 9px; color: var(--gx-muted); font-weight: 500; }
+.softradex-glass-ui #dash .imp-market-pill.uncertain { background: rgba(241, 245, 249, .8) !important; color: #64748b; }
+.softradex-glass-ui #dash .imp-none { font-size: 11px; color: var(--gx-muted); }
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body.softradex-glass-ui {
+    --gx-surface: #f6f8fe;
+    --gx-card: #f9faff;
+    --gx-inset: #f1f5fd;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body.softradex-glass-ui { --gx-surface: #f6f8fe; --gx-card: #f9faff; --gx-inset: #f1f5fd; --gx-blur: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.softradex-glass-ui .icon-btn,
+  body.softradex-glass-ui #dash :is(.exness-cat-btn, .b-tab-btn, .b-tf-btn, .chart-indicator-btn, .term-expand-btn, .market-list-toggle, .bset-btn) { transition: none !important; }
+}
+
+/* Top-level return to the access website. */
+body.softradex-glass-ui .topbar-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  width: auto;
+  min-height: 38px;
+  padding: 8px 13px;
+  font: 600 12px/1.2 "Inter", sans-serif;
+}
+body.softradex-glass-ui .topbar-logout svg { flex: 0 0 auto; }
+body.softradex-glass-ui .topbar-logout:disabled { cursor: wait; opacity: .65; }
+@media (max-width: 600px) {
+  body.softradex-glass-ui .topbar { flex-wrap: wrap; }
+  body.softradex-glass-ui .topbar-right { flex-wrap: wrap; }
+}
+
+/* Give the paired cards identical widths and gentle direction colours. */
+body.softradex-glass-ui #dash #binance-book-sidebar {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.softradex-glass-ui #dash #market-news-terminal {
+  border: 1px solid var(--gx-edge) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--gx-card-shadow) !important;
+}
+body.softradex-glass-ui #dash #swing-ai-board {
+  background: linear-gradient(145deg, rgba(255, 245, 246, .94), rgba(255, 228, 234, .78)) !important;
+  border-color: #f3c7cf !important;
+}
+body.softradex-glass-ui #dash #buy-swing-ai-board {
+  background: linear-gradient(145deg, rgba(240, 253, 245, .94), rgba(220, 249, 233, .78)) !important;
+  border-color: #bfe5d0 !important;
+}
+body.softradex-glass-ui #dash #swing-ai-board :is(.sai-head, .sai-timer) {
+  background: rgba(255, 224, 230, .55) !important;
+  border-color: #f3c7cf !important;
+}
+body.softradex-glass-ui #dash #buy-swing-ai-board :is(.sai-head, .sai-timer) {
+  background: rgba(211, 246, 226, .55) !important;
+  border-color: #bfe5d0 !important;
+}

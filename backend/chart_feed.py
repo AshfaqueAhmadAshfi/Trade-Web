@@ -23,41 +23,10 @@ import time
 from collections import deque
 from typing import Any, Dict, List, Optional, Tuple
 
-try:  # pragma: no cover - only missing when the package is not installed
-    import MetaTrader5 as mt5  # type: ignore
-except Exception:  # pragma: no cover
-    mt5 = None  # type: ignore
+from .mt5_client import mt5
 
 from .mt5_client import IPC_LOCK, preferred_terminal_path
 from . import public_feed
-
-try:  # pragma: no cover - keeps the Exness dashboard intact if the BD module is absent
-    from .bd_feed import is_bd_symbol
-
-    def _bd_candles(symbol: str, tf: str, count: int) -> List[List[float]]:
-        from . import bd_feed
-
-        return bd_feed.candles(symbol, tf, count)
-
-    def _bd_tick(symbol: str) -> Optional[Dict[str, Any]]:
-        from . import bd_feed
-
-        return bd_feed.tick(symbol)
-
-    def _bd_meta(symbol: str) -> Optional[Dict[str, Any]]:
-        from . import bd_feed
-
-        return bd_feed.meta(symbol)
-
-    def _bd_m1_volume(symbol: str) -> Tuple[int, int]:
-        from . import bd_feed
-
-        return bd_feed.m1_volume(symbol)
-except Exception:  # pragma: no cover
-    def is_bd_symbol(symbol: str) -> bool:  # type: ignore
-        return False
-    _bd_candles = _bd_tick = _bd_meta = None
-    _bd_m1_volume = None
 
 # Timeframes the chart offers -> (seconds per bar, MT5 constant name)
 TF_SEC: Dict[str, int] = {
@@ -763,11 +732,6 @@ class ChartFeed:
         symbol = str(symbol or "").strip()
         if not symbol:
             symbol = "XAUUSDm"
-        if is_bd_symbol(symbol) and _bd_meta is not None:
-            try:
-                return _bd_meta(symbol)
-            except Exception:
-                pass
         now = time.time()
         hit = self._meta_cache.get(symbol)
         if hit and now - hit[0] < 30.0:
@@ -804,8 +768,6 @@ class ChartFeed:
         return bars
 
     def _read_rates(self, symbol: str, tf: str, count: int) -> List[List[float]]:
-        if is_bd_symbol(symbol) and _bd_candles is not None:
-            return _bd_candles(symbol, tf, count)
         canon = public_feed.canonical(symbol)
         public_ok = bool(self.public_fallback and public_feed.supports(canon))
         if not _try_ensure_terminal():
@@ -844,10 +806,6 @@ class ChartFeed:
         hit = self._tick_cache.get(symbol)
         if hit and now - hit[0] < max_age:
             return hit[1]
-        if is_bd_symbol(symbol) and _bd_tick is not None:
-            tick = _bd_tick(symbol)
-            self._tick_cache[symbol] = (now, tick)
-            return tick
         if _try_ensure_terminal():
             try:
                 with IPC_LOCK:
@@ -868,8 +826,6 @@ class ChartFeed:
                 if tick:
                     self._tick_cache[symbol] = (now, tick)
                     return tick
-        if is_bd_symbol(symbol):
-            return None
         raise ChartUnavailable("Exness MetaTrader 5 has no live tick for %s" % symbol)
 
     def ticker(self, symbol: str) -> Dict[str, Any]:
@@ -897,13 +853,16 @@ class ChartFeed:
                     "digits": digits,
                     "unit": meta["unit"],
                     "currency": meta["currency"],
-                    "updated_at": int(now * 1000),
+                    "updated_at": int(raw.get("updated_at", now * 1000)),
+                    "stale": bool(raw.get("stale", False)),
                     "source": "public",
                 }
                 self._ticker_cache[symbol] = (now, payload)
                 return payload
         tick = self.tick(symbol, max_age=0.2)
         rates = self._read_rates(symbol, "1m", 1440)
+        if not rates:
+            raise ChartUnavailable("No candle history for %s" % symbol)
         high = max(float(b[2]) for b in rates)
         low = min(float(b[3]) for b in rates)
         open24 = float(rates[0][1])
@@ -986,11 +945,6 @@ class ChartFeed:
 
     def _m1_volume(self, symbol: str) -> Tuple[int, int]:
         """(current M1 bar time, its tick volume) - the participation counter."""
-        if is_bd_symbol(symbol) and _bd_m1_volume is not None:
-            try:
-                return _bd_m1_volume(symbol)
-            except Exception:
-                return 0, 0
         if not _try_ensure_terminal():
             canon = public_feed.canonical(symbol)
             if self.public_fallback and public_feed.supports(canon):

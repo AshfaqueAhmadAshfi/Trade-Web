@@ -1,0 +1,318 @@
+--- before/start.bat
++++ after/start.bat
+@@ -10,6 +10,8 @@
+ cd /d "%~dp0"
+ title SoftradeX Trade
+ set "SOFTRADEX_MODE=public"
++REM PORT is also used by hosted launchers; keep this desktop launcher on loopback.
++set "HOST=127.0.0.1"
+ 
+ set "VPY=%~dp0.venv\Scripts\python.exe"
+ 
+--- before/web/app.js
++++ after/web/app.js
+@@ -362,7 +362,7 @@
+   const tick = async () => {
+     // Schedule the next poll after this request, so a slow host cannot overlap requests.
+     httpPollTimer = -1;
+-    if (document.hidden) {
++    if (document.hidden && S) {
+       if (generation === httpPollGeneration) httpPollTimer = setTimeout(tick, 2500);
+       return;
+     }
+@@ -381,7 +381,9 @@
+       const data = await resp.json();
+       if (!data || generation !== httpPollGeneration) return;
+       lastServerMsgAt = Date.now();
+-      queueStateFrame(data);
++      // Hydrate once even in a hidden tab; later frames keep the visibility throttle.
++      if (!S) applyState(data);
++      else queueStateFrame(data);
+       const foot = $('foot-ws');
+       if (foot) { foot.textContent = 'http: live (polling)'; foot.style.color = '#93c5fd'; }
+     } catch (e) {
+@@ -421,6 +423,7 @@
+   }
+   const foot = $('foot-ws');
+   if (foot) { foot.textContent = 'session: sign in required'; foot.style.color = '#fca5a5'; }
++  if (typeof window.requestDashboardLogin === 'function') void window.requestDashboardLogin();
+ }
+ 
+ function connectWS() {
+@@ -5724,6 +5727,7 @@
+     if (resolve) resolve(accepted);
+   }
+   function askDashboardPassword() {
++    if (dashboardPasswordResolve) return Promise.resolve(false);
+     const modal = $('dashboard-password-modal');
+     const input = $('dashboard-password-input');
+     const error = $('dashboard-password-error');
+@@ -5733,6 +5737,7 @@
+     setTimeout(() => input.focus(), 30);
+     return new Promise((resolve) => { dashboardPasswordResolve = resolve; });
+   }
++  window.requestDashboardLogin = askDashboardPassword;
+   function unlockDashboardPreview() {
+     if (!CFG.auth_required || CFG.authed || dashboardPreviewUnlocked) return true;
+     return askDashboardPassword().then((entered) => {
+--- before/web/chart-workspace.js
++++ after/web/chart-workspace.js
+@@ -131,6 +131,9 @@
+     // Recency is a monitoring filter, not a claimed impact-start timestamp.
+     return ev.kind === 'headline' && phaseFor(ev, now) === 'context' && now - Number(ev.ts) < impactWindow(ev);
+   }
++  function headlineMonitorEnd(ev) {
++    return Math.min(Number(ev.ts) + impactWindow(ev), window.DashboardPanels.newsExpires(ev));
++  }
+   function restoreNews() {
+     try {
+       var saved = JSON.parse(localStorage.getItem(NEWS_CACHE_KEY + marketBase(symbol)) || 'null');
+@@ -304,9 +307,11 @@
+     for (var i = 0; i < nodes.length; i++) {
+       var el = nodes[i];
+       var compact = el.dataset.compact === 'true';
+-      var txt = timerText(Number(el.dataset.ts), el.dataset.impact, Number(el.dataset.window), compact);
++      var monitoring = el.dataset.monitoring === 'true';
++      var txt = monitoring ? hms((Number(el.dataset.monitoringExpires) || Number(el.dataset.ts) + Number(el.dataset.window)) - now)
++        : timerText(Number(el.dataset.ts), el.dataset.impact, Number(el.dataset.window), compact);
+       el.textContent = txt;
+-      el.classList.toggle('live', el.dataset.phase === 'running' && txt !== 'COMPLETE');
++      el.classList.toggle('live', (monitoring || el.dataset.phase === 'running') && txt !== 'COMPLETE');
+     }
+     var entryNodes = document.querySelectorAll('.mnt-entry-timer');
+     for (var j = 0; j < entryNodes.length; j++) {
+@@ -329,12 +334,13 @@
+       var win = impactWindow(ev), phase = phaseFor(ev, now);
+       var attrs = ' data-ts="' + esc(ev.ts) + '" data-impact="' + impact + '" data-window="' + win + '" data-headline-window="' + (Number(ev.headline_window_sec) || 0) + '" data-phase="' + phase + '"';
+       var timed = ev.kind !== 'headline';
++      var monitoring = !timed && id === 'running-news-list';
+       var timer = timed ? timerText(ev.ts, impact, win, true) : 'UNSCHEDULED';
+-      var clockLabel = phase === 'running' ? 'IMPACT LEFT' : timed ? 'IMPACT IN' : 'IMPACT TIME';
++      var clockLabel = monitoring ? 'WATCH LEFT' : phase === 'running' ? 'IMPACT LEFT' : timed ? 'IMPACT IN' : 'IMPACT TIME';
+       var dateLabel = phase === 'running' ? 'Impact window started' : 'Scheduled impact window start';
+       var scheduled = timed ? eventTime(ev.ts) + ' · ' + eventTimezone(ev.ts) : 'No scheduled release time; market impact timing is unconfirmed.';
+       var clockHtml = '<span class="mnt-clock ' + phase + '"><small>' + clockLabel + '</small>' +
+-        (timed ? '<span class="mnt-timer' + (phase === 'running' ? ' live' : '') + '"' + attrs + ' data-compact="true">' + esc(timer) + '</span>' : '<span class="mnt-time-unknown">UNSCHEDULED</span>') + '</span>';
++        (monitoring ? '<span class="mnt-timer live"' + attrs + ' data-monitoring="true" data-monitoring-expires="' + headlineMonitorEnd(ev) + '">' + hms(headlineMonitorEnd(ev) - now) + '</span>' : timed ? '<span class="mnt-timer' + (phase === 'running' ? ' live' : '') + '"' + attrs + ' data-compact="true">' + esc(timer) + '</span>' : '<span class="mnt-time-unknown">UNSCHEDULED</span>') + '</span>';
+       var startHtml = timed ? '<time class="mnt-start" datetime="' + esc(new Date(Number(ev.ts) * 1000).toISOString()) + '" title="' + esc(dateLabel + ': ' + scheduled) + '">' + esc(eventTime(ev.ts)) + '</time>' : '';
+       var reason = prediction ? prediction.reason : 'Directional data unavailable; a fresh market quote is needed.';
+       var actual = ev.actual != null && ev.actual !== '' ? ' · actual ' + ev.actual : '';
+@@ -342,7 +348,7 @@
+       var levels = levelPlan(ev, prediction, side, now);
+       var key = eventKey(ev), title = ev.title || ev.event || 'Economic event';
+       var heading = '';
+-      if (phase === 'context' && !contextStarted) { contextStarted = true; heading = '<div class="mnt-context-heading">HEADLINES · LAST 24H · IMPACT UNCONFIRMED</div>'; }
++      if (phase === 'context' && !contextStarted) { contextStarted = true; heading = '<div class="mnt-context-heading">' + (monitoring ? 'RECENT HEADLINES · MONITORING' : 'HEADLINES · LAST 24H · IMPACT UNCONFIRMED') + '</div>'; }
+       var related = prediction && prediction.related.length ? '<p class="mnt-reason">Related research: ' + prediction.related.map(function(h) { return esc(h.source + ': ' + h.title); }).join(' · ') + '</p>' : '';
+       var providers = ev.sources || [ev.source || 'calendar'];
+       var sourceNames = providers.map(function(p) { return SOURCE_NAMES[p] || p; }).join(' + ');
+@@ -365,14 +371,14 @@
+         (ev.schedule_context ? '<p class="mnt-reason">Official event schedule: ' + esc(ev.schedule_context) + '</p>' : '') +
+         (phase === 'context' ? '<p class="mnt-reason">Recent relevant headline for reading. Its current price impact is unconfirmed; publication is not an impact-start time.</p>' : '') +
+         '<div class="mnt-bias-note">' + (prediction ? esc(prediction.basis + ' · ' + prediction.strength + '% MODEL STRENGTH' + (prediction.locked ? ' · LOCKED ' + new Date(prediction.at).toLocaleTimeString() : '')) : 'MODEL DATA UNAVAILABLE') + ' · estimates, not a fixed future outcome</div>' +
+-        '<div class="mnt-status"><b>' + (phase === 'running' ? '● RUNNING' : phase === 'context' ? 'HEADLINE CONTEXT' : 'UPCOMING') + ' · ' + impact.toUpperCase() + '</b>' +
+-        (timed ? '<span class="mnt-timer' + (phase === 'running' ? ' live' : '') + '"' + attrs + '>' + esc(timerText(ev.ts, impact, win)) + '</span><small>est. impact ' + Math.round(win / 60) + ' min</small>' : '<small>Unscheduled headline · impact time unknown</small>') + '</div>' +
++        '<div class="mnt-status"><b>' + (monitoring ? 'HEADLINE · MONITORING' : phase === 'running' ? '● RUNNING' : phase === 'context' ? 'HEADLINE CONTEXT' : 'UPCOMING') + ' · ' + impact.toUpperCase() + '</b>' +
++        (timed ? '<span class="mnt-timer' + (phase === 'running' ? ' live' : '') + '"' + attrs + '>' + esc(timerText(ev.ts, impact, win)) + '</span><small>est. impact ' + Math.round(win / 60) + ' min</small>' : '<small>' + (monitoring ? 'Monitoring ' + Math.round((headlineMonitorEnd(ev) - Number(ev.ts)) / 60) + ' min from publication · impact unconfirmed' : 'Unscheduled headline · impact time unknown') + '</small>') + '</div>' +
+         (phase === 'context' ? '' : '<div class="mnt-entry-timer" data-ts="' + esc(ev.ts) + '" data-impact="' + impact + '">' + esc(entryTiming(ev, now)) + '</div>' + levelsHtml(levels, side, phase === 'running')) +
+         (ev.description ? '<p class="mnt-reason">Source context: ' + esc(ev.description) + '</p>' : '') + related +
+         '<p class="mnt-reason">' + esc(reason + actual) + '</p>' +
+         '<p class="mnt-reason">' + esc(relevanceFor(ev)) + ' · Watch levels are conditional: wait for price confirmation; the first news spike can reverse.</p></div>' +
+       '</details>';
+-    }).join('') : '<div class="mnt-empty">' + (id === 'running-news-list' ? 'No active news impact for ' : 'No relevant upcoming release or recent headline for ') + esc(symbol || 'this market') + '.</div>';
++    }).join('') : '<div class="mnt-empty">' + (id === 'running-news-list' ? 'No running release or recent headline to monitor for ' : 'No relevant upcoming release or recent headline for ') + esc(symbol || 'this market') + '.</div>';
+     if (html !== lastNewsHtml[id]) {
+       var scroll = list.scrollTop;
+       list.innerHTML = html;
+@@ -390,12 +396,12 @@
+     var active = rows.filter(function(ev) { return phaseFor(ev, now) === 'running'; });
+     var recent = rows.filter(function(ev) { return recentHeadline(ev, now); });
+     var headlines = rows.filter(function(ev) { return phaseFor(ev, now) === 'context'; });
+-    var running = active.slice().sort(function(a,b) { return Number(b.ts)-Number(a.ts); });
++    var running = active.concat(recent).sort(function(a,b) { return Number(b.ts)-Number(a.ts); });
+     var upcoming = rows.filter(function(ev) { return phaseFor(ev, now) === 'upcoming'; });
+     if ($('mnt-market')) $('mnt-market').textContent = symbol || 'MARKET';
+     if ($('rnews-market')) $('rnews-market').textContent = symbol || 'MARKET';
+     if ($('mnt-count')) $('mnt-count').textContent = upcoming.length + ' EVENTS · ' + headlines.length + ' HEADLINES' + (scanState === 'idle' ? '' : ' · ' + scanState.toUpperCase());
+-    if ($('rnews-count')) $('rnews-count').textContent = active.length + ' RELEASES';
++    if ($('rnews-count')) $('rnews-count').textContent = active.length + ' RELEASES · ' + recent.length + ' HEADLINES';
+     renderNewsList('mnt-list', upcoming.concat(headlines), now);
+     renderNewsList('running-news-list', running, now);
+     if (window.RunningNewsAlerts) window.RunningNewsAlerts.observe({
+@@ -403,7 +409,7 @@
+       events: active.concat(recent).map(function(ev) {
+         return {key: eventKey(ev), title: ev.title || ev.event, headline: ev.kind === 'headline',
+           source: (ev.sources || [ev.source]).map(function(name) { return SOURCE_NAMES[name] || name; }).filter(Boolean).join(' · '),
+-          expiresAt: Number(ev.ts) + impactWindow(ev)};
++          expiresAt: ev.kind === 'headline' ? headlineMonitorEnd(ev) : Number(ev.ts) + impactWindow(ev)};
+       })
+     });
+     renderSources(rows);
+--- before/web/index.html
++++ after/web/index.html
+@@ -2170,7 +2170,7 @@
+   <script src="/static/softradex-terminal.js?v=20261114_white1"></script>
+   <script src="/static/chart-news-events.js?v=20261114_newslifecycle1"></script>
+   <script src="/static/news-list-renderer.js?v=20261114_smooth2"></script>
+-  <script src="/static/app.js?v=20261114_projectaudit3"></script>
++  <script src="/static/app.js?v=20261114_runtime6"></script>
+   <script src="/static/traders-terminal.js?v=20261114_selectedflow1"></script>
+   <script src="/static/binance-order-flow-terminal.js?v=20261114_smooth2"></script>
+   <script src="/static/multi-exchange-order-flow.js?v=20261114_smooth2"></script>
+@@ -2182,7 +2182,7 @@
+   <!-- Expanded/fullscreen workspace + selected-market 24h news terminal -->
+   <script src="/static/news-direction.js?v=news-bias1"></script>
+   <script src="/static/running-news-alert.js?v=20261114_headlines24h1"></script>
+-  <script src="/static/chart-workspace.js?v=20261114_headlines24h1"></script>
++  <script src="/static/chart-workspace.js?v=20261114_runningheadlines3"></script>
+   <script src="/static/tv-setups.js?v=audit20261114b"></script>
+   <script src="/static/swing-ai.js?v=20261114_autoswing3"></script>
+   <script src="/static/market-outlook-data.js?v=event-priority1"></script>
+--- before/README.md
++++ after/README.md
+@@ -16,9 +16,12 @@
+ Headlines stay labelled as unscheduled context, with their source links. At the release time, an
+ event moves exclusively to **Running News** and disappears when its estimated
+ impact window ends. Reading recency is separate from estimated market impact;
+-an explicit shorter headline monitoring deadline is still respected. Newly
+-arriving headlines keep the five-second popup alert. Publication is not a
+-confirmed impact-start time, so headlines are not duplicated in Running News.
++an explicit shorter headline monitoring deadline is still respected. Running
++News also shows recent relevant headlines during their estimated 15/30/60-minute
++monitoring window, newest first, with a WATCH LEFT countdown and source links.
++These headlines remain in the 24-hour reading list and are labelled as monitoring;
++publication is not a confirmed impact-start time. Newly arriving headlines keep
++the five-second popup alert.
+ Expired news is rejected on refresh and cache restore, including the other news
+ cards, reading drawer and chart markers.
+ `setup.bat` installs the web dependencies; it does not install a terminal bridge.
+--- before/tests/dashboard-runtime.test.cjs
++++ after/tests/dashboard-runtime.test.cjs
+@@ -117,20 +117,42 @@
+   const context = vm.createContext({CFG:settings,window:{SOFTRADEX_PUBLIC_ONLY:true},
+     document:{hidden:false},Date,AbortController,$:()=>foot,
+     setTimeout(fn,ms){const id=++next;timers.set(id,{fn,ms});return id;},clearTimeout(id){timers.delete(id);},
+-    fetch(){return new Promise(resolve=>requests.push(resolve));},queueStateFrame:data=>painted.push(data),applyState:data=>painted.push(data)});
+-  vm.runInContext("let httpPollTimer=null,httpPollGeneration=0,wakeHttpPoll=null,newsHaveSig='',lastServerMsgAt=0," +
++    fetch(){return new Promise(resolve=>requests.push(resolve));},
++    queueStateFrame:data=>{if(!context.document.hidden)painted.push(data);},
++    applyState:data=>{painted.push(data);vm.runInContext('S=true',context);}});
++  vm.runInContext("let S=null,httpPollTimer=null,httpPollGeneration=0,wakeHttpPoll=null,newsHaveSig='',lastServerMsgAt=0," +
+     "dashboardPreviewUnlocked=false,wsReconnectTimer=null,ws=null,wsAlive=false;" +
+     source.slice(source.indexOf('function startHttpPoll'),source.indexOf('/* The engine pushes')) +
+     source.slice(source.indexOf('async function loadInitial'),source.indexOf('/* Order execution is unavailable')),context);
+   return {context,settings,requests,painted,timers,foot};
+ }
+ const settle = async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
++
++test('a hidden page loads its first state then pauses background polling',async()=>{
++  const s=privateState();s.context.document.hidden=true;s.context.startHttpPoll();
++  assert.equal(s.requests.length,1);
++  s.requests[0]({ok:true,status:200,json:async()=>({version:1})});await settle();
++  assert.equal(s.painted.length,1);
++  vm.runInContext('S={version:1}',s.context);
++  [...s.timers.values()].find(t=>t.ms===2500).fn();await settle();
++  assert.equal(s.requests.length,1);
++});
+ 
+ test('signed-out private state never starts polling or requests an initial snapshot',async()=>{
+   const s=privateState({auth_required:true,authed:false});
+   s.context.connectWS();s.context.startHttpPoll();await s.context.loadInitial();
+   assert.equal(s.requests.length,0);assert.equal(s.timers.size,0);
+   assert.match(s.foot.textContent,/sign in required/);
++});
++
++test('signed-out startup and an expired session expose the dashboard password dialog',async()=>{
++  const s=privateState({auth_required:true,authed:false});let prompts=0;
++  s.context.window.requestDashboardLogin=()=>{prompts++;};
++  s.context.connectWS();
++  assert.equal(prompts,1);assert.equal(s.requests.length,0);
++  s.settings.authed=true;s.context.startHttpPoll();
++  s.requests[0]({ok:false,status:401});await settle();
++  assert.equal(prompts,2);assert.equal(s.settings.authed,false);
+ });
+ 
+ for(const status of [401,403])test(`private state ${status} stops retries and never paints the error response`,async()=>{
+--- before/tests/news-swing.test.cjs
++++ after/tests/news-swing.test.cjs
+@@ -224,7 +224,7 @@
+   assert.match(s.storage.get('softradex.news.bias.v1'),/"side":"SELL"/);
+ });
+ 
+-test('24h headlines appear in Next 24H with sources while Running News remains exclusive to active releases', () => {
++test('24h headlines retain sources and Running News also monitors newly published headlines', () => {
+   const s=newsSandbox(); s.api.seed('XAUUSDm'); s.window.SOFT_TV_QUOTE=quote();
+   s.api.mergeNews([{...event('Gold rises on Fed rate cut',-7200),source:'google-news',kind:'headline',headline_window_sec:86400},
+     {...event('New gold headline',-60),source:'google-news',kind:'headline'},
+@@ -243,8 +243,9 @@
+   assert.match(s.elements.get('mnt-list').innerHTML,/LAST 24H · IMPACT UNCONFIRMED/);
+   assert.match(s.elements.get('mnt-list').innerHTML,/Google News/);
+   assert.match(s.elements.get('mnt-count').textContent,/1 EVENTS · 2 HEADLINES/);
+-  assert.doesNotMatch(s.elements.get('running-news-list').innerHTML,/New gold headline|Gold rises/);
+-  assert.doesNotMatch(s.elements.get('running-news-list').innerHTML,/class="mnt-timer/);
++  assert.match(s.elements.get('running-news-list').innerHTML,/class="mnt-name">New gold headline/);
++  assert.doesNotMatch(s.elements.get('running-news-list').innerHTML,/class="mnt-name">Gold rises/);
++  assert.match(s.elements.get('running-news-list').innerHTML,/WATCH LEFT/);
+   assert.doesNotMatch(s.elements.get('mnt-list').innerHTML,/Future headline timestamp/);
+ });
+ 
+@@ -279,15 +280,39 @@
+   s.api.mergeNews([ev]); s.api.renderNews();
+   s.api.mergeNews([]); s.api.renderNews();
+   assert.match(s.elements.get('mnt-list').innerHTML, /Gold headline lifecycle/);
+-  assert.doesNotMatch(s.elements.get('running-news-list').innerHTML, /Gold headline lifecycle/);
++  assert.match(s.elements.get('running-news-list').innerHTML, /Gold headline lifecycle/);
++  assert.match(s.elements.get('running-news-list').innerHTML, /HEADLINE · MONITORING/);
++  assert.match(s.elements.get('running-news-list').innerHTML, /WATCH LEFT/);
++  assert.equal(s.elements.get('rnews-count').textContent, '0 RELEASES · 1 HEADLINES');
+   s.time(NOW + 50000); s.api.renderNews();
+   s.api.mergeNews([ev]); s.api.renderNews();
+   assert.doesNotMatch(s.elements.get('mnt-list').innerHTML + s.elements.get('running-news-list').innerHTML, /Gold headline lifecycle/);
++  assert.equal(s.elements.get('rnews-count').textContent, '0 RELEASES · 0 HEADLINES');
+   s.api.seed('EURUSDm'); s.api.mergeNews([ev]); s.api.renderNews();
+   s.api.seed('XAUUSDm');
+   s.storage.set('softradex.news.snapshot.v1.XAUUSD', JSON.stringify({symbol:'XAUUSDm',at:NOW,events:[ev]}));
+   s.api.restoreNews(); s.api.renderNews();
+   assert.equal(s.api.visibleEvents((NOW + 50000)/1000).length, 0);
++});
++
++test('recent headlines appear newest first and leave Running News when monitoring ends', () => {
++  const s = newsSandbox(); s.api.seed('XAUUSDm');
++  const headline = {...event('Gold recent headline', -10), kind:'headline', headline_window_sec:86400, impact_window_sec:60};
++  s.api.mergeNews([event('Running release',-20), headline, {...headline,title:'Gold older reading',ts:NOW/1000-100}]);
++  s.api.renderNews();
++  const html = s.elements.get('running-news-list').innerHTML;
++  assert.ok(html.indexOf('Gold recent headline') < html.indexOf('Running release'));
++  assert.doesNotMatch(html,/Gold older reading/);
++  assert.equal(s.elements.get('rnews-count').textContent,'1 RELEASES · 1 HEADLINES');
++  const timer = {dataset:{ts:headline.ts,window:60,monitoring:'true',phase:'context'},classList:{toggle(){}},textContent:''};
++  const row = {dataset:{ts:headline.ts,kind:'headline',window:60,headlineWindow:86400,phase:'context'},closest:()=>({})};
++  s.document.querySelectorAll = selector => selector === '.mnt-row' ? [row] : selector === '.mnt-timer' ? [timer] : [];
++  s.time(NOW+1000); s.api.updateMntTimers();
++  assert.equal(timer.textContent,'00:00:49');
++  s.time(NOW+50000); s.api.updateMntTimers();
++  assert.doesNotMatch(s.elements.get('running-news-list').innerHTML,/Gold recent headline/);
++  assert.match(s.elements.get('mnt-list').innerHTML,/Gold recent headline/);
++  assert.equal(s.elements.get('rnews-count').textContent,'1 RELEASES · 0 HEADLINES');
+ });
+ 
+ test('headline reading survives partial refresh and the one-second clock removes it at 24h', () => {
+@@ -302,6 +327,18 @@
+   assert.doesNotMatch(s.elements.get('mnt-list').innerHTML,/Gold Google reading/);
+   s.api.mergeNews([ev]); s.api.renderNews();
+   assert.equal(s.api.visibleEvents((NOW + 22*3600000)/1000).length,0);
++});
++
++test('headline countdown honours a shorter explicit reading deadline', () => {
++  const s=newsSandbox();s.api.seed('XAUUSDm');
++  const ev={...event('Gold shorter monitoring',-10),kind:'headline',impact_window_sec:3600,headline_window_sec:60};
++  s.api.mergeNews([ev]);s.api.renderNews();
++  assert.match(s.elements.get('running-news-list').innerHTML,/00:00:50/);
++  const timer={dataset:{ts:ev.ts,window:3600,monitoring:'true',monitoringExpires:ev.ts+60,phase:'context'},classList:{toggle(){}},textContent:''};
++  s.document.querySelectorAll=selector=>selector==='.mnt-timer'?[timer]:[];
++  s.time(NOW+1000);s.api.updateMntTimers();assert.equal(timer.textContent,'00:00:49');
++  s.time(NOW+50000);s.api.renderNews();
++  assert.doesNotMatch(s.elements.get('running-news-list').innerHTML,/Gold shorter monitoring/);
+ });
+ 
+ test('news filters include Gold policy spillovers and exclude unrelated USD company headlines', () => {

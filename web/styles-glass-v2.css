@@ -88,8 +88,7 @@ body {
 #dash .trend-box-footer,
 #dash .trend-box-head,
 #dash .feed-panel-drawer,
-#dash .binance-terminal-section,
-#dash .bd-access-card {
+#dash .binance-terminal-section {
   background: var(--glass-card-bg) !important;
   -webkit-backdrop-filter: var(--glass-blur-md) !important;
   backdrop-filter: var(--glass-blur-md) !important;
@@ -406,20 +405,6 @@ body {
   background: #fff !important;
   border-color: var(--hairline-bright) !important;
   box-shadow: 0 12px 26px -18px rgba(37, 99, 235, 0.8) !important;
-}
-
-/* ---- 3.9 BD access card (cross-link card on the Exness page) ----------- */
-#dash .bd-access-card {
-  background:
-    radial-gradient(420px 220px at 12% 0%, rgba(16, 185, 129, 0.14), transparent 62%),
-    var(--glass-card-bg) !important;
-}
-#dash .bd-access-head { background: transparent !important; border: none !important; }
-#dash .bd-access-flag {
-  background: rgba(5, 150, 105, 0.12) !important;
-  color: #047857 !important;
-  border: 1px solid rgba(5, 150, 105, 0.24) !important;
-  border-radius: 999px !important;
 }
 
 /* ---- 3.10 traders terminal ------------------------------------------- */
@@ -881,3 +866,203 @@ body {
 #dash .bot-side-curve { background: transparent !important; border: none !important; filter: none !important; }
 
 
+
+/* ==========================================================================
+   2026-11-12 · panels the owner does not want on the dashboard
+   --------------------------------------------------------------------------
+   The markup stays in the page (the live state loop keeps writing into it and
+   every lookup is a plain id), but none of it is part of the UI any more:
+
+   · the performance block            (#perf-block)
+   · the account balance strip        (.account-strip)
+   · the extra exchange order-flow    (#binance-order-flow-panel,
+     terminals                         .multi-order-flow-grid)
+   · the full AI analysis board       (#stage-ai)
+   · the pressure watch dials         (#market-watch-panel - the traders
+                                       order-flow terminal sits there now)
+   · positions + trade history        (#positions-drawer, rails)
+   · the seven bot panels             (only the news panel stays in All Bots)
+   · the built-in MT5 candle chart    (TradingView is the only chart now)
+
+   The indicator bar (MSB · OB / WaveTrend / ICT Killzones) stays: those
+   studies draw on their own panes, not on the MT5 canvas.
+   ========================================================================== */
+#perf-block,
+.account-strip,
+#market-watch-panel,
+#binance-order-flow-panel,
+.multi-order-flow-grid,
+#stage-ai,
+#positions-drawer,
+#rail-positions,
+#rail-history,
+#dash .binance-chart-wrapper .binance-canvas-box,
+#bots-drawer #bot1-panel,
+#bots-drawer #bot2-panel,
+#bots-drawer #bot3-panel,
+#bots-drawer #bot4-panel,
+#bots-drawer #bot5-panel,
+#bots-drawer #bot6-panel,
+#bots-drawer #bot7-panel {
+  display: none !important;
+}
+
+/* ==========================================================================
+   2026-11-12 · second pass
+   -------------------------------------------------------------------------- */
+
+/* 01 MARKET is gone; 05 NEXT EVENT takes its cell in the flow grid. */
+#stage-market { display: none !important; }
+#stage-news { grid-column: 1 !important; grid-row: 1 !important; }
+
+/* Big player tape, account connection status, voice alerts, the activity feed
+   and the chart-toolbar extras (TradingView toggle, golden-cross chip, open
+   volume chips, expand / collapse) are not part of the dashboard any more.
+   Their DOM stays in place because the live state loop still writes into it. */
+#whale-flow-section,
+#conn-widget,
+#source-badge,
+#topbar-mute-btn,
+#rail-activity,
+#tab-btn-activity,
+#view-activity,
+#tv-chart-toggle,
+#tv-cross-badge,
+#binance-open-vol-strip,
+#binance-term-expand,
+#binance-term-toggle,
+#venue-flow-board .vfb-head,
+#venue-flow-board .vfb-split,
+#venue-flow-board .vfb-source-line,
+#venue-flow-board .vfb-list,
+#venue-flow-board .vfb-foot {
+  display: none !important;
+}
+
+/* 08 · sessions board and the 12-venue terminal, side by side */
+.sessions-venue-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+@media (max-width: 1200px) {
+  .sessions-venue-wrap { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 12 venue combined order flow terminal */
+.venues-flow-terminal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  align-self: start;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 16px 34px -26px rgba(37, 99, 235, 0.6);
+  overflow: hidden;
+}
+.vft-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(37, 99, 235, 0.10);
+  background: rgba(37, 99, 235, 0.05);
+}
+.vft-title { display: flex; align-items: center; gap: 6px; }
+.vft-title strong { font: 800 10px "JetBrains Mono", monospace; letter-spacing: 0.03em; color: #0f172a; }
+.vft-title em { font: 700 8px "JetBrains Mono", monospace; color: #7b8aa3; font-style: normal; }
+.vft-live { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15); }
+.vft-totals { display: flex; gap: 6px; }
+.vft-total {
+  font: 700 8px "JetBrains Mono", monospace;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  background: #fff;
+  color: #64748b;
+}
+.vft-total b { font-size: 10px; margin-left: 4px; }
+.vft-total.buy b { color: #059669; }
+.vft-total.sell b { color: #dc2626; }
+.vft-columns,
+.vft-row {
+  display: grid;
+  grid-template-columns: 1.15fr 0.75fr 0.85fr 0.85fr 0.7fr 0.85fr 1fr;
+  gap: 4px;
+  align-items: center;
+  padding: 5px 9px;
+}
+.vft-columns {
+  font: 800 7px "JetBrains Mono", monospace;
+  color: #7b8aa3;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(37, 99, 235, 0.08);
+  background: rgba(255, 255, 255, 0.7);
+}
+.vft-rows { overflow: auto; min-height: 140px; max-height: 430px; }
+.vft-row {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+  font: 650 8.5px "JetBrains Mono", monospace;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+}
+.vft-row .vft-company { font-weight: 800; color: #0f172a; }
+.vft-row .vft-pos { font-weight: 800; }
+.vft-row .vft-pos.buy { color: #059669; }
+.vft-row .vft-pos.sell { color: #dc2626; }
+.vft-row .vft-na { color: #b6c1d1; }
+.vft-empty { padding: 18px 10px; font: 600 9px "JetBrains Mono", monospace; color: #94a3b8; }
+.vft-foot {
+  padding: 6px 9px;
+  border-top: 1px solid rgba(37, 99, 235, 0.08);
+  font: 600 7.5px "JetBrains Mono", monospace;
+  color: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
+   08 · Sessions UI fix
+   The board shares its row with the 12-venue terminal now, so the four session
+   cards no longer fit across: 4 x 125px squeezed every forecast block and made
+   the board 1000px tall. They wrap into 2 x 2 instead.
+   -------------------------------------------------------------------------- */
+#stage-sessions .sessions-head { flex-wrap: wrap !important; row-gap: 6px !important; }
+#stage-sessions .sessions-grid { grid-template-columns: repeat(auto-fit, minmax(238px, 1fr)) !important; }
+#stage-sessions .sess-row { min-width: 0 !important; }
+#stage-sessions .sess-top { flex-wrap: wrap !important; row-gap: 2px !important; }
+#stage-sessions .sess-fc-amt { font-size: 11px !important; letter-spacing: -0.02em; }
+#stage-sessions .sess-fc-tag { font-size: 8px !important; }
+#stage-sessions .sess-time-row { flex-wrap: wrap !important; row-gap: 2px !important; }
+#stage-sessions .sessions-summary { line-height: 1.5; }
+#stage-sessions .sessions-radar-chips { flex-wrap: wrap !important; }
+
+/* The session cards always sit in a balanced grid: two per row beside the
+   12-venue terminal, one per row on a phone. */
+#stage-sessions .sessions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+@media (max-width: 560px) {
+  #stage-sessions .sessions-grid { grid-template-columns: minmax(0, 1fr) !important; }
+}
+
+/* --------------------------------------------------------------------------
+   08 · Sessions use the full width
+   The stage sat on columns 2-3 and left the whole left column empty, so the
+   four session cards could not stay in one row. It spans the full dashboard
+   row now: Sydney → Tokyo → London → New York in one line, with the 12-venue
+   terminal beside it.
+   -------------------------------------------------------------------------- */
+#stage-sessions {
+  grid-column: 1 / -1 !important;
+  grid-row: 3 !important;
+}
+.sessions-venue-wrap {
+  grid-template-columns: minmax(0, 2.5fr) minmax(300px, 1fr) !important;
+}
+#stage-sessions .sessions-grid {
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr)) !important;
+}
+@media (max-width: 1200px) {
+  .sessions-venue-wrap { grid-template-columns: minmax(0, 1fr) !important; }
+}

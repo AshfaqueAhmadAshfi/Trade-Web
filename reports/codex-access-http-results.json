@@ -1,0 +1,65 @@
+{
+  "base_url": "http://127.0.0.1:8784",
+  "checks": [
+    {
+      "path": "/",
+      "status": 200,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/access",
+      "status": 200,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/dashboard",
+      "status": 200,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/dashboard/",
+      "status": 200,
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/api/state",
+      "status": 200,
+      "type": "application/json"
+    },
+    {
+      "path": "/bd",
+      "status": 404,
+      "type": "application/json"
+    },
+    {
+      "path": "/static/access.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "path": "/static/access.js",
+      "status": 200,
+      "type": "application/javascript"
+    },
+    {
+      "path": "/static/contact.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "path": "/static/contact.js",
+      "status": 200,
+      "type": "application/javascript"
+    },
+    {
+      "path": "/static/whatsapp.svg",
+      "status": 200,
+      "type": "image/svg+xml"
+    },
+    {
+      "path": "/static/my-image.jpg",
+      "status": 200,
+      "type": "image/jpeg"
+    }
+  ]
+}

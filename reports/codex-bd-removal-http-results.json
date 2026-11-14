@@ -1,0 +1,85 @@
+{
+  "base_url": "http://127.0.0.1:8782",
+  "checks": [
+    {
+      "path": "/",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/health",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/chart/symbols",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/bd",
+      "status": 404,
+      "expected": 404
+    },
+    {
+      "path": "/bd.html",
+      "status": 404,
+      "expected": 404
+    },
+    {
+      "path": "/api/bd/watch",
+      "status": 404,
+      "expected": 404
+    },
+    {
+      "path": "/api/bd/state?symbol=DSEX",
+      "status": 404,
+      "expected": 404
+    },
+    {
+      "path": "/static/bd.html",
+      "status": 404,
+      "expected": 404
+    },
+    {
+      "path": "/static/bd-app.js",
+      "status": 404,
+      "expected": 404
+    },
+    {
+      "path": "/static/bd.css",
+      "status": 404,
+      "expected": 404
+    },
+    {
+      "path": "/static/glass-bd.css",
+      "status": 404,
+      "expected": 404
+    }
+  ],
+  "local_preview": {
+    "base_url": "http://127.0.0.1:8783",
+    "checks": [
+      {
+        "path": "/",
+        "status": 200,
+        "expected": 200
+      },
+      {
+        "path": "/api/state",
+        "status": 200,
+        "expected": 200
+      },
+      {
+        "path": "/bd",
+        "status": 404,
+        "expected": 404
+      },
+      {
+        "path": "/api/bd/watch",
+        "status": 404,
+        "expected": 404
+      }
+    ]
+  }
+}

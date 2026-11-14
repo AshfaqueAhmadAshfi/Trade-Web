@@ -1,0 +1,30 @@
+[
+  {
+    "file": "web\\bd.html",
+    "duplicate_ids": {},
+    "missing_assets": [],
+    "inline_scripts": 1,
+    "inline_syntax_errors": []
+  },
+  {
+    "file": "web\\index.html",
+    "duplicate_ids": {},
+    "missing_assets": [],
+    "inline_scripts": 0,
+    "inline_syntax_errors": []
+  },
+  {
+    "file": "web\\_shot_dash.html",
+    "duplicate_ids": {},
+    "missing_assets": [],
+    "inline_scripts": 1,
+    "inline_syntax_errors": []
+  },
+  {
+    "file": "web\\_shot_nov2.html",
+    "duplicate_ids": {},
+    "missing_assets": [],
+    "inline_scripts": 1,
+    "inline_syntax_errors": []
+  }
+]

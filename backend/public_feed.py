@@ -37,6 +37,7 @@ TF_SEC: Dict[str, int] = {
 }
 
 _HTTP_TIMEOUT = 8.0
+MAX_STALE_SEC = 60.0
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 
@@ -320,7 +321,7 @@ def candles(symbol: str, tf: str = "5m", count: int = 600) -> List[List[float]]:
             _CANDLES[key] = (now + _TTL.get(tf, 20.0), bars)
             return bars
         errors.append("%s: empty series" % provider)
-    if hit:
+    if hit and now - (hit[0] - _TTL.get(tf, 20.0)) <= 300.0:
         # A provider hiccup must not blank a chart that already has history.
         return hit[1]
     raise PublicFeedError("public feed could not return %s candles (%s)"
@@ -379,8 +380,8 @@ def tick(symbol: str) -> Dict[str, Any]:
             continue
         _TICKS[canon] = (now + 2.5, row)
         return row
-    if hit:
-        return hit[1]
+    if hit and time.time() - (hit[0] - 2.5) <= MAX_STALE_SEC:
+        return dict(hit[1], stale=True)
     raise PublicFeedError("public feed has no live price for %s (%s)"
                           % (canon, "; ".join(errors) or "no provider"))
 
@@ -396,7 +397,8 @@ def _binance_ticker(symbol: str) -> Dict[str, Any]:
         raise PublicFeedError("binance returned no 24h price")
     vol = int(_num((data or {}).get("count")) or _num((data or {}).get("volume")))
     return {"price": price, "open24": open24, "high": high, "low": low,
-            "vol": vol, "change": ((price - open24) / open24 * 100.0) if open24 else 0.0}
+            "vol": vol, "change": ((price - open24) / open24 * 100.0) if open24 else 0.0,
+            "updated_at": int(_num((data or {}).get("closeTime")) or time.time() * 1000)}
 
 
 def _yahoo_ticker(symbol: str) -> Dict[str, Any]:
@@ -425,7 +427,8 @@ def _yahoo_ticker(symbol: str) -> Dict[str, Any]:
         raise PublicFeedError("yahoo returned no 24h price")
     return {"price": price, "open24": open24 or price, "high": high or price,
             "low": low or price, "vol": vol,
-            "change": ((price - open24) / open24 * 100.0) if open24 else 0.0}
+            "change": ((price - open24) / open24 * 100.0) if open24 else 0.0,
+            "updated_at": int((_num(meta.get("regularMarketTime")) or time.time()) * 1000)}
 
 
 def ticker(symbol: str) -> Dict[str, Any]:
@@ -442,10 +445,11 @@ def ticker(symbol: str) -> Dict[str, Any]:
         except Exception as exc:
             errors.append("%s: %s" % (provider, exc))
             continue
-        _TICKERS[canon] = (now + 15.0, row)
+        row["stale"] = time.time() - row["updated_at"] / 1000 > MAX_STALE_SEC
+        _TICKERS[canon] = (time.time() + 15.0, row)
         return row
-    if hit:
-        return hit[1]
+    if hit and time.time() - (hit[0] - 15.0) <= MAX_STALE_SEC:
+        return dict(hit[1], stale=True)
     raise PublicFeedError("public feed has no 24h stats for %s (%s)"
                           % (canon, "; ".join(errors) or "no provider"))
 

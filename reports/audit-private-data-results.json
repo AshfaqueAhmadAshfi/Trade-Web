@@ -1,0 +1,8 @@
+{
+  "auth_required": true,
+  "anonymous_state_status": 200,
+  "anonymous_state_contains_account": true,
+  "anonymous_mutation_status": 401,
+  "foreign_origin_websocket_accepted": true,
+  "websocket_contains_account": true
+}

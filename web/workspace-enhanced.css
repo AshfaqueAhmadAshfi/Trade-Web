@@ -7,10 +7,41 @@ html.chart-workspace-open{overflow:hidden}
 #dash .market-ticker-bar,#dash .ticker-track-container{min-width:0;max-width:100%;overflow:hidden;contain:inline-size}
 #dash .ticker-track{max-width:none}
 #dash .binance-term-workspace,#dash .binance-chart-wrapper,#dash .binance-book-sidebar{min-width:0;max-width:100%}
-#dash #binance-terminal-section.workspace-expanded,#binance-terminal-section:fullscreen{position:fixed!important;inset:0!important;z-index:100000!important;margin:0!important;padding:8px!important;border-radius:0!important;background:#f4f7fb!important;overflow:auto!important;max-width:none!important;width:100vw!important;height:100vh!important}
-#dash #binance-terminal-section.workspace-expanded .binance-term-workspace,#binance-terminal-section:fullscreen .binance-term-workspace{grid-template-columns:minmax(0,1fr) minmax(390px,32vw)!important;height:calc(100vh - 92px)!important;gap:8px!important}
+/* This is a wrapped list, not a single pill: a 999px radius clips edge names. */
+#dash #binance-symbol-tabs { border-radius: 0 !important; }
+#dash .mnt-source-report { flex: 0 0 auto; border-block: 1px solid #e2e8f0; background: #f8fafc; }
+#dash .mnt-source-report > summary { padding: 5px 7px; cursor: pointer; color: #64748b; font: 700 7px/1.5 "JetBrains Mono", monospace; }
+#dash #market-news-terminal .mnt-source-report[open] #mnt-sources { display: grid !important; }
+#dash .mnt-source-report .mnt-provider { min-width: 0; overflow-wrap: anywhere; }
+#dash .mnt-source-report .mnt-provider b { display: block; font-size: 7px; }
+#dash .mnt-source-report .mnt-provider a { display: block; margin-top: 3px; color: #2563eb; font-size: 7px; }
+#dash .market-list-toggle-wrap {
+  display: flex; justify-content: center; align-items: center;
+  flex: 0 0 100%; width: 100%; margin: -2px 0 2px;
+}
+#dash .market-list-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 24px; padding: 0;
+  border: 1px solid #dbe7f5; border-radius: 999px;
+  background: #f5f9ff; color: #3b82f6; cursor: pointer;
+}
+#dash .market-list-toggle:hover { background: #eaf2ff; border-color: #93c5fd; }
+#dash .market-list-toggle:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+#dash .market-list-toggle svg { transition: transform .15s ease; }
+#dash .market-list-toggle[aria-expanded="false"] svg { transform: rotate(180deg); }
+#dash #binance-symbol-tabs.market-list-collapsed {
+  flex-wrap: nowrap !important; max-height: 36px !important;
+  overflow-x: auto !important; overflow-y: hidden !important;
+}
+#dash #binance-symbol-tabs.market-list-collapsed .b-tab-btn.active { order: -1; }
+#dash #binance-terminal-section.workspace-expanded #binance-symbol-tabs:not(.market-list-collapsed),
+#binance-terminal-section:fullscreen #binance-symbol-tabs:not(.market-list-collapsed) {
+  max-height: none !important;
+}
+#dash #binance-terminal-section.workspace-expanded,#binance-terminal-section:fullscreen{position:fixed!important;inset:0!important;z-index:100000!important;margin:0!important;padding:8px!important;border-radius:0!important;background:#f4f7fb!important;overflow:auto!important;max-width:none!important;width:100%!important;height:100dvh!important;display:flex!important;flex-direction:column!important}
+#dash #binance-terminal-section.workspace-expanded .binance-term-workspace,#binance-terminal-section:fullscreen .binance-term-workspace{grid-template-columns:minmax(0,1fr) minmax(360px,30vw)!important;height:auto!important;min-height:360px!important;flex:1 0 360px!important;gap:8px!important}
 #dash #binance-terminal-section.workspace-expanded .binance-chart-wrapper,#binance-terminal-section:fullscreen .binance-chart-wrapper,#dash #binance-terminal-section.workspace-expanded .binance-book-sidebar,#binance-terminal-section:fullscreen .binance-book-sidebar{height:100%!important;min-height:0!important}
-#dash #binance-terminal-section.workspace-expanded #tv-chart-box,#binance-terminal-section:fullscreen #tv-chart-box,#dash #binance-terminal-section.workspace-expanded .binance-canvas-box,#binance-terminal-section:fullscreen .binance-canvas-box{height:calc(100% - 30px)!important;min-height:560px!important}
+#dash #binance-terminal-section.workspace-expanded #tv-chart-box,#binance-terminal-section:fullscreen #tv-chart-box,#dash #binance-terminal-section.workspace-expanded .binance-canvas-box,#binance-terminal-section:fullscreen .binance-canvas-box{height:auto!important;min-height:0!important}
 #dash #binance-terminal-section.workspace-expanded .venue-flow-board,#binance-terminal-section:fullscreen .venue-flow-board{height:100%!important;display:flex!important;flex-direction:column!important}
 #dash #binance-terminal-section.workspace-expanded .vfb-list,#binance-terminal-section:fullscreen .vfb-list{flex:1 1 auto!important;overflow:auto!important}
 .vfb-advisory{padding:7px 8px;background:linear-gradient(135deg,#f8fbff,#eef4ff);border-block:1px solid #dbeafe}
@@ -25,3 +56,720 @@ html.chart-workspace-open{overflow:hidden}
 #tv-chart-box .tvo-flow-call{display:flex;align-items:center;gap:5px;margin:4px 0;padding:3px 5px;border-radius:5px;background:#fffbeb;color:#92400e;font-size:7px}#tv-chart-box .tvo-flow-call b{font-size:9px}#tv-chart-box .tvo-flow-call em{margin-left:auto;font-style:normal}#tv-chart-box .tvo-flow-call.buy{background:#ecfdf5;color:#047857}#tv-chart-box .tvo-flow-call.sell{background:#fef2f2;color:#b91c1c}
 #tv-chart-box .tvo-news{width:min(430px,48%);max-height:44%;overflow:hidden}#tv-chart-box .tvo-n-list{max-height:145px;overflow:auto;padding-right:2px}#tv-chart-box .tvo-n-row{grid-template-columns:39px 42px minmax(0,1fr) auto!important;padding-left:4px;border-left:3px solid #10b981}#tv-chart-box .tvo-n-row.impact-medium{border-left-color:#f59e0b;background:rgba(255,251,235,.8)}#tv-chart-box .tvo-n-row.impact-high{border-left-color:#ef4444;background:rgba(254,242,242,.85)}#tv-chart-box .tvo-n-level{font-size:6.5px;font-weight:900;color:#047857}#tv-chart-box .impact-medium .tvo-n-level{color:#92400e}#tv-chart-box .impact-high .tvo-n-level{color:#b91c1c}
 @media(max-width:900px){#dash .binance-term-workspace{grid-template-columns:minmax(0,1fr)!important;width:100%!important}#dash .binance-chart-wrapper,#dash .binance-book-sidebar{width:100%!important;min-width:0!important}#dash #binance-terminal-section.workspace-expanded .binance-term-workspace,#binance-terminal-section:fullscreen .binance-term-workspace{grid-template-columns:minmax(0,1fr)!important;height:auto!important}#dash #binance-terminal-section.workspace-expanded .binance-chart-wrapper,#binance-terminal-section:fullscreen .binance-chart-wrapper{height:62vh!important}#dash #binance-terminal-section.workspace-expanded .binance-book-sidebar,#binance-terminal-section:fullscreen .binance-book-sidebar{height:60vh!important}.mnt-row{grid-template-columns:56px 38px minmax(0,1fr) 34px 45px}.mnt-legend em{display:none}}
+
+/* ================= TradingView-only chart + sidebar setups ================= */
+/* The old built-in candle canvas, its indicator panes and the live-curve chart
+   are no longer separate chart products: TradingView is the only market chart. */
+#tv-chart-toggle,
+.chart-indicator-canvas,
+.binance-canvas-box,
+#binance-candlestick-canvas,
+.extreme-levels-layer,
+#stage-curve,
+#stage-setups,
+#candle-canvas {
+  display: none !important;
+}
+#tv-chart-box { display: block !important; }
+
+/* Exchange order-flow cards are replaced by the TradingView setups board.
+   Their hidden DOM stays in place only so the flow-advisory summary above the
+   news card keeps its existing data source. */
+#binance-order-flow-panel,
+.multi-order-flow-grid { display: none !important; }
+
+/* NEWS rows keep the last released event and show a live impact window. */
+.mnt-row.complete { border-left-color: #94a3b8 !important; background: #f8fafc !important; }
+.mnt-timer { color: #64748b; font-weight: 800; white-space: nowrap; }
+.mnt-timer.live { color: #b45309; }
+.mnt-timer.complete { color: #475569; }
+.mnt-row.complete .mnt-impact { color: #64748b; }
+.mnt-row.complete .mnt-side.buy, .mnt-row.complete .mnt-move.buy { color: #047857; }
+.mnt-row.complete .mnt-side.sell, .mnt-row.complete .mnt-move.sell { color: #b91c1c; }
+
+/* Next 5 setups board (right sidebar, directly below NEWS). */
+.tv-setup-board { border-bottom: 1px solid #dbe3ee; background: #fff; display: flex; flex-direction: column; min-height: 190px; max-height: 330px; }
+.tvs-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 8px 4px; }
+.tvs-head > div { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.tvs-head strong { font: 800 8.5px "JetBrains Mono", monospace; letter-spacing: .04em; color: #1e293b; white-space: nowrap; }
+.tvs-head em { font: 600 7px "JetBrains Mono", monospace; color: #94a3b8; font-style: normal; white-space: nowrap; }
+.tvs-live { width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.14); flex: none; }
+.tvs-price { font: 900 12px "JetBrains Mono", monospace; color: #0f172a; }
+.tvs-meta { display: flex; justify-content: space-between; gap: 6px; padding: 0 8px 4px; font: 700 6.8px "JetBrains Mono", monospace; color: #94a3b8; }
+.tvs-list { overflow: auto; min-height: 0; flex: 1 1 auto; border-top: 1px solid #edf2f7; }
+.tvs-empty { padding: 16px 9px; color: #94a3b8; font: 600 7.5px "JetBrains Mono", monospace; }
+.tvs-empty small { display: block; margin-top: 4px; font-size: 6.5px; color: #b45309; }
+.tvs-row { display: grid; grid-template-columns: 20px 48px minmax(0,1fr) 58px 46px; gap: 4px; align-items: center; padding: 5px 7px; border-top: 1px solid #f1f5f9; border-left: 3px solid #10b981; font: 650 7px "JetBrains Mono", monospace; }
+.tvs-row.sell { border-left-color: #ef4444; }
+.tvs-rank { color: #94a3b8; font-weight: 900; }
+.tvs-action { font-weight: 900; white-space: nowrap; }
+.tvs-action.buy { color: #047857; }
+.tvs-action.sell { color: #b91c1c; }
+.tvs-main { min-width: 0; }
+.tvs-main b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1e293b; }
+.tvs-main small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #94a3b8; font-size: 6.2px; }
+.tvs-status { font-weight: 900; }
+.tvs-status.status-trigger { color: #047857; }
+.tvs-status.status-imminent { color: #b45309; }
+.tvs-status.status-approaching { color: #2563eb; }
+.tvs-status.status-pending { color: #94a3b8; }
+.tvs-level { text-align: right; font-weight: 900; color: #0f172a; white-space: nowrap; }
+.tvs-dist { text-align: right; font-weight: 900; white-space: nowrap; }
+.tvs-dist.buy { color: #047857; }
+.tvs-dist.sell { color: #b91c1c; }
+.tvs-foot { display: flex; justify-content: space-between; gap: 6px; padding: 4px 8px 5px; font: 600 6.5px "JetBrains Mono", monospace; color: #94a3b8; border-top: 1px solid #f1f5f9; }
+.mnt-complete-tag { color: #334155; font-weight: 900; letter-spacing: .04em; }
+.mnt-row.complete .mnt-timer { display: none; }
+
+/* --------------------------------------------------------------------------
+   Next extreme setups now carries ten levels (day, previous day, this week,
+   previous week, this month). One pixel less padding per row keeps all ten
+   inside the panel instead of scrolling the last one out of sight.
+   -------------------------------------------------------------------------- */
+.tvs-row { padding: 3px 7px; }
+
+/* ==========================================================================
+   NEXT SWING · AI  (below the extreme setups board)
+   The AI's M1/M5/M15/H1 vote, the swing it expects, when it starts, the entry
+   the structure has to break, the ATR target and the countdown for both ends
+   of the swing.
+   ========================================================================== */
+.swing-ai-board {
+  display: flex; flex-direction: column; gap: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 12px; padding: 7px 9px 6px;
+}
+.sai-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.sai-head > div { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.sai-live { width: 6px; height: 6px; border-radius: 50%; background: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, .14); flex: none; }
+.sai-head strong { font: 900 8.5px "JetBrains Mono", monospace; color: #0f172a; letter-spacing: .02em; white-space: nowrap; }
+.sai-head em { font: 600 6.5px "JetBrains Mono", monospace; color: #94a3b8; font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sai-price { font: 900 12px "JetBrains Mono", monospace; color: #0f172a; }
+.sai-meta { display: flex; justify-content: space-between; gap: 6px; font: 700 6.8px "JetBrains Mono", monospace; color: #94a3b8; }
+.sai-verdict { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.sai-side { font: 900 8.5px "JetBrains Mono", monospace; padding: 2px 6px; border-radius: 5px; border: 1px solid transparent; }
+.sai-side.buy  { color: #047857; background: rgba(16, 185, 129, .12); border-color: rgba(16, 185, 129, .35); }
+.sai-side.sell { color: #b91c1c; background: rgba(239, 68, 68, .12); border-color: rgba(239, 68, 68, .35); }
+.sai-side.wait { color: #b45309; background: rgba(245, 158, 11, .12); border-color: rgba(245, 158, 11, .35); }
+.sai-conf { font: 700 7px "JetBrains Mono", monospace; color: #475569; }
+.sai-score { margin-left: auto; font: 700 7px "JetBrains Mono", monospace; color: #64748b; }
+.sai-timer { display: flex; flex-direction: column; gap: 3px; padding: 5px 7px; border-radius: 8px; background: rgba(37, 99, 235, .05); border: 1px solid rgba(37, 99, 235, .1); }
+.sai-timer-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.sai-phase { font: 800 7px "JetBrains Mono", monospace; letter-spacing: .03em; color: #475569; }
+.sai-phase.wait { color: #b45309; }
+.sai-phase.live { color: #0369a1; }
+.sai-phase.done { color: #047857; }
+.sai-phase.fail { color: #b91c1c; }
+:is(#sai-clock, #sbi-clock) { font: 900 13px "JetBrains Mono", monospace; color: #0f172a; letter-spacing: -.01em; }
+.sai-track { height: 4px; border-radius: 99px; background: rgba(148, 163, 184, .28); overflow: hidden; }
+.sai-fill { display: block; height: 100%; width: 0; border-radius: 99px; background: #f59e0b; transition: width .35s linear; }
+.sai-fill.live { background: #0ea5e9; }
+.sai-fill.done { background: #10b981; }
+.sai-fill.fail { background: #ef4444; }
+.sai-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.sai-cell { display: flex; flex-direction: column; gap: 1px; padding: 4px 6px; border-radius: 7px; background: rgba(248, 250, 252, .92); border: 1px solid #e2e8f0; }
+.sai-cell small { font: 700 6.2px "JetBrains Mono", monospace; color: #94a3b8; letter-spacing: .05em; }
+.sai-cell b { font: 900 9.5px "JetBrains Mono", monospace; color: #0f172a; }
+.sai-why { font: 600 6.8px "JetBrains Mono", monospace; color: #64748b; line-height: 1.5; }
+.sai-foot { display: flex; justify-content: space-between; gap: 6px; padding-top: 3px; border-top: 1px solid #eef2f7; font: 700 5.9px "JetBrains Mono", monospace; color: #b0bccd; }
+.sai-plabel { font: 800 6.8px "JetBrains Mono", monospace; padding: 1px 5px; border-radius: 4px; background: rgba(148, 163, 184, .14); color: #64748b; }
+.sai-plabel.wait { background: rgba(245, 158, 11, .14); color: #b45309; }
+.sai-plabel.live { background: rgba(14, 165, 233, .14); color: #0369a1; }
+.sai-plabel.done { background: rgba(16, 185, 129, .16); color: #047857; }
+.sai-plabel.fail { background: rgba(239, 68, 68, .14); color: #b91c1c; }
+
+/* a little air between the setups board and the swing board */
+.swing-ai-board { margin-top: 6px !important; }
+
+/* The grid row and its container must have the same height. A fixed 810px row
+   inside the legacy 440px workspace clipped both the chart and the swing. */
+#dash #binance-term-workspace {
+  height: clamp(620px, 72vh, 840px) !important;
+  min-height: 0 !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  align-items: stretch;
+}
+#dash #binance-term-workspace > .binance-chart-wrapper,
+#dash #binance-book-sidebar {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+#dash #binance-book-sidebar { overflow-y: auto !important; }
+#dash #binance-book-sidebar #venue-flow-board { overflow: visible; }
+#dash #binance-book-sidebar .vfb-advisory { flex: 0 0 auto; }
+#dash #market-news-terminal {
+  flex: 1 1 220px;
+  min-height: 150px;
+  max-height: none;
+  overflow: hidden;
+}
+#dash #market-news-terminal .mnt-list { flex: 1 1 auto; min-height: 0; }
+#dash .swing-ai-board { flex: 0 0 auto; }
+#dash #tv-chart-box .tv-chart-frame { position: absolute; inset: 0; }
+
+/* keep the last board off the sidebar edge */
+#venue-flow-board { padding-bottom: 6px !important; }
+
+/* the factor strip: every input the swing engine scored, at a glance */
+.sai-factors { display: flex; flex-wrap: wrap; gap: 3px; }
+.sai-chip {
+  display: inline-flex; align-items: baseline; gap: 3px;
+  padding: 2px 5px; border-radius: 5px;
+  font: 800 6.6px "JetBrains Mono", monospace;
+  background: rgba(148, 163, 184, .12); color: #475569;
+  border: 1px solid rgba(148, 163, 184, .22);
+}
+.sai-chip i { font-style: normal; font-weight: 700; color: #94a3b8; letter-spacing: .04em; }
+.sai-chip.up { background: rgba(16, 185, 129, .12); color: #047857; border-color: rgba(16, 185, 129, .3); }
+.sai-chip.up i { color: #34d399; }
+.sai-chip.down { background: rgba(239, 68, 68, .1); color: #b91c1c; border-color: rgba(239, 68, 68, .28); }
+.sai-chip.down i { color: #f87171; }
+@media (min-width: 420px) {
+  .sai-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Extreme setups strip in the chart header. */
+.binance-ticker-strip .b-strip-setups {
+  flex: 1 1 auto; min-width: 0; max-width: none;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.bset-row { display: flex; align-items: stretch; gap: 6px; min-width: 0; }
+.bset-window { overflow: hidden; flex: 1 1 auto; min-width: 0; }
+.bset-track { display: flex; width: 100%; will-change: transform; }
+.bset-page {
+  flex: 0 0 100%; display: grid; gap: 5px; min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.bset-chip {
+  display: flex; align-items: center; gap: 5px; min-width: 0;
+  padding: 2px 6px; border-radius: 7px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+.bset-chip.buy { border-color: rgba(16, 185, 129, 0.32); background: rgba(16, 185, 129, 0.08); }
+.bset-chip.sell { border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.07); }
+.bset-side { font: 900 8px "JetBrains Mono", monospace; flex: none; }
+.bset-chip.buy .bset-side { color: #047857; }
+.bset-chip.sell .bset-side { color: #b91c1c; }
+.bset-body { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.bset-body b {
+  font: 800 7.4px "JetBrains Mono", monospace; color: #0f172a;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bset-body small { font: 700 6.2px "JetBrains Mono", monospace; color: #94a3b8; white-space: nowrap; }
+.bset-price { margin-left: auto; font: 900 8.4px "JetBrains Mono", monospace; color: #1d4ed8; flex: none; }
+.bset-nav { display: flex; gap: 3px; flex: none; align-items: center; }
+.bset-btn {
+  width: 17px; height: 17px; padding: 0; border-radius: 5px; cursor: pointer;
+  border: 1px solid rgba(37, 99, 235, 0.28); background: rgba(255, 255, 255, 0.9);
+  color: #1d4ed8; font: 900 11px/1 "JetBrains Mono", monospace;
+}
+.bset-btn:hover { background: rgba(37, 99, 235, 0.12); }
+.bset-empty { font: 700 7px "JetBrains Mono", monospace; color: #94a3b8; padding: 3px 2px; }
+@media (max-width: 760px) {
+  .bset-page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bset-body small { display: none; }
+}
+
+/* Bigger text, tighter distances: the price no longer floats at the far edge of
+   a wide chip - name, distance and price sit as one line of information. */
+.bset-row { gap: 5px; }
+.bset-page { gap: 4px; }
+.bset-chip { gap: 7px; padding: 3px 9px; border-radius: 8px; }
+.bset-side { font-size: 10px; }
+.bset-body { flex: 1 1 auto; min-width: 0; }
+.bset-body b { font-size: 9.2px; letter-spacing: .01em; }
+.bset-body small { font-size: 7.4px; margin-top: 1px; }
+.bset-dist { flex: none; font: 800 8.4px "JetBrains Mono", monospace; color: #64748b; }
+.bset-price { margin-left: 0; flex: none; font-size: 11px; letter-spacing: -.02em; }
+@media (max-width: 760px) {
+  .bset-body b { font-size: 8.6px; }
+  .bset-price { font-size: 10px; }
+  .bset-dist { font-size: 7.6px; }
+}
+
+/* No dead space inside a wide chip: the whole reading (side, level, distance,
+   price) sits together in the middle instead of hugging the two edges. */
+.bset-chip { justify-content: center; gap: 9px; }
+.bset-body { flex: 0 0 auto; }
+
+/* source cross-check + track record line under the swing factors */
+.sai-src { font: 700 6.6px "JetBrains Mono", monospace; color: #94a3b8; line-height: 1.4; }
+.sai-src.ok { color: #047857; }
+.sai-src.warn { color: #b45309; }
+
+/* the old extreme-setups board beside the chart is retired: the same levels
+   live in the sliding strip at the top of the chart (setups-strip.js keeps
+   feeding TvSetups.state(), which the swing engine also reads). */
+#tv-setup-board { display: none !important; }
+
+/* Readable news and swing values, with the news list taking the spare space. */
+#dash .mnt-head { font-size: 10px; gap: 8px; flex-wrap: wrap; }
+#dash .mnt-legend { font-size: 8px; flex-wrap: wrap; }
+#dash .mnt-row {
+  grid-template-columns: 68px 40px minmax(0, 1fr) 38px 56px;
+  font-size: 9px; line-height: 1.4; padding: 7px 8px;
+}
+#dash .mnt-event b { font-size: 10px; }
+#dash .mnt-event small { font-size: 8px; overflow-wrap: anywhere; }
+#dash .swing-ai-board { gap: 6px; padding: 10px; }
+#dash .sai-head strong { font-size: 10px; }
+#dash .sai-head em { font-size: 8px; }
+#dash .sai-price { font-size: 15px; white-space: nowrap; }
+#dash .sai-meta, #dash .sai-conf, #dash .sai-score { font-size: 9px; }
+#dash .sai-side { font-size: 11px; padding: 3px 7px; }
+#dash .sai-timer { padding: 8px; }
+#dash .sai-phase { font-size: 9px; }
+#dash :is(#sai-clock, #sbi-clock) { font-size: 20px; white-space: nowrap; }
+#dash .sai-cell { padding: 6px; min-width: 0; }
+#dash .sai-cell small { font-size: 8px; }
+#dash .sai-cell b { font-size: 12px; overflow-wrap: anywhere; }
+#dash .sai-chip, #dash .sai-src, #dash .sai-why { font-size: 8px; }
+#dash .sai-foot { font-size: 7px; flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  #dash #binance-terminal-section { margin-inline: 0 !important; }
+  #dash #binance-term-workspace {
+    height: auto !important;
+    grid-template-rows: auto auto !important;
+  }
+  #dash #binance-term-workspace > .binance-chart-wrapper {
+    height: clamp(380px, 62vh, 560px) !important;
+  }
+  #dash #binance-book-sidebar {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  #dash #binance-book-sidebar #venue-flow-board { height: auto !important; }
+  #dash #market-news-terminal { flex: 0 0 260px; }
+}
+@media (max-width: 480px) {
+  #dash .mnt-row { grid-template-columns: 54px 34px minmax(0, 1fr) 32px 46px !important; gap: 4px; padding-inline: 5px; }
+  #dash .mnt-row, #dash .mnt-event b { font-size: 8px; }
+  #dash .sai-head em { display: none; }
+  #dash .sai-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #dash .bset-chip { flex-wrap: wrap; gap: 4px 6px; padding-inline: 5px; }
+  #dash .bset-body { flex: 1 1 100%; text-align: center; min-width: 0; }
+}
+
+/* Public API dashboard: broker account and execution controls are retired. */
+#dash > .account-strip,
+#topbar-disconnect,
+#set-disconnect { display: none !important; }
+
+#bot-panel, #bot2-panel, #bot3-panel, #bot4-panel, #bot6-panel, #bot7-panel,
+#bot5-panel .bot-settings, #bot5-panel .bot-actions, #bot5-panel .bot-hint,
+#bot5-chip, #bot5-pricemap, #bot5-running-line, #bot5-pos,
+#bot5-last, #bot5-plan { display: none !important; }
+
+/* News lifecycle: active releases lead the scrollable 24h list. */
+#dash .mnt-row {
+  grid-template-columns: 58px 42px minmax(0, 1fr) 38px 60px !important;
+  gap: 5px; align-items: start; padding: 9px 8px;
+}
+#dash .mnt-row.running { background: #eff6ff; border-left-color: #2563eb; }
+#dash .mnt-row .mnt-event b { white-space: normal; overflow-wrap: anywhere; }
+#dash .mnt-status, #dash .mnt-entry-timer, #dash .mnt-plan,
+#dash .mnt-plan-empty, #dash .mnt-reference-note, #dash .mnt-reason { grid-column: 1 / -1; min-width: 0; }
+#dash .mnt-status { display: flex; flex-wrap: wrap; gap: 5px 9px; align-items: center; font-size: 9px; }
+#dash .mnt-status > b { color: #64748b; }
+#dash .running .mnt-status > b, #dash .running .mnt-timer { color: #1d4ed8; }
+#dash .mnt-status > small { margin-left: auto; color: #64748b; font-size: 8px; }
+#dash .mnt-entry-timer { padding: 4px 6px; border-radius: 5px; background: #fef3c7; color: #92400e; font-size: 8px; overflow-wrap: anywhere; }
+#dash .mnt-plan { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+#dash .mnt-plan > div { min-width: 0; padding: 5px 6px; background: rgba(255,255,255,.85); border: 1px solid #e2e8f0; border-radius: 5px; }
+#dash .mnt-plan small { display: block; font-size: 7px; color: #64748b; }
+#dash .mnt-plan b { display: block; font-size: 10px; color: #0f172a; overflow-wrap: anywhere; }
+#dash .mnt-reference-note, #dash .mnt-plan-empty, #dash .mnt-reason { font-size: 8px; color: #64748b; line-height: 1.4; overflow-wrap: anywhere; }
+#dash .mnt-reason { margin: 0; }
+@media (max-width: 480px) {
+  #dash .mnt-row { grid-template-columns: 49px 36px minmax(0, 1fr) 32px 53px !important; padding-inline: 6px; }
+}
+
+/* Full-screen controls stay immediately above the center chart. */
+#dash #binance-terminal-section.workspace-expanded,
+#binance-terminal-section:fullscreen { transition: none !important; }
+#dash .chart-workspace-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; flex: 0 0 auto; background: #f8fafc; border-bottom: 1px solid #dbe3ee; }
+#dash .chart-workspace-tools > span { font: 700 8px "JetBrains Mono", monospace; color: #64748b; }
+#dash .chart-workspace-tools #binance-term-expand { display: inline-flex !important; margin-left: auto; white-space: nowrap; min-height: 28px; }
+
+/* Selected-market rails, with stop liquidity beneath the center chart. */
+#dash #binance-term-workspace,
+#dash #binance-terminal-section.workspace-expanded #binance-term-workspace,
+#binance-terminal-section:fullscreen #binance-term-workspace {
+  grid-template-columns: minmax(270px, 21%) minmax(0, 1fr) minmax(270px, 21%) !important;
+  grid-template-areas: "news chart live" "news liquidity live" !important;
+  gap: 8px !important;
+}
+#dash #binance-book-sidebar { grid-area: news; border: 1px solid #dbe3ee; border-radius: 9px; background: #fff; }
+#dash #binance-term-workspace > .binance-chart-wrapper { grid-area: chart; }
+#dash #market-live-sidebar { grid-area: live; min-width: 0; max-width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
+#dash #tv-chart-box .tvo-news { display: none !important; }
+#dash .swing-ai-board .sai-head em { display: none; }
+#dash .swing-ai-board .sai-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#dash #buy-swing-ai-board { margin-top: 0 !important; }
+#dash #buy-swing-ai-board .sai-live { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.14); }
+#dash #swing-ai-board .sai-live { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.14); }
+#dash .live-market-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; border: 1px solid #dbe3ee; border-radius: 9px; background: #fff; overflow: hidden; }
+#dash .running-news-panel { flex: 1 1 38%; min-height: 170px; }
+#dash .stop-liquidity-panel { flex: 1 1 55%; min-height: 300px; }
+#dash .running-news-panel .mnt-list { flex: 1; min-height: 0; }
+#dash .live-panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px; padding: 9px 8px 5px; font: 800 10px "JetBrains Mono", monospace; color: #1e293b; }
+#dash .live-panel-head > div { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+#dash .live-panel-head > span { color: #2563eb; font-size: 9px; }
+#dash .live-panel-head em { padding: 2px 4px; border-radius: 4px; background: #fef3c7; color: #92400e; font: 800 7px "JetBrains Mono", monospace; }
+#dash .live-panel-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; padding: 0 8px 6px; font: 600 8px "JetBrains Mono", monospace; color: #64748b; }
+#dash .live-panel-meta b { color: #2563eb; }
+
+/* Native details keep rows compact and make click/keyboard reveal identical. */
+#dash details.mnt-row { display: block; padding: 0 !important; gap: 0; font-size: 9px; }
+#dash .mnt-summary { display: grid; grid-template-columns: 76px minmax(0, 1fr) 37px 54px 8px; align-items: center; gap: 4px; padding: 8px 6px; cursor: pointer; list-style: none; }
+#dash .mnt-summary::-webkit-details-marker, #dash .slz-row summary::-webkit-details-marker { display: none; }
+#dash .mnt-summary:hover { background: rgba(37,99,235,.05); }
+#dash .mnt-summary:focus-visible, #dash .slz-row summary:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
+#dash .mnt-summary > * { min-width: 0; white-space: nowrap; }
+#dash .mnt-summary .mnt-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 9px "JetBrains Mono", monospace; color: #1e293b; }
+#dash .mnt-clock { display: flex; flex-direction: column; gap: 3px; color: #1d4ed8; }
+#dash .mnt-clock small { font: 800 7px "JetBrains Mono", monospace; }
+#dash .mnt-clock.running { color: #b45309; }
+#dash .mnt-clock.context { color: #64748b; }
+#dash .mnt-summary .mnt-timer { font: 800 10px "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; color: inherit; }
+#dash .mnt-time-unknown { font: 700 8px "JetBrains Mono", monospace; }
+#dash .mnt-row-sources { display: block; margin-top: 3px; white-space: normal; overflow-wrap: anywhere; font: 700 7px/1.3 "JetBrains Mono", monospace; color: #2563eb; }
+#dash .mnt-summary .mnt-start { display: block; margin-top: 3px; white-space: normal; overflow-wrap: anywhere; font: 600 7px/1.4 "JetBrains Mono", monospace; color: #64748b; }
+#dash .mnt-start-info { font: 700 10px/1.5 "JetBrains Mono", monospace; color: #1d4ed8; }
+#dash .mnt-timing-guide { padding: 4px 7px; border-block: 1px solid #e2e8f0; background: #eff6ff; color: #1e40af; font: 600 8px/1.5 "JetBrains Mono", monospace; }
+#dash .mnt-timing-guide b { display: block; }
+/* Keep the news rows compact; provider metadata remains available to the feed. */
+#dash #market-news-terminal .mnt-legend,
+#dash #market-news-terminal .mnt-timing-guide,
+#dash #market-news-terminal #mnt-window,
+#dash #market-news-terminal #mnt-sources { display: none !important; }
+#dash .mnt-summary-side, #dash .mnt-summary-move { text-align: right; font: 800 8px "JetBrains Mono", monospace; }
+#dash .mnt-summary .buy { color: #047857; }
+#dash .mnt-summary .sell { color: #b91c1c; }
+#dash .mnt-summary .wait { color: #b45309; }
+#dash .mnt-chevron { font-style: normal; color: #64748b; transition: transform .15s; }
+#dash details[open] > summary .mnt-chevron { transform: rotate(90deg); }
+#dash .mnt-details { display: flex; flex-direction: column; gap: 6px; padding: 9px; border-top: 1px solid #dbeafe; background: #f8fafc; }
+#dash details.mnt-row:not([open]) > .mnt-details { display: none; }
+#dash .mnt-full-title { font: 750 11px "Space Grotesk", sans-serif; color: #0f172a; overflow-wrap: anywhere; }
+#dash .mnt-source { font: 600 8px "JetBrains Mono", monospace; color: #64748b; overflow-wrap: anywhere; }
+#dash .mnt-details .mnt-plan b { font-size: 10px; }
+#dash .slz-disclosure, #dash .slz-foot { padding: 5px 8px; font: 600 8px/1.5 "JetBrains Mono", monospace; color: #64748b; overflow-wrap: anywhere; }
+#dash .slz-disclosure { background: #fffbeb; color: #92400e; border-block: 1px solid #fef3c7; }
+#dash .slz-groups { flex: 1 1 auto; overflow: auto; min-height: 0; }
+#dash .slz-group { padding: 5px 7px; }
+#dash .slz-group-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; padding: 4px 0; font: 800 9px "JetBrains Mono", monospace; }
+#dash .slz-group.buy .slz-group-head b { color: #047857; }
+#dash .slz-group.sell .slz-group-head b { color: #b91c1c; }
+#dash .slz-group-head span { color: #94a3b8; font-size: 8px; }
+#dash .slz-row { margin: 3px 0; border: 1px solid #e2e8f0; border-radius: 5px; background: #f8fafc; }
+#dash .slz-row summary { display: grid; grid-template-columns: minmax(0,1fr) 62px 29px 8px; gap: 4px; align-items: center; padding: 6px; cursor: pointer; list-style: none; font: 700 9px "JetBrains Mono", monospace; }
+#dash .slz-row.buy summary b { color: #047857; }
+#dash .slz-row.sell summary b { color: #b91c1c; }
+#dash .slz-row summary span { font-size: 8px; color: #64748b; }
+#dash .slz-row summary em { font-style: normal; font-size: 7px; text-align: right; color: #b45309; }
+#dash .slz-row summary i { font-style: normal; color: #64748b; }
+#dash .slz-details { padding: 6px; border-top: 1px solid #e2e8f0; color: #64748b; font: 600 8px/1.5 "JetBrains Mono", monospace; overflow-wrap: anywhere; }
+#dash .slz-row:not([open]) .slz-details { display: none; }
+#dash .slz-empty { padding: 9px 0; font: 600 8px "JetBrains Mono", monospace; color: #94a3b8; }
+#dash .mnt-window { padding: 3px 7px; font: 600 7px/1.5 "JetBrains Mono", monospace; color: #64748b; overflow-wrap: anywhere; flex: 0 0 auto; }
+#dash #market-news-terminal { min-height: 280px; }
+#dash #market-news-terminal .mnt-list { min-height: 100px; }
+#dash .mnt-sources { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 3px; padding: 3px 6px 6px; flex: 0 0 auto; }
+#dash .mnt-provider { padding: 3px 4px; border: 1px solid #e2e8f0; border-radius: 4px; font: 600 7px/1.5 "JetBrains Mono", monospace; color: #475569; background: #f8fafc; }
+#dash .mnt-provider b { float: right; color: #2563eb; }
+#dash .mnt-provider small { display: block; color: #64748b; font-size: 7px; }
+#dash .mnt-provider.ok small { color: #047857; }
+#dash .mnt-provider.partial small, #dash .mnt-provider.cached small { color: #b45309; }
+#dash .mnt-provider.unavailable small { color: #b91c1c; }
+#dash .mnt-bias-note { padding: 5px; font: 700 8px/1.5 "JetBrains Mono", monospace; color: #1d4ed8; background: #eff6ff; border-radius: 4px; }
+#dash .mnt-context-heading { padding: 7px 5px; font: 800 8px "JetBrains Mono", monospace; color: #64748b; border-top: 1px solid #e2e8f0; }
+#dash .mnt-row.context { border-left-color: #94a3b8; }
+#dash .mnt-summary .data { color: #64748b; }
+
+@media (max-width: 1279px) {
+  #dash #binance-term-workspace,
+  #dash #binance-terminal-section.workspace-expanded #binance-term-workspace,
+  #binance-terminal-section:fullscreen #binance-term-workspace {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas: "chart chart" "liquidity liquidity" "news live" !important;
+    grid-template-rows: var(--workspace-chart-height) 260px auto !important; height: auto !important;
+  }
+  #dash #binance-term-workspace > .binance-chart-wrapper { height: clamp(420px, 62vh, 640px) !important; }
+  #dash #binance-book-sidebar, #dash #market-live-sidebar { height: 660px !important; min-height: 0 !important; }
+  #dash #market-news-terminal { flex: 1 1 220px; }
+}
+@media (max-width: 900px) {
+  #dash #binance-term-workspace,
+  #dash #binance-terminal-section.workspace-expanded #binance-term-workspace,
+  #binance-terminal-section:fullscreen #binance-term-workspace {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas: "chart" "liquidity" "news" "live" !important;
+    grid-template-rows: var(--workspace-chart-height) 260px auto auto !important;
+  }
+  #dash #market-live-sidebar { width: 100%; height: 660px !important; }
+  #dash #binance-book-sidebar #venue-flow-board { height: 100% !important; }
+}
+
+/* Keep all three desktop panels together when the whole workspace expands.
+   These rules follow the normal responsive layout so smaller desktop windows
+   do not move the side panels below the full-screen chart. */
+@media (min-width: 1000px) {
+  #dash #binance-terminal-section.workspace-expanded,
+  #binance-terminal-section:fullscreen { overflow: hidden !important; }
+  #dash #binance-terminal-section.workspace-expanded #binance-term-workspace,
+  #binance-terminal-section:fullscreen #binance-term-workspace {
+    flex: 1 1 0 !important; height: 0 !important; min-height: 0 !important;
+    grid-template-columns: minmax(270px, 21%) minmax(0, 1fr) minmax(270px, 21%) !important;
+    grid-template-areas: "news chart live" "news liquidity live" !important;
+    grid-template-rows: var(--workspace-chart-height) 260px !important;
+  }
+  #dash #binance-terminal-section.workspace-expanded #binance-term-workspace > *,
+  #binance-terminal-section:fullscreen #binance-term-workspace > * {
+    height: 100% !important; min-height: 0 !important;
+  }
+  #dash #binance-terminal-section.workspace-expanded > .binance-term-topbar,
+  #binance-terminal-section:fullscreen > .binance-term-topbar { flex: 0 0 auto; }
+  #dash #binance-terminal-section.workspace-expanded #binance-symbol-tabs,
+  #binance-terminal-section:fullscreen #binance-symbol-tabs { max-height: 76px; overflow: auto; }
+}
+
+/* Let the side sections extend below the chart instead of hiding inside rails.
+   Keep the rolling 24h feed bounded; all lower analysis panels remain exposed. */
+#dash #binance-term-workspace {
+  --workspace-chart-height: clamp(620px, 72vh, 840px);
+  height: auto !important;
+  grid-template-rows: var(--workspace-chart-height) 260px !important;
+  align-items: start;
+}
+#dash #binance-term-workspace > .binance-chart-wrapper {
+  height: clamp(620px, 72vh, 840px) !important;
+}
+#dash #binance-book-sidebar,
+#dash #market-live-sidebar {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+#dash #binance-book-sidebar #venue-flow-board {
+  height: auto !important;
+  flex: 0 0 auto !important;
+}
+#dash #market-news-terminal {
+  flex: 0 0 auto;
+  min-height: 360px;
+  max-height: 420px;
+}
+#dash #running-news-panel,
+#dash #stop-liquidity-panel {
+  flex: 0 0 auto;
+}
+#dash #running-news-list,
+#dash #stop-liquidity-panel .slz-groups {
+  flex: 0 0 auto;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+#dash #binance-terminal-section.workspace-expanded,
+#binance-terminal-section:fullscreen {
+  overflow: auto !important;
+}
+#dash #binance-terminal-section.workspace-expanded #binance-term-workspace,
+#binance-terminal-section:fullscreen #binance-term-workspace {
+  --workspace-chart-height: clamp(420px, 72dvh, 840px);
+  flex: 0 0 auto !important;
+  height: auto !important;
+  grid-template-rows: var(--workspace-chart-height) 260px !important;
+}
+#dash #binance-terminal-section.workspace-expanded #binance-term-workspace > .binance-chart-wrapper,
+#binance-terminal-section:fullscreen #binance-term-workspace > .binance-chart-wrapper {
+  height: clamp(420px, 72dvh, 840px) !important;
+}
+#dash #binance-terminal-section.workspace-expanded #binance-term-workspace > :is(#binance-book-sidebar, #market-live-sidebar),
+#binance-terminal-section:fullscreen #binance-term-workspace > :is(#binance-book-sidebar, #market-live-sidebar) {
+  height: auto !important;
+}
+@media (max-width: 1279px) {
+  #dash #binance-term-workspace { --workspace-chart-height: clamp(420px, 62vh, 640px); }
+  #dash #binance-term-workspace > .binance-chart-wrapper {
+    height: clamp(420px, 62vh, 640px) !important;
+  }
+}
+
+/* Fixed-size BUY/SELL columns scroll independently instead of growing the UI. */
+#dash #stop-liquidity-panel {
+  grid-area: liquidity;
+  justify-self: start;
+  align-self: start;
+  box-sizing: border-box;
+  width: min(420px, 100%);
+  height: 260px !important;
+  min-height: 260px !important;
+  max-height: 260px !important;
+  overflow: hidden;
+}
+#dash #stop-liquidity-panel > :is(.live-panel-head, .live-panel-meta, .slz-disclosure, .slz-foot) { flex: 0 0 auto; }
+#dash #stop-liquidity-panel .slz-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+#dash #stop-liquidity-panel .slz-group {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 5px;
+  border: 1px solid #cbe9dd;
+  border-radius: 7px;
+  background: #f3fbf7;
+  overflow: hidden;
+}
+#dash #stop-liquidity-panel .slz-group.sell { border-color: #f1d4db; background: #fff6f7; }
+#dash #stop-liquidity-panel .slz-group-head {
+  flex: 0 0 38px;
+  box-sizing: border-box;
+  align-content: center;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+#dash #stop-liquidity-panel .slz-group-head b { font-size: 8px; }
+#dash #stop-liquidity-panel .slz-list {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+#dash #stop-liquidity-panel .slz-list:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
+#dash #stop-liquidity-panel .slz-row summary {
+  grid-template-columns: minmax(0, 1fr) auto 24px 6px;
+  gap: 3px;
+  padding: 6px 4px;
+}
+#dash #stop-liquidity-panel .slz-row summary b { min-width: 0; overflow-wrap: anywhere; }
+
+@media (min-width: 901px) and (max-width: 1279px) {
+  #dash #binance-term-workspace { grid-template-rows: var(--workspace-chart-height) 260px auto !important; }
+}
+@media (max-width: 900px) {
+  #dash #binance-term-workspace { grid-template-rows: var(--workspace-chart-height) 260px auto auto !important; }
+}
+@media (min-width: 1000px) {
+  #dash #binance-terminal-section.workspace-expanded #binance-term-workspace,
+  #binance-terminal-section:fullscreen #binance-term-workspace {
+    grid-template-rows: var(--workspace-chart-height) 260px !important;
+  }
+}
+
+/* Matching sidebar cards: list contents scroll without resizing either rail. */
+#dash #binance-term-workspace {
+  --sidebar-news-height: 260px;
+  --sidebar-swing-height: 340px;
+}
+#dash :is(#market-news-terminal, #running-news-panel) {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  height: var(--sidebar-news-height);
+  min-height: 0;
+  max-height: var(--sidebar-news-height);
+  overflow: hidden;
+}
+#dash #market-news-terminal .mnt-list,
+#dash #running-news-list {
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+#dash #market-news-terminal .mnt-source-report {
+  max-height: 40%;
+  overflow-y: auto;
+}
+#dash :is(#swing-ai-board, #buy-swing-ai-board) {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  height: var(--sidebar-swing-height);
+  min-height: 0;
+  overflow: hidden;
+}
+#dash #swing-ai-board { margin-top: 8px !important; }
+#dash .swing-ai-board > :is(.sai-head, .sai-meta, .sai-verdict, .sai-timer) { flex: 0 0 auto; }
+#dash .swing-ai-board .sai-grid { flex: 1 1 0; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
+#dash .swing-ai-board .sai-factors { flex: 0 0 60px; align-content: start; overflow-y: auto; }
+#dash .swing-ai-board > :is(.sai-src, .sai-why, .sai-foot) { display: none !important; }
+
+/* Live price and timeframe selection stay beside the chart workspace label. */
+#dash .chart-workspace-tools {
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-width: 0;
+}
+#dash .chart-workspace-tools > span { flex: 0 0 auto; white-space: nowrap; }
+#dash .chart-workspace-quote { flex: 0 0 auto; white-space: nowrap; }
+#dash .chart-workspace-tools #binance-tf-tabs {
+  flex: 1 1 220px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+  width: auto;
+  max-width: 100%;
+  padding: 0 !important;
+  margin: 0;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+#dash .chart-workspace-tools .b-tf-btn { flex: 0 0 auto; }
+#dash .chart-workspace-tools #binance-term-expand { flex: 0 0 auto; }
+
+/* Compact tiles show every available extreme without a carousel or scrollbar. */
+#dash #binance-ticker-strip { width: 100%; box-sizing: border-box; align-self: stretch; }
+#dash #b-strip-setups { gap: 3px; }
+#dash #b-strip-setups .bset-window { overflow: visible; }
+#dash #bset-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  gap: 4px;
+  transform: none;
+  will-change: auto;
+}
+#dash #bset-track .bset-chip {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  grid-template-areas: "side name name" "price price distance";
+  align-items: center;
+  gap: 3px 4px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+#dash #bset-track .bset-side { grid-area: side; font-size: 8px; }
+#dash #bset-track .bset-body { grid-area: name; min-width: 0; }
+#dash #bset-track .bset-body b { font-size: 7.5px; letter-spacing: 0; white-space: normal; overflow-wrap: anywhere; }
+#dash #bset-track .bset-body small { display: none; }
+#dash #bset-track .bset-price { grid-area: price; font-size: 10px; white-space: nowrap; }
+#dash #bset-track .bset-dist { grid-area: distance; font-size: 7.5px; white-space: nowrap; }

@@ -1,0 +1,7 @@
+{
+  "public_mode_auth_required": false,
+  "port_only_auth_required": false,
+  "environment_password_ignored": true,
+  "known_default_accepted": true,
+  "spoofed_rate_limit_ip": "198.51.100.99"
+}

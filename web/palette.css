@@ -1,0 +1,14 @@
+/* Shared colours for the access website and trading workspace. */
+:root {
+  --sx-bg: #0b1412;
+  --sx-surface: #111d18;
+  --sx-panel: #14231b;
+  --sx-inset: #1c2d23;
+  --sx-text: #edf2e9;
+  --sx-muted: #929f96;
+  --sx-mint: #b7eab6;
+  --sx-line: rgba(206, 233, 208, .12);
+  --sx-buy: #9ce2b0;
+  --sx-sell: #ef969c;
+  --sx-amber: #e4c295;
+}

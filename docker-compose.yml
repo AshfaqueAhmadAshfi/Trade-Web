@@ -14,6 +14,8 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: "8080"
+      SOFTRADEX_DASHBOARD_PASSWORD: ${SOFTRADEX_DASHBOARD_PASSWORD:-}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-}
     volumes:
       - softradex_config:/app/config
       - softradex_data:/app/data

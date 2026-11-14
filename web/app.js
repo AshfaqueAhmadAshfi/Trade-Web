@@ -116,7 +116,7 @@ const I18N = {
     duration: 'Duration', noHistory: 'No closed trades in this range yet.', loadMore: 'Load more',
     settingsTitle: 'Settings', pollInterval: 'Live refresh (ms)', historyRefresh: 'History sync (ms)',
     historyDays: 'History depth (days)', save: 'Save', close: 'Close', disconnect: 'Disconnect',
-    connectTitle: 'Exness Account Login', connect: 'Login',
+    connectTitle: 'SoftradeX Account Login', connect: 'Login',
     viewDashboard: 'View Dashboard',
     login: 'Login (account number)', password: 'Password', server: 'Server',
     serverPick: 'Please choose your Exness server…',
@@ -145,7 +145,7 @@ const I18N = {
     flowHeroEyebrow: 'START HERE · SELECT YOUR MARKET',
     flowSignalSub: 'the AI is still reading the flow',
     flowCurveTitle: 'Live curve', flowCurveSub: 'selected market · tick by tick',
-    flowStepDial: 'Pressure dial', flowStepDialHint: 'only the market you selected',
+    flowStepDial: 'Traders order flow', flowStepDialHint: 'every print of the market you selected',
     flowStepSetups: 'Next setups', flowStepSetupsHint: 'the next 5 extreme executions, recalculated every 60 s',
     flowStepNews: 'Next event', flowStepNewsHint: 'impact level + countdown to the release',
     flowStepSessions: 'Sessions', flowStepSessionsHint: 'live clocks, buy/sell bias & dollar forecast',
@@ -153,7 +153,7 @@ const I18N = {
     flowStepOutlook: 'AI direction · next day', flowStepOutlookHint: 'every news source read into one verdict per market',
     flowStepHistory: 'History', flowStepHistoryHint: 'every closed trade - where the flow ended',
     flowStepPerf: 'Performance', flowStepPerfHint: 'today · 7D · 30D · 90D · this session',
-    railPositions: 'Positions', railBots: 'All bots',
+    railPositions: 'Positions', railBots: 'News',
     flowNoDial: 'No order-flow quote for this market yet - pick another market or connect the terminal.',
     flowNoDialShort: 'Connect the terminal to fill this dial.',
     flowMarketOpen: 'Market open', flowMarketClosed: 'Market closed', flowNoQuote: 'No quote',
@@ -216,7 +216,7 @@ const I18N = {
     botStoppedMsg: 'Bot STOPPED — pending orders cancelled',
     botClosedMsg: 'Closed positions',
     priceMapTitle: 'Live Level Map',
-    bot5Title: 'Auto Trading (News Trader)',
+    bot5Title: 'Economic News & Market Analysis',
     bot5Mode: 'Trading style', bot5ModeAnticipate: 'Anticipate', bot5ModeStraddle: 'Straddle', bot5ModeFollow: 'Follow',
     bot5Impact: 'Min impact', bot5ImpactHigh: 'High', bot5ImpactMedium: 'Medium', bot5ImpactAll: 'All',
     bot5Pre: 'Pre minutes', bot5Post: 'Post minutes',
@@ -255,7 +255,7 @@ const I18N = {
     aiUpTarget: 'up target', aiDownTarget: 'down target',
     aiLevels: 'levels', aiRange: 'expected range',
     aiUpdated: 'updated', aiLoading: 'Reading the candles…',
-    aiNoTerminal: 'connect the terminal for live candles',
+    aiNoTerminal: 'waiting for public API candles',
     aiNoData: 'not enough closed candles yet',
     aiPriceNow: 'price now', aiClosed: 'closed candles',
     aiWhy: 'why',
@@ -274,195 +274,16 @@ const I18N = {
     advanced: 'Advanced', terminal: 'MT5 terminal (terminal64.exe)',
     terminalHint: 'Leave on "Auto-detect" unless you have several terminals installed.',
     remember: 'Remember login + server on this PC',
-    connectSub: 'Enter your Exness login, password and server. You only reach the dashboard after a successful login.',
+    connectSub: 'Enter your SoftradeX login, password and server. You only reach the dashboard after a successful login.',
     badgeReal: 'LIVE · REAL', badgeDemo: 'DEMO ACCOUNT', badgeContest: 'CONTEST ACCOUNT',
     badgeEa: 'EA BRIDGE', loggedOut: 'LOGGED OUT', offline: 'OFFLINE',
-    drawerBotsTitle: 'All Trading Bots & Economic News',
+    drawerBotsTitle: 'Economic news',
     flowBalanceTitle: 'LIVE TRADE FLOW',
   },
-  bn: {
-    serverTime: 'সার্ভার সময়', disconnected: 'সংযোগ নেই', connected: 'সংযুক্ত',
-    connecting: 'সংযোগ হচ্ছে…', errorState: 'ত্রুটি', account: 'অ্যাকাউন্ট', balance: 'ব্যালেন্স',
-    equity: 'ইকুইটি', margin: 'মার্জিন', freeMargin: 'ফ্রি মার্জিন', marginLevel: 'মার্জিন লেভেল',
-    leverage: 'লিভারেজ', unlimited: 'আনলিমিটেড', today: 'আজ', session: 'সেশন', totalProfitToday: 'আজকের মোট প্রফিট',
-    wins: 'প্রফিট ট্রেড', losses: 'লস ট্রেড', winRate: 'উইন রেট', floating: 'ফ্লোটিং লস/প্রফিট',
-    profitFactor: 'প্রফিট ফ্যাক্টর', bestWorst: 'সেরা / খারাপ', volume: 'মোট লট',
-    openPositions: 'ওপেন পজিশন', symbol: 'সিম্বল', side: 'টাইপ', lots: 'লট',
-    openPrice: 'ওপেন', currentPrice: 'বর্তমান', sl: 'এস/এল', tp: 'টি/পি', swap: 'সোয়াপ',
-    profit: 'লাভ/লস', opened: 'খোলা হয়েছে', noPositions: 'এখন কোনো ওপেন পজিশন নেই।',
-    activity: 'কার্যক্রম', tradeHistory: 'ট্রেড হিস্ট্রি', allTime: 'সব সময়', allResults: 'সব ফলাফল',
-    winsOnly: 'শুধু প্রফিট', lossesOnly: 'শুধু লস', exportCsv: 'CSV ডাউনলোড', closeTime: 'ক্লোজ সময়',
-    closePrice: 'ক্লোজ', commission: 'কমিশন', netPL: 'নিট লাভ/লস', magic: 'ম্যাজিক', comment: 'কমেন্ট',
-    duration: 'সময়কাল', noHistory: 'এই রেঞ্জে কোনো ক্লোজড ট্রেড নেই।', loadMore: 'আরও দেখুন',
-    settingsTitle: 'সেটিংস', pollInterval: 'লাইভ রিফ্রেশ (ms)', historyRefresh: 'হিস্ট্রি সিঙ্ক (ms)',
-    historyDays: 'হিস্ট্রি গভীরতা (দিন)', save: 'সেভ', close: 'বন্ধ', disconnect: 'ডিসকানেক্ট',
-    connectTitle: 'Exness অ্যাকাউন্ট লগইন', connect: 'লগইন',
-    viewDashboard: 'ড্যাশবোর্ড দেখুন',
-    login: 'লগইন (অ্যাকাউন্ট নম্বর)', password: 'পাসওয়ার্ড', server: 'সার্ভার',
-    serverPick: 'আপনার Exness সার্ভার বেছে নিন…',
-    serverReal: 'Exness রিয়েল অ্যাকাউন্ট',
-    serverTrial: 'Exness ডেমো / ট্রায়াল অ্যাকাউন্ট',
-    serverOther: 'অন্য সার্ভার (নিজে লিখুন)…',
-    serverHint: 'লিস্ট থেকে আপনার Exness সার্ভার বেছে নিন।',
-    serverHintCustom: 'সার্ভারের নাম হুবহু লিখুন, যেমন Exness-MT5Real6',
-    needLogin: 'Exness অ্যাকাউন্ট নম্বর দিন',
-    mt5Ready: 'MT5 টার্মিনাল প্রস্তুত:',
-    mt5ReadySub: 'ড্যাশবোর্ড নিজেই চালু করে লগইন করে দেয় — আপনাকে খুলতে হবে না।',
-    mt5NoExness: 'MT5 টার্মিনাল পাওয়া গেছে (যেকোনো MT5 দিয়েই Exness-এ লগইন হয়)।',
-    mt5Missing: 'এই PC-তে কোনো MetaTrader 5 টার্মিনাল পাওয়া যায়নি।',
-    mt5Download: 'Exness MT5 →',
-    mt5DownloadPlain: 'MetaTrader 5 →',
-    mt5Recheck: 'আবার চেক করুন',
-    marketLiveTicker: 'লাইভ মার্কেট',
-    liveRatesTitle: 'লাইভ মার্কেট রেট',
-    realtimeStreaming: '২৪/৭ স্ট্রিম',
-    priceCurvesTitle: 'মার্কেট প্রাইস কার্ভ',
-    priceCurvesSub: 'প্রতিটি মার্কেটের রিয়েল-টাইম প্রাইস কার্ভ · লাইভ WebSocket স্ট্রিম',
-    watchTitle: 'মার্কেট প্রেশার ওয়াচ ডায়াল',
-    watchSubtitle: 'রিয়েল-টাইম ক্যান্ডেল ভলিউম ও বায়ার/সেলার চাপের লাইভ ওয়াচ ডায়াল',
-    flowLive: 'লাইভ',
-    flowStepMarket: 'মার্কেট', flowStepMarketHint: 'একটা মার্কেট বেছে নিন — নিচের সব ধাপ এটাই ফলো করবে',
-    flowHeroEyebrow: 'এখান থেকে শুরু · মার্কেট বেছে নিন',
-    flowSignalSub: 'এআই এখনো ফ্লো পড়ছে',
-    flowCurveTitle: 'লাইভ কার্ভ', flowCurveSub: 'নির্বাচিত মার্কেট · টিক ধরে ধরে',
-    flowStepDial: 'প্রেশার ডায়াল', flowStepDialHint: 'শুধু আপনার বেছে নেওয়া মার্কেট',
-    flowStepSetups: 'পরবর্তী সেটআপ', flowStepSetupsHint: 'পরের ৫টা এক্সট্রিম এন্ট্রি, প্রতি ৬০ সেকেন্ডে নতুন হিসাব',
-    flowStepNews: 'পরবর্তী ইভেন্ট', flowStepNewsHint: 'ইমপ্যাক্ট লেভেল + কত সময় বাকি',
-    flowStepSessions: 'সেশন', flowStepSessionsHint: 'live clocks, buy/sell bias & dollar forecast',
-    flowStepAi: 'সম্পূর্ণ এআই বিশ্লেষণ', flowStepAiHint: '1m · 5m · 15m · 1h · 4h · 1Day candles + dials + news',
-    flowStepOutlook: 'এআই ডিরেকশন · আগামী দিন', flowStepOutlookHint: 'সব নিউজ সোর্স পড়ে প্রতি মার্কেটে একটাই সিদ্ধান্ত',
-    flowStepHistory: 'হিস্টোরি', flowStepHistoryHint: 'সব ক্লোজড ট্রেড — ফ্লো কোথায় শেষ হলো',
-    flowStepPerf: 'পারফরম্যান্স', flowStepPerfHint: 'আজ · ৭দিন · ৩০দিন · ৯০দিন · এই সেশন',
-    railPositions: 'পজিশন', railBots: 'সব বট',
-    flowNoDial: 'এই মার্কেটের অর্ডার-ফ্লো কোট এখনো আসেনি — অন্য মার্কেট নিন বা টার্মিনাল কানেক্ট করুন।',
-    flowNoDialShort: 'ডায়াল ভরতে টার্মিনাল কানেক্ট করুন।',
-    flowMarketOpen: 'মার্কেট খোলা', flowMarketClosed: 'মার্কেট বন্ধ', flowNoQuote: 'কোট নেই',
-    flowClosedTrades: 'ক্লোজড ট্রেড', flowNoSession: 'কোনো সেশন খোলা নেই',
-    sessNoneRunning: 'এই মুহূর্তে কোনো সেশন চলছে না — পরেরটা শিগগিরই খুলবে।',
-    botTitle: 'অটো ট্রেডিং', botLot: 'লট সাইজ', botGap: 'গ্যাপ ($)', botSL: 'SL ($)',
-    bot2Title: 'অটো ট্রেডিং (ক্যান্ডেল ও স্ট্রাকচার)', bot2MaxTrades: 'সর্বোচ্চ রানিং ট্রেড', bot2TP: 'TP ($)', bot2SL: 'SL ($)',
-    bot2BlockStart: 'শুরুতে ব্লক (সেকেন্ড)', bot2BlockEnd: 'শেষে ব্লক (সেকেন্ড)', bot2BlockMidFrom: 'মাঝের উইন্ডো শুরু (সেকেন্ড)', bot2BlockMidTo: 'মাঝের উইন্ডো শেষ (সেকেন্ড)',
-    bot2BlockHint: '১-মিনিট ক্যান্ডেলের সময়-উইন্ডো: শুরুর N সেকেন্ড, শেষের N সেকেন্ড এবং মাঝের উইন্ডোতে ট্রেড নেবে না — আপনি যে মান দেবেন সেটাই ব্যবহার হবে।',
-    bot2Trend: 'ওয়াচ',
-    bot2Watch: 'ওয়াচ',
-    bot2WatchPct: 'ওয়াচ %',
-    bot2WatchHint: 'ওয়াচ ON: যে দিকের চাপ আপনি যে % লিখবেন তার চেয়ে কম হলে ট্রেড নেবে না — ৬০% কোনো ফিক্সড নিয়ম নয়। ওয়াচ OFF: ডায়াল বাদ, ক্যান্ডেল যেদিকে যাচ্ছে সেদিকেই ট্রেড (উপরে → BUY, নিচে → SELL), প্রতি ২.৫ সেকেন্ডে একবার। Reverse দিলে যে দিকেই নিত, তার ঠিক উল্টো দিকে নেবে।',
-    bot2Reverse: 'রিভার্স',
-    bot2CheckTrend: '🔄 ডিরেকশন চেক',
-    bot2TrendSystemTitle: '২.৫-সেকেন্ড ডিরেকশন সিস্টেম',
-    bot2TrendDetailsFooter: '⏱️ প্রতি ২.৫ সেকেন্ড পর পর স্বয়ংক্রিয়ভাবে ডিরেকশন চেক হচ্ছে ও সেই দিকে ট্রেড নেওয়া হচ্ছে',
-    bot2StructLevels: 'মার্কেট স্ট্রাকচার লেভেল (Day & Weekend)',
-    bot3Title: 'অটো ট্রেডিং (এক্সট্রিম হাই ও লো স্ট্রাকচার)',
-    bot3StructLevels: 'এক্সট্রিম স্ট্রাকচার লেভেল (আজকের দিন, চলতি সপ্তাহ ও গত সপ্তাহ)',
-    bot3TfToday: 'আজকের দিন (D1)',
-    bot3TfThisWeek: 'চলতি সপ্তাহ (W1)',
-    bot3TfPrevWeek: 'গত সপ্তাহ',
-    bot3RadarTitle: 'ট্রেড এক্সিকিউশন রাডার ও টাইমার',
-    bot3PlannedTitle: 'পরবর্তী ৫টি এক্সট্রিম ট্রেড সেটআপ (আসন্ন ট্রেড)',
-    bot3PlannedCycle: '⚡ ৬০ সে. স্বয়ংক্রিয় হিসাব',
-    bot3PlannedFooter: '🔄 প্রতি ৬০ সেকেন্ড পর পর স্বয়ংক্রিয়ভাবে হিসাব আপডেট: D1, W1 ও Prev W1 লাইভ লেভেল',
-    recalcNow: 'হিসাব করুন',
-    bot4Title: 'অটো ট্রেডিং (প্রি-ট্রেড ল্যাডার)',
-    bot4PriceGap: 'প্রাইস গ্যাপ ($)',
-    bot4PreGap: 'প্রি ট্রেড গ্যাপ ($)',
-    bot4PreValue: 'প্রি ট্রেড ভ্যালু',
-    bot4Hint: 'প্রি ট্রেড ভ্যালু = প্রতি পাশে কয়টা লেভেল (উপরে N টা বাই, নিচে N টা সেল)। প্রাইস গ্যাপ = মার্কেট প্রাইস থেকে প্রথম প্রি-ট্রেডের দূরত্ব, প্রি ট্রেড গ্যাপ = দুটি প্রি-ট্রেডের মাঝের দূরত্ব। Numbering Lot Size চালু করলে লট অটো 0.01, 0.02, 0.03 … ধরে দুই পাশেই সেট হবে।',
-    bot4Numbering: 'Numbering Lot Size',
-    bot4LadderTitle: 'প্রি-ট্রেড ল্যাডার (উপরে বাই / নিচে সেল)',
-    bot4BuyCol: 'BUY ↑ মার্কেটের উপরে প্রি-ট্রেড',
-    bot4SellCol: 'SELL ↓ মার্কেটের নিচে প্রি-ট্রেড',
-    botSymbol: 'মার্কেট', botPickSymbol: 'গোল্ড সিম্বল বাছুন…',
-    botMarketSwitched: 'মার্কেট বদলানো হলো', botMarketNow: 'নির্বাচিত মার্কেট',
-    marketClosed: 'মার্কেট বন্ধ',
-    marketClosedWarn: 'এই মার্কেটটি বর্তমানে বন্ধ রয়েছে (Market Closed)',
-    marketClosedCannotStart: 'মার্কেট বন্ধ থাকায় বট চালু করা যাবে না',
-    condTitle: 'শর্তাবলি (বট যা করবে)',
-    condSymbol: 'শুধু এই সিম্বলেই ট্রেড', condMissing: 'এই অ্যাকাউন্টে নেই',
-    condInstead: 'এই অ্যাকাউন্টে নেই — এর বদলে এটা ব্যবহার হচ্ছে',
-    condGap: 'গ্যাপ', condSL: 'Buy-এর SL = SellStop লেভেল, Sell-এর SL = BuyStop লেভেল —',
-    condLot: 'লট', condLock: 'SL লক: প্রফিট', condSL2: 'SL শুধু লাভের দিকেই সরে — প্রফিট কমলে শেষ যেখানে ছিল সেখানেই fixed থাকে।',
-    condTrail: 'ট্রেইলিং: প্রফিট',
-    condReArm: 'Market SL-এ হিট করলে: পুরনো buy + sell পুরোপুরি clear হয়ে যায়, তারপর তখনকার market price থেকে নতুন করে BuyStop ও SellStop বসে।',
-    botStart: 'START', botStop: 'STOP',
-    botClose: 'এখনই ক্লোজ', botRunning: 'চালু আছে', botStopped: 'বন্ধ', botOffline: 'অফলাইন',
-    botGold: 'গোল্ড', botRules: 'নিয়ম', botLock: 'লক', botTrail: 'ট্রেইল',
-    botFrom: 'শুরু', botPendings: 'পেন্ডিং', botNoPending: 'নেই',
-    botTrade: 'ট্রেড', botNoTrade: 'নেই', botRisk: 'রিস্ক/ট্রেড', botStats: 'ট্রেড',
-    botOpened: 'খোলা', botClosed: 'ক্লোজড',
-    botConfirmStart: 'এই লট সাইজে গোল্ড বট চালু করবেন?',
-    botPerTrade: 'প্রতি ট্রেডে (SL হিট হলে)',
-    botConfirmClose: 'খোলা ট্রেড এখনই ক্লোজ করে পেন্ডিং অর্ডার বাতিল করবেন?',
-    botStarted: 'বট চালু — BuyStop / SellStop বসানো হচ্ছে',
-    botStoppedMsg: 'বট বন্ধ — পেন্ডিং অর্ডার বাতিল করা হলো',
-    botClosedMsg: 'ক্লোজ করা ট্রেড',
-    priceMapTitle: 'লাইভ লেভেল ম্যাপ',
-    bot5Title: 'অটো ট্রেডিং (নিউজ ট্রেডার)',
-    bot5Mode: 'ট্রেডিং স্টাইল', bot5ModeAnticipate: 'অ্যান্টিসিপেট', bot5ModeStraddle: 'স্ট্র্যাডল', bot5ModeFollow: 'ফলো',
-    bot5Impact: 'সর্বনিম্ন ইমপ্যাক্ট', bot5ImpactHigh: 'হাই', bot5ImpactMedium: 'মিডিয়াম', bot5ImpactAll: 'সব',
-    bot5Pre: 'প্রি মিনিট', bot5Post: 'পোস্ট মিনিট',
-    bot5Hint: 'বট ইকোনমিক ক্যালেন্ডার পড়ে, আপনাকে বলে BUY না SELL আর কখন ঢুকতে হবে — নিউজের Pre মিনিট আগে ট্রেড খুলে Post মিনিট পরে ক্লোজ করে। অ্যান্টিসিপেট = নিউজের দিকে একটা পজিশন, স্ট্র্যাডল = দুই পাশে অর্ডার পার্ক করা, ফলো = নিউজের পরের আসল রিঅ্যাকশন ধরা।',
-    bot5ManualTitle: 'নিজের ইভেন্ট যোগ করুন (অফলাইনেও সবসময় কাজ করে)',
-    bot5ManualAdd: '+ ইভেন্ট যোগ করুন', bot5ManualClear: 'সব মুছুন',
-    bot5NextEvent: 'পরবর্তী ইভেন্ট', bot5NoNews: 'কোনো আসন্ন হাই-ইমপ্যাক্ট নিউজ নেই',
-    bot5NewsList: 'সব ইকোনমিক নিউজ', bot5Refresh: '🔄 নিউজ রিফ্রেশ',
-    bot5AllMarket: 'সব মার্কেট', bot5WatchOnly: 'শুধু দেখার জন্য', bot5NewsTotal: 'ইভেন্ট',
-    bot5OutlookTitle: '🤖 এআই মার্কেট ডিরেকশন · আগামী দিন',
-    bot5OutlookSub: 'তারিখ-ভিত্তিক · কোন মার্কেট কত ডলার (±) · সব নিউজ সোর্স পড়ে',
-    sessTitle: '🌐 Trading Sessions · live clock & AI dollar forecast',
-    sessSub: 'Sydney (Australian) · Tokyo (Asian) · London (European) · New York (North American)',
-    sessMarket: 'Market', sessOpen: 'OPEN', sessClosed: 'CLOSED',
-    sessSydney: 'Sydney', sessTokyo: 'Tokyo', sessLondon: 'London', sessNewYork: 'New York',
-    sessRegAu: 'Australian', sessRegAsia: 'Asian', sessRegEu: 'European', sessRegNa: 'North American',
-    sessStartsIn: 'starts in', sessEndsIn: 'ends in', sessWeekend: 'weekend break · reopens Monday',
-    sessPeak: 'PEAK', sessPeakTip: 'London + New York overlap - the heaviest liquidity of the day',
-    sessAi: 'AI forecast', sessMostMove: 'moves the most here', sessMixed: 'MIXED',
-    sessAiUp: 'BUY Target', sessAiDown: 'SELL Target', sessRange: 'range', sessPriceUnit: 'price units',
-    sessBuyTarget: 'BUY Forecast', sessSellTarget: 'SELL Forecast', sessExpRange: 'Expected Range',
-    sessAllMarketsTitle: 'All Markets Session Direction & Dollar Forecast',
-    sessAllMarketsLive: 'LIVE SESSION', sessAllMarketsNext: 'NEXT SESSION',
-    sessUpDays: 'days up', sessDaysAvg: 'avg', sessLot: 'lot',
-    sessBestUp: 'Max Up', sessBestDown: 'Max Down', sessDial: 'DIAL',
-    sessFlowTip: 'Live watch-dial buyer vs seller for this market',
-    sessNoData: 'No session history - connect terminal',
-    sessLoading: 'Starting the session clock…', sessUpdated: 'Updated',
-    sessClockOnly: 'Clock only (no terminal)',
-    aiTitle: '🧠 সম্পূর্ণ এআই মার্কেট বিশ্লেষণ · লাইভ বাই / সেল',
-    aiSub: '৫মি · ১০মি · ১৫মি · ১ঘ. ক্যান্ডেল + নিউজ + লাইভ ডায়াল → প্রাইস কোথায় যাবে',
-    aiMarket: 'মার্কেট', aiTimeframe: 'টাইমফ্রেম',
-    aiAi: 'এআই', aiBuy: 'বাই', aiSell: 'সেল', aiNoTrade: 'ট্রেড নেই',
-    aiConfidence: 'কনফিডেন্স', aiScore: 'স্কোর',
-    aiUp: 'উপরে', aiDown: 'নিচে', aiRisk: 'রিস্ক',
-    aiUpTarget: 'উপরের টার্গেট', aiDownTarget: 'নিচের টার্গেট',
-    aiLevels: 'লেভেল', aiRange: 'সম্ভাব্য রেঞ্জ',
-    aiUpdated: 'আপডেট', aiLoading: 'ক্যান্ডেল পড়া হচ্ছে…',
-    aiNoTerminal: 'লাইভ ক্যান্ডেলের জন্য টার্মিনাল কানেক্ট করুন',
-    aiNoData: 'পর্যাপ্ত ক্লোজড ক্যান্ডেল নেই',
-    aiPriceNow: 'এখন প্রাইস', aiClosed: 'ক্লোজড ক্যান্ডেল',
-    aiWhy: 'কারণ',
-    bot6Title: 'অটো ট্রেডিং (প্রি-ট্রেড এন্ট্রি)', bot6Short: 'বট ৬',
-    bot6Distance: 'ডিস্ট্যান্স ($)', bot6Pressure: 'সর্বনিম্ন প্রেসার (%)', bot6Side: 'সাইড',
-    bot6SideWatch: 'ওয়াচ (অটো)', bot6SideBuy: 'শুধু বাই', bot6SideSell: 'শুধু সেল', bot6SideBoth: 'দুই পাশ',
-    bot6WatchGate: 'ওয়াচ চেক', bot6AiGate: 'এআই চেক', bot6WatchTitle: '👁️ মার্কেট প্রেসার ওয়াচ',
-    bot6RulesTitle: '💰 চালু থাকা TP / SL রুল', bot6EntryTitle: '🎯 পার্ক করা প্রি-ট্রেড',
-    bot6Hint: 'প্রি-ট্রেড (পেন্ডিং অর্ডার) লাইভ প্রাইস থেকে Distance ($) দূরে বসে, দিকটা ঠিক করে মার্কেট প্রেসার ওয়াচ। ওয়াচ নিউট্রাল, বা প্রেসার Min Pressure % এর কম → ট্রেড নেবে না। TP > ০ = ফিক্সড টেক প্রফিট, ০ = TP নেই। SL > ০ = ফিক্সড স্টপ লস, SL = ০ → $০.৮০ প্রফিট হলেই SL প্রফিটের ৭০% এ বসবে আর প্রফিট বাড়লে সাথে সাথে উপরে উঠবে, কখনো নিচে নামবে না।',
-    bot6NoEntry: 'কোনো প্রি-ট্রেড পার্ক করা নেই',
-    bot7Title: 'অটো ট্রেডিং (রিভার্সাল ক্যান্ডেল)', bot7Short: 'বট ৭',
-    bot7Reverse: 'রিভার্সাল ডিস্ট্যান্স ($)', bot7CandleTitle: '🕯️ ক্যান্ডেল রিভার্সাল রাডার',
-    bot2Timeframe: 'টাইমফ্রেম',
-    bot7LastCandle: 'শেষ ক্লোজড ক্যান্ডেল',
-    bot7Hint: 'বট শেষ ক্লোজড ক্যান্ডেল পড়ে, আর রিভার্সাল মাপে মার্কেট যে পয়েন্ট থেকে ঘুরেছে সেখান থেকে: ক্যান্ডেলের ক্লোজ, যা প্রাইস ওই দিকে চলতে থাকলে বেয়ার ক্যান্ডেলের সবচেয়ে নিচের লো / বুল ক্যান্ডেলের সবচেয়ে উপরের হাই পর্যন্ত ফলো করে — তাই ক্যান্ডেল নেমে আরও গভীরে গিয়ে হঠাৎ উপরে লাফালেও আসল টার্নিং পয়েন্ট থেকেই ফায়ার করে। প্রাইস Reversal Distance ($) উল্টো দিকে ফিরলেই সাথে সাথে নতুন দিকে ট্রেড নেয় (bull ক্যান্ডেল নিচে ভাঙলে → SELL, bear ক্যান্ডেল উপরে ভাঙলে → BUY)। Reversal Distance 0 = ক্যান্ডেলের নিজের বডি। প্রতি ক্লোজড ক্যান্ডেল একবারই ফায়ার করে। রাডারে Turning point / trigger / কত বাকি লাইভ দেখা যায়। TP/SL বট 6 এর মতোই (SL 0 = $0.80 থেকে 70% প্রফিট লক)।',
-    advanced: 'অ্যাডভান্সড', terminal: 'MT5 টার্মিনাল (terminal64.exe)',
-    terminalHint: 'একাধিক টার্মিনাল ইনস্টল না থাকলে "Auto-detect" ই রাখুন।',
-    remember: 'এই পিসিতে লগইন + সার্ভার মনে রাখুন',
-    connectSub: 'Exness লগইন, পাসওয়ার্ড আর সার্ভার দিন। সফল লগইন ছাড়া ড্যাশবোর্ডে ঢুকতে পারবেন না।',
-    badgeReal: 'লাইভ · রিয়েল', badgeDemo: 'ডেমো অ্যাকাউন্ট', badgeContest: 'কনটেস্ট অ্যাকাউন্ট',
-    badgeEa: 'EA ব্রিজ', loggedOut: 'লগআউট', offline: 'অফলাইন',
-    drawerBotsTitle: 'সব ট্রেডিং বট ও ইকোনমিক নিউজ',
-    flowBalanceTitle: 'লাইভ ট্রেড ফ্লো',
-  },
+
 };
-let LANG = localStorage.getItem('exdash.lang') || 'en';
-const t = (k) => (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
+const LANG = 'en';
+const t = (k) => I18N.en[k] || k;
 
 function applyLang() {
   document.querySelectorAll('[data-i18n]').forEach((n) => {
@@ -471,7 +292,6 @@ function applyLang() {
     if (v && v !== k) n.textContent = v;
   });
   document.documentElement.lang = LANG;
-  $('lang-btn').textContent = LANG === 'en' ? 'বাং' : 'EN';
   if (typeof updateVoiceMuteButtons === 'function') updateVoiceMuteButtons();
   if (S) renderStatLabels();
   // the sessions and AI panels carry text built in JS, so they are rebuilt from
@@ -509,7 +329,9 @@ let posRows = new Map();      // ticket -> <tr>
 let histSig = '';
 let lastClosedId = null;
 let lastEventTs = 0;
-let voiceMuted = localStorage.getItem('exdash.voice_muted') === 'true';
+// Voice alerts were removed from the dashboard: the speech queue stays silent
+// (and its scroll/highlight side effects never run).
+let voiceMuted = true;
 let speechQueue = [];
 let isSpeaking = false;
 let currentSpeakingKey = null;
@@ -525,6 +347,8 @@ let wsReconnectTimer = null;
    the dashboard then polls the very same snapshot over HTTP. The numbers are
    identical, only the transport differs. */
 let httpPollTimer = null;
+let httpPollGeneration = 0;
+let wakeHttpPoll = null;
 let wsFailStreak = 0;
 // Signature of the news calendar this tab holds. The cPanel-safe state feed
 // leaves the 1 MB list out of a poll while this matches (?have=), so the state
@@ -532,9 +356,16 @@ let wsFailStreak = 0;
 let newsHaveSig = '';
 
 function startHttpPoll() {
+  if (CFG.auth_required && !CFG.authed) return;
   if (httpPollTimer) return;
+  const generation = ++httpPollGeneration;
   const tick = async () => {
-    httpPollTimer = setTimeout(tick, 2500);
+    // Schedule the next poll after this request, so a slow host cannot overlap requests.
+    httpPollTimer = -1;
+    if (document.hidden && S) {
+      if (generation === httpPollGeneration) httpPollTimer = setTimeout(tick, 2500);
+      return;
+    }
     // bounded: a slowed-down shared host must not queue up poll after poll
     const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
     const abort = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 10000) : null;
@@ -544,11 +375,15 @@ function startHttpPoll() {
         headers: { Accept: 'application/json' },
         signal: ctrl ? ctrl.signal : undefined
       });
+      if (generation !== httpPollGeneration) return;
+      if (resp.status === 401 || resp.status === 403) { pausePrivateState(); return; }
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();
-      if (!data) return;
+      if (!data || generation !== httpPollGeneration) return;
       lastServerMsgAt = Date.now();
-      queueStateFrame(data);
+      // Hydrate once even in a hidden tab; later frames keep the visibility throttle.
+      if (!S) applyState(data);
+      else queueStateFrame(data);
       const foot = $('foot-ws');
       if (foot) { foot.textContent = 'http: live (polling)'; foot.style.color = '#93c5fd'; }
     } catch (e) {
@@ -556,16 +391,45 @@ function startHttpPoll() {
       if (foot) { foot.textContent = 'http: retrying…'; foot.style.color = '#fca5a5'; }
     } finally {
       if (abort) clearTimeout(abort);
+      if (generation === httpPollGeneration) httpPollTimer = setTimeout(tick, 2500);
     }
+  };
+  wakeHttpPoll = () => {
+    if (generation !== httpPollGeneration || httpPollTimer === -1) return;
+    if (httpPollTimer) clearTimeout(httpPollTimer);
+    void tick();
   };
   tick();
 }
 
 function stopHttpPoll() {
+  httpPollGeneration++;
+  wakeHttpPoll = null;
   if (httpPollTimer) { clearTimeout(httpPollTimer); httpPollTimer = null; }
 }
 
+function pausePrivateState() {
+  CFG.auth_required = true;
+  CFG.authed = false;
+  setPrivateStateReady(false);
+  dashboardPreviewUnlocked = false;
+  stopHttpPoll();
+  if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+  const oldSocket = ws;
+  ws = null; wsAlive = false;
+  if (oldSocket) {
+    oldSocket.onmessage = null; oldSocket.onclose = null; oldSocket.onerror = null;
+    if (oldSocket.readyState === 0) oldSocket.onopen = () => oldSocket.close();
+    else { try { oldSocket.close(); } catch (e) {} }
+  }
+  const foot = $('foot-ws');
+  if (foot) { foot.textContent = 'session: sign in required'; foot.style.color = '#fca5a5'; }
+  if (typeof window.requestDashboardLogin === 'function') void window.requestDashboardLogin();
+}
+
 function connectWS() {
+  if (CFG.auth_required && !CFG.authed) { pausePrivateState(); return; }
+  if (window.SOFTRADEX_PUBLIC_ONLY || CFG.live_stream === false) { startHttpPoll(); return; }
   // exactly one live socket: a superseded one must never keep feeding the UI,
   // otherwise every reconnect doubles the live frame rate (dial traffic is ~20/s)
   let sock;
@@ -615,6 +479,7 @@ let _stateLastAt = 0;
 let _stateTimer = null;
 function applyPendingState() {
   _stateTimer = null;
+  if (document.hidden) return;
   _stateLastAt = Date.now();
   const next = _statePending;
   _statePending = null;
@@ -622,7 +487,13 @@ function applyPendingState() {
 }
 function queueStateFrame(data) {
   if (!data) return;
+  // Preserve a calendar delivered between frames even when the next frame omits it.
+  if (data.bot5 && !Array.isArray(data.bot5.news) && _statePending?.bot5 && Array.isArray(_statePending.bot5.news)) {
+    data.bot5.news = _statePending.bot5.news;
+    data.bot5.news_sig = _statePending.bot5.news_sig;
+  }
   _statePending = data;
+  if (document.hidden) return;
   const wait = 250 - (Date.now() - _stateLastAt);
   if (wait <= 0) {
     if (_stateTimer) { clearTimeout(_stateTimer); _stateTimer = null; }
@@ -638,6 +509,8 @@ function scheduleReconnect() {
   wsRetry = Math.min(wsRetry + 1, 12);
   wsReconnectTimer = setTimeout(() => {
     wsReconnectTimer = null;
+    if (CFG.auth_required && !CFG.authed) return;
+    if (window.SOFTRADEX_PUBLIC_ONLY || CFG.live_stream === false) return;
     if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
     connectWS();
   }, httpPollTimer ? 20000 : Math.min(400 * wsRetry, 4000));
@@ -806,7 +679,7 @@ function botsDrawerOpen() {
 }
 
 function renderBotsPanels(d) {
-  if (!d) return;
+  if (!d || !botsEnabled || CFG.order_execution === false) return;
   try { renderBot(d); } catch (e) { console.error('renderBot error:', e); }
   try { renderBot2(d); } catch (e) { console.error('renderBot2 error:', e); }
   try { renderBot3(d); } catch (e) { console.error('renderBot3 error:', e); }
@@ -851,7 +724,7 @@ function fullResetUI() {
   currentSpeakingKey = null;
   ['acc-login', 'acc-server', 'acc-balance', 'acc-equity', 'acc-margin',
     'acc-marginfree', 'acc-marginlevel', 'acc-leverage'].forEach((id) => { $(id).textContent = '—'; });
-  $('password').value = '';
+
   if (typeof closeFlowDrawers === 'function') closeFlowDrawers();
 }
 
@@ -864,6 +737,8 @@ function renderConnection(d) {
     text = t('connecting'); label = '…';
   } else if (d.status === 'error') {
     widget = 'error'; text = t('errorState'); label = 'ERROR';
+  } else if (d.source === 'public') {
+    widget = 'online'; text = 'Public market APIs'; cls = 'badge badge-live'; label = 'API DATA';
   } else if (d.source === 'mt5') {
     widget = 'online'; text = t('connected');
     if (d.account_kind === 'demo') { cls = 'badge badge-demo'; label = t('badgeDemo'); }
@@ -874,12 +749,17 @@ function renderConnection(d) {
     widget = 'online'; text = t('connected'); cls = 'badge badge-ea'; label = t('badgeEa');
   }
 
-  w.classList.remove('online', 'offline', 'error');
-  w.classList.add(widget);
-  if (txt.textContent !== text) txt.textContent = text;
-  if (badge.textContent !== label) badge.textContent = label;
-  if (badge.className !== cls) badge.className = cls;
-  $('topbar-disconnect').classList.toggle('hidden', !(d.connected || d.status === 'connected'));
+  if (w) {
+    w.classList.remove('online', 'offline', 'error');
+    w.classList.add(widget);
+  }
+  if (txt && txt.textContent !== text) txt.textContent = text;
+  if (badge) {
+    if (badge.textContent !== label) badge.textContent = label;
+    if (badge.className !== cls) badge.className = cls;
+  }
+  const disconnect = $('topbar-disconnect');
+  if (disconnect) disconnect.classList.add('hidden');
 }
 
 /* ---------------------------------------------------------------- account */
@@ -1360,7 +1240,7 @@ function renderMarketWatches() {
             <span class="machine-led-pulse ${!isOpen ? 'off' : domCls}"></span>
             <span class="machine-label-text">CHRONO-${String(idx + 1).padStart(2, '0')}</span>
           </div>
-          <span class="machine-clock${isLive ? '' : ' sim'}" title="${isLive ? 'Last live reading' : (w.price_source === 'public' ? 'Public feed price — Yahoo / Binance (MT5 not connected)' : 'Simulated data — MT5 not connected')}">${watchClockText(w.updated_at)}</span>
+          <span class="machine-clock${isLive ? '' : ' sim'}" title="${isLive ? 'Last live reading' : (w.price_source === 'public' ? 'Public API price — Yahoo / Binance' : 'Simulated data — MT5 not connected')}">${watchClockText(w.updated_at)}</span>
           ${stateBadgeHtml}
         </div>
 
@@ -2940,6 +2820,37 @@ function fmtNewsWhen(ts, bn) {
   return `${_WD_SHORT_BN[d.getDay()]} ${_bnDigits(h12)}:${_bnDigits(mm)} ${d.getHours() < 12 ? 'AM' : 'PM'}`;
 }
 
+function newsRelativeTime(ts, isPast, nowSec) {
+  const diffSec = ts - nowSec, mins = Math.round(diffSec / 60), isBn = LANG === 'bn';
+  if (isPast) {
+    const ago = Math.max(1, Math.round(-diffSec / 60));
+    return '📰 ' + (ago < 60 ? (isBn ? `${ago}মি. আগে` : `${ago}m ago`)
+      : ago < 1440 ? (isBn ? `${Math.floor(ago / 60)}ঘ. আগে` : `${Math.floor(ago / 60)}h ago`)
+        : (isBn ? `${Math.floor(ago / 1440)}দিন আগে` : `${Math.floor(ago / 1440)}d ago`));
+  }
+  if (diffSec <= 0) return isBn ? '⏱ লাইভ' : '⏱ LIVE';
+  if (mins < 60) return isBn ? `আর ${mins}মি.` : `in ${mins}m`;
+  if (mins < 1440) {
+    const h = Math.floor(mins / 60), rm = mins % 60;
+    return isBn ? `আর ${h}ঘ.${rm ? ` ${rm}মি.` : ''}` : `in ${h}h${rm ? ` ${rm}m` : ''}`;
+  }
+  const days = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60);
+  return isBn ? `আর ${days}দিন ${h}ঘ.` : `in ${days}d ${h}h`;
+}
+
+let newsRelativeMinute = -1;
+function updateNewsRelativeTimes(force = false) {
+  if (document.hidden || !botsDrawerOpen()) return;
+  const now = Date.now() / 1000, minute = Math.floor(now / 60);
+  if (!force && minute === newsRelativeMinute) return;
+  newsRelativeMinute = minute;
+  document.querySelectorAll('#bot5-news .news-row[data-news-time]').forEach(row => {
+    const label = row.querySelector('.news-min');
+    const text = newsRelativeTime(Number(row.dataset.newsTime), row.dataset.newsPast === 'true', now);
+    if (label && label.textContent !== text) label.textContent = text;
+  });
+}
+
 function renderBot5(d) {
   const b = d.bot5 || {};
   const cfg = b.config || {};
@@ -3035,7 +2946,16 @@ function renderBot5(d) {
 
   // ---- next-event card + bias + impacted markets --------------------
   const curImpactFilter = (window.__activeNewsImpactFilter || 'high').toLowerCase();
-  const allNewsList = Array.isArray(b.news) ? b.news : [];
+  const panelSymbol = flowSymbol() || shown;
+  const workspace = window.ChartWorkspace;
+  const relevantNews = (event, market) => workspace && workspace.relevanceFor
+    ? !!workspace.relevanceFor(event, market)
+    : (event.impacted_markets || []).some(m => window.DashboardPanels.canonical(m.market) === window.DashboardPanels.canonical(market));
+  const marketNews = (Array.isArray(b.news) ? b.news : [])
+    .filter(e => e && window.DashboardPanels.newsPhase(e, Date.now()/1000) !== 'expired');
+  renderBot5.nextNewsExpiry = marketNews.reduce((deadline, e) =>
+    Math.min(deadline, window.DashboardPanels.newsExpires(e)), Infinity);
+  const allNewsList = marketNews.filter(e => relevantNews(e, panelSymbol));
   const matchingNews = allNewsList.filter(n => String(n.impact || 'low').toLowerCase() === curImpactFilter);
 
   const filterBar = $('news-impact-filter-bar');
@@ -3045,27 +2965,22 @@ function renderBot5(d) {
     });
   }
 
-  // Prefer an upcoming event that matches the impact filter; never fall back
-  // to a past headline while a live upcoming event exists (the card must
-  // always lead with what comes NEXT).
-  const upcomingInMatch = matchingNews.find(n => !n.past && (Number(n.ts || 0) >= (Date.now() / 1000 - 60)));
-  const ev = upcomingInMatch
-    || (b.active_event || null)
-    || matchingNews[0]
-    || (allNewsList.find(n => !n.past && (Number(n.ts || 0) >= (Date.now() / 1000 - 60))) || allNewsList[0]);
+  const ev = window.DashboardPanels.selectEvent(allNewsList, panelSymbol, curImpactFilter, Date.now()/1000, relevantNews);
   window.__currentNewsCardEvent = ev;
   const card = $('bot5-next-card');
   const wCard = $('watch-next-card');
 
   // Derive explicit bias & direction from the event, its impacted platform markets, or live dials
-  const evImpacts = (ev && Array.isArray(ev.impacted_markets)) ? ev.impacted_markets : [];
-  const evFirstSide = (ev && ev.side) || (evImpacts[0] && evImpacts[0].side) || (b.bias && b.bias.side) || '';
-  const evFirstReason = (ev && ev.reason) || (evImpacts[0] && evImpacts[0].reason) || (b.bias && b.bias.reason) || '';
-  const bias = {
-    side: evFirstSide,
-    reason: evFirstReason,
-    confident: (ev && ev.confident !== undefined) ? ev.confident : (b.bias ? b.bias.confident : true),
-  };
+  const selectedImpact = ev && workspace && workspace.impactFor ? workspace.impactFor(ev, panelSymbol) : null;
+  const swingState = window.SwingAI && window.SwingAI.state ? window.SwingAI.state() : null;
+  const estimateEvent = event => window.NewsDirection && window.NewsDirection.estimate({
+    event, symbol: panelSymbol, now: Date.now()/1000, quote: window.SOFT_TV_QUOTE, market: swingState,
+    impact: workspace && workspace.impactFor ? workspace.impactFor(event, panelSymbol) : null,
+    headlines: allNewsList.filter(n => n.kind === 'headline') });
+  const evEstimate = ev && ((workspace && workspace.directionFor && workspace.directionFor(ev, panelSymbol)) || estimateEvent(ev));
+  const bias = { side: evEstimate ? evEstimate.side : selectedImpact ? selectedImpact.side : '',
+    reason: evEstimate ? evEstimate.reason : selectedImpact ? selectedImpact.reason : 'No supported market-direction evidence yet',
+    confident: !!(evEstimate && evEstimate.strength >= 60) };
   const impChips = $('bot5-next-impacted-chips');
   const wImpChips = $('watch-next-impacted-chips');
   if (ev) {
@@ -3077,11 +2992,8 @@ function renderBot5(d) {
     const wTitle = $('watch-event-title');
     if (wTitle) wTitle.textContent = titleTxt;
 
-    // backend now sends minutes_to for every row; fall back to the event's
-    // own ts so the NEXT EVENT line can never read "in 0 min"
-    const mins = (ev.minutes_to !== undefined && ev.minutes_to !== null)
-      ? Number(ev.minutes_to)
-      : Math.round((Number(ev.ts || 0) - Date.now() / 1000) / 60);
+    // Countdown is derived from the absolute release time on every paint.
+    const mins = Math.round((Number(ev.ts || 0) - Date.now() / 1000) / 60);
     const whenTxt = mins >= 0
       ? (isBn ? `আর ${fmtCountdown(mins)}` : `in ${fmtCountdown(mins)}`)
       : (isBn ? `${fmtCountdown(-mins)} আগে` : `${fmtCountdown(-mins)} ago`);
@@ -3096,10 +3008,7 @@ function renderBot5(d) {
     const wMeta = $('watch-event-meta');
     if (wMeta) wMeta.innerHTML = metaHtml;
 
-    let side = String(bias.side || ev.side || '').toUpperCase();
-    if (!side && evImpacts.length && evImpacts[0].side) {
-      side = String(evImpacts[0].side).toUpperCase();
-    }
+    const side = String(bias.side || '').toUpperCase();
     const confident = !!bias.confident;
     const pillClass = 'news-bias-pill ' + (side === 'BUY' ? 'buy' : side === 'SELL' ? 'sell' : 'wait') + (confident ? ' confident' : '');
     const pillText = side === 'BUY' ? '▲ BUY' : side === 'SELL' ? '▼ SELL' : (isBn ? 'ওয়েট' : 'WAIT');
@@ -3122,7 +3031,9 @@ function renderBot5(d) {
     if (wReason) wReason.textContent = reasonTxt;
 
     // AI Expected Move (e.g. +$18.50 UP / -$22.00 DOWN)
-    const pred = ev.predicted_move || (bias && bias.predicted_move);
+    const moveAbs = evEstimate ? Number(evEstimate.move_abs) || 0 : 0;
+    const pred = moveAbs > 0 ? { market: panelSymbol, direction: side === 'BUY' ? 'UP' : 'DOWN',
+      text_en: (side === 'BUY' ? '+' : '-') + moveAbs.toFixed(moveAbs >= 1 ? 2 : 5) + (side === 'BUY' ? ' UP' : ' DOWN') + ' · estimate' } : null;
     let predHtml = '';
     const moveSide = side || (pred && pred.direction === 'UP' ? 'BUY' : (pred && pred.direction === 'DOWN' ? 'SELL' : ''));
     if (pred && (pred.text_en || pred.val_str) && moveSide) {
@@ -3139,30 +3050,55 @@ function renderBot5(d) {
     const wPredEl = $('watch-predicted-move');
     if (wPredEl) wPredEl.innerHTML = predHtml;
 
-    // Impacted markets and directions (BUY / SELL)
-    const impacts = evImpacts.length ? evImpacts : (side ? [
-      { market: 'XAUUSDm', side: side === 'BUY' ? 'BUY' : 'SELL', reason: `${ev.currency || ''} sentiment` },
-      { market: 'USOILm', side: side === 'BUY' ? 'BUY' : 'SELL', reason: 'Commodity demand' },
-      { market: 'DXYm', side: side === 'BUY' ? 'SELL' : 'BUY', reason: 'USD safe haven' },
-      { market: 'BTCUSDm', side: side === 'BUY' ? 'BUY' : 'SELL', reason: 'Risk flow' },
-    ] : []);
+    // Calculate this event's effect per relevant catalogue market. An empty
+    // backend impacted_markets array is not an asynchronous loading state.
+    const terminal = window.SoftradeXTerminal;
+    const catalogue = terminal && terminal.getMarkets ? terminal.getMarkets() : [];
+    const impactSymbols = catalogue.length ? catalogue : b.symbol_options || [panelSymbol];
+    const daily = window.MarketOutlookData;
+    const now = Date.now()/1000;
+    const impactKey = JSON.stringify([ev.title, ev.ts, ev.currency, ev.impact,
+      ev.actual, ev.forecast, ev.previous, ev.impacted_markets, panelSymbol, impactSymbols, b.feed_updated,
+      marketNews.length, daily && daily.status().ready, evEstimate && evEstimate.side]);
+    let impactCache = renderBot5.eventImpactCache;
+    if (!impactCache || impactCache.key !== impactKey || now - impactCache.at >= 10) {
+      const rows = window.DashboardPanels.eventImpacts(ev, impactSymbols, panelSymbol, now, relevantNews,
+        (event, symbol, context) => {
+          if (window.DashboardPanels.canonical(symbol) === window.DashboardPanels.canonical(panelSymbol) && evEstimate) return evEstimate;
+          return window.NewsDirection && window.NewsDirection.estimate({ event, symbol, now,
+            market: context.market, quote: context.quote, headlines: context.headlines,
+            impact: workspace && workspace.impactFor ? workspace.impactFor(event, symbol) : null });
+        }, symbol => ({ market: swingState && swingState.fresh &&
+            window.DashboardPanels.canonical(swingState.symbol) === window.DashboardPanels.canonical(symbol)
+            ? swingState : daily && daily.get(symbol), quote: window.SOFT_TV_QUOTE }), marketNews);
+      impactCache = renderBot5.eventImpactCache = { key: impactKey, at: now, rows };
+    }
+    const impacts = impactCache.rows;
+    if (daily && daily.prioritize) daily.prioritize(impacts.map(m => m.market));
     let chipsHtml = '';
     if (impacts.length) {
       chipsHtml = impacts.map(m => {
-        const isBuy = String(m.side || '').toUpperCase() === 'BUY';
-        const mTxt = isBn ? (m.move_text_bn || m.move_text_en || '') : (m.move_text_en || '');
-        const mBadge = mTxt ? `<span class="imp-move">(${esc(mTxt)})</span>` : '';
-        return `<div class="imp-market-pill ${isBuy ? 'buy' : 'sell'}" title="${esc(m.reason || '')}${m.range_str ? ` · ${esc(m.range_str)}` : ''}">
+        const isBuy = m.side === 'BUY', hasSide = !!m.side;
+        const direction = isBuy ? '▲ BUY · UP' : hasSide ? '▼ SELL · DOWN' : (isBn ? 'দিক অনিশ্চিত' : 'NO SIGNAL');
+        const move = m.move_abs > 0 ? (isBuy ? '+' : '−') + m.move_abs.toFixed(m.move_abs >= 1 ? 2 : 5) + ' · ' : '';
+        const detail = hasSide ? `${move}${m.strength}% ${isBn ? 'সিগন্যাল · অনুমান' : 'strength · estimate'}`
+          : (isBn ? 'দিক নির্ধারণের তথ্য নেই' : 'Directional evidence unavailable');
+        return `<div class="imp-market-pill ${isBuy ? 'buy' : hasSide ? 'sell' : 'uncertain'}" data-market="${esc(m.market)}" title="${esc(m.reason)}">
           <span class="imp-sym">${esc(m.market)}</span>
-          <span class="imp-dir">${isBuy ? '▲ BUY' : '▼ SELL'}</span>
-          ${mBadge}
+          <span class="imp-dir">${direction}</span>
+          <span class="imp-detail">${esc(detail)}</span>
         </div>`;
       }).join('');
     } else {
-      chipsHtml = `<span class="imp-none">${isBn ? 'মার্কেট বিশ্লেষণ হচ্ছে…' : 'Analyzing markets…'}</span>`;
+      chipsHtml = `<span class="imp-none">${isBn ? 'এই ইভেন্টের প্রভাব পড়ে এমন কোনো উপলভ্য মার্কেট পাওয়া যায়নি।' : 'No supported market has a mapped effect from this event.'}</span>`;
     }
-    if (impChips) impChips.innerHTML = chipsHtml;
-    if (wImpChips) wImpChips.innerHTML = chipsHtml;
+    [impChips, wImpChips].filter(Boolean).forEach(target => {
+      if (target.__impactHtml === chipsHtml) return;
+      const scroll = target.scrollTop;
+      target.innerHTML = chipsHtml;
+      target.__impactHtml = chipsHtml;
+      target.scrollTop = scroll;
+    });
   } else {
     const predEl = $('bot5-predicted-move');
     if (predEl) predEl.innerHTML = '';
@@ -3199,8 +3135,11 @@ function renderBot5(d) {
     const wReason = $('watch-bias-reason');
     if (wReason) wReason.textContent = noEvReason;
 
-    if (impChips) impChips.innerHTML = '—';
-    if (wImpChips) wImpChips.innerHTML = '—';
+    [impChips, wImpChips].filter(Boolean).forEach(target => {
+      target.innerHTML = '—'; target.__impactHtml = null;
+    });
+    renderBot5.eventImpactCache = null;
+    if (window.MarketOutlookData && window.MarketOutlookData.prioritize) window.MarketOutlookData.prioritize([]);
   }
   const planTxt = b.plan || '—';
   const planEl = $('bot5-plan');
@@ -3240,17 +3179,24 @@ function renderBot5(d) {
   const outEl = $('bot5-outlook-chips');
   const wOutEl = $('watch-outlook-chips');
   if (outEl || wOutEl) {
-    const outlook = Array.isArray(b.outlook) ? b.outlook : [];
+    const terminal = window.SoftradeXTerminal;
+    const catalogue = terminal && terminal.getMarkets ? terminal.getMarkets() : [];
+    // The chart catalogue covers every available market; the news engine's
+    // older symbol_options list is only a fallback while the catalogue loads.
+    const markets = catalogue.length ? catalogue : b.symbol_options || [panelSymbol];
+    const now = Date.now()/1000;
+    const dailyData = window.MarketOutlookData;
+    if (dailyData) dailyData.ensure(markets, panelSymbol);
+    const list = window.DashboardPanels.outlookAll(marketNews, markets, panelSymbol, now, relevantNews,
+      (event, symbol, context) => window.NewsDirection && window.NewsDirection.estimate({
+        event, symbol, now, market: context.market, quote: context.quote, headlines: context.headlines,
+        impact: workspace && workspace.impactFor ? workspace.impactFor(event, symbol) : null }),
+      symbol => ({ market: swingState && swingState.fresh &&
+          window.DashboardPanels.canonical(swingState.symbol) === window.DashboardPanels.canonical(symbol)
+          ? swingState : dailyData && dailyData.get(symbol), quote: window.SOFT_TV_QUOTE }));
+    const reading = list[0];
     let outHtml = '';
-    if (!outlook.length) {
-      outHtml = `<span class="outlook-empty">${isBn ? 'নিউজ বিশ্লেষণ হচ্ছে…' : 'Reading the news…'}</span>`;
-    } else {
-      const day0 = new Date(); day0.setHours(0, 0, 0, 0);
-      const winStart = day0.getTime() / 1000 + 86400;     // tomorrow 00:00
-      // only the board's own day (tomorrow) shapes the verdicts; stale rows
-      // from before the backend update never drag the board back to today
-      const rows = outlook.filter(o0 => !Number(o0.top_ts || 0) || Number(o0.top_ts || 0) >= winStart);
-      const list = rows.length ? rows : outlook;
+    {
       const pills = list.map(o => {
         const v = String(o.verdict || '').toUpperCase();
         const cls = v === 'BUY' ? 'buy' : v === 'SELL' ? 'sell' : 'mixed';
@@ -3266,27 +3212,39 @@ function renderBot5(d) {
           : '';
         const srcTxt = o.source === 'live flow'
           ? (isBn ? 'লাইভ ফ্লো (নিউজ নেই বা সমান)' : 'live flow (no news / tie)')
-          : (o.source === 'news' ? (isBn ? 'নিউজ' : 'news') : (isBn ? 'নিরপেক্ষ' : 'flat'));
+          : (o.source === 'news' ? (isBn ? 'নিউজ' : 'news') : o.source === 'market structure' ? 'measured candle structure' : 'insufficient / mixed data');
         const tip = [
           o.top_event || '',
           when,
           `${isBn ? 'সোর্স' : 'source'}: ${srcTxt}`,
           flowTxt,
           `${isBn ? 'প্রত্যাশিত' : 'expected'}: ${fTxt}`,
-          `${Number(o.buy || 0)}B/${Number(o.sell || 0)}S · ${isBn ? 'কনফিডেন্স' : 'confidence'} ${conf}%`,
+          `${Number(o.buy || 0)}B/${Number(o.sell || 0)}S · ${isBn ? 'কনফিডেন্স' : 'signal strength'} ${conf}%`,
         ].filter(Boolean).join(' · ');
         const mark = o.source === 'live flow' ? ' ⚡' : '';
-        return `<span class="outlook-pill ${cls}" title="${esc(tip)}">` +
+        const selected = window.DashboardPanels.canonical(o.market) === window.DashboardPanels.canonical(panelSymbol);
+        return `<span class="outlook-pill ${cls}${selected ? ' selected' : ''}" data-market="${esc(o.market)}" title="${esc(tip)}">` +
           `<b>${esc(o.market)}</b>` +
           `<span class="outlook-verdict">${arrow} ${v}${mark}</span>` +
           `<span class="outlook-forecast ${fCls}">${esc(fTxt)}</span>` +
-          `<span class="outlook-count">${Number(o.buy || 0)}B/${Number(o.sell || 0)}S · ${conf}%</span>` +
+          `<span class="outlook-count">${Number(o.buy || 0)}B/${Number(o.sell || 0)}S · ${conf}% strength</span>` +
         `</span>`;
       }).join('');
-      outHtml = `<div class="outlook-date-row">${pills}</div>`;
+      const start = new Date(reading.window_start * 1000), end = new Date(reading.window_end * 1000);
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const scan = dailyData && dailyData.status();
+      const scanTxt = scan ? ` · D1 ${scan.ready}/${scan.total}${scan.pending ? ' · scanning ' + scan.pending : ''}${scan.unavailable ? ' · unavailable ' + scan.unavailable : ''}` : '';
+      outHtml = `<div class="outlook-window">${list.length} ${isBn ? 'মার্কেট' : 'markets'} · ${esc(start.toLocaleDateString([], {day:'numeric',month:'short'}))} · 00:00–00:00 ${esc(end.toLocaleDateString([], {day:'numeric',month:'short'}))} · ${esc(timezone)}${esc(scanTxt)}</div><div class="outlook-date-row">${pills}</div>`;
     }
-    if (outEl) outEl.innerHTML = outHtml;
-    if (wOutEl) wOutEl.innerHTML = outHtml;
+    [outEl, wOutEl].filter(Boolean).forEach(target => {
+      if (target.__outlookHtml === outHtml) return;
+      const oldList = target.querySelector('.outlook-date-row');
+      const scroll = target.dataset.outlookSelected === panelSymbol && oldList ? oldList.scrollTop : 0;
+      target.innerHTML = outHtml;
+      target.__outlookHtml = outHtml;
+      target.dataset.outlookSelected = panelSymbol;
+      target.querySelector('.outlook-date-row').scrollTop = scroll;
+    });
   }
 
   // ---- news list -----------------------------------------------------
@@ -3294,12 +3252,13 @@ function renderBot5(d) {
   // removed live by tickBot5Countdown the second their time passes.
   const nowSec = Date.now() / 1000;
   const rawNews = Array.isArray(b.news) ? b.news : [];
-  // upcoming events expire the second their time passes; published headlines
-  // (Google / Yahoo / Investing) stay for their 12h reading window
+  // Upcoming releases leave this reading list when they start. Headlines
+  // leave at their monitoring deadline, including stale cached responses.
   // ALL ECONOMIC NEWS panel impact filter: 'all' | 'high' | 'medium' | 'low'
   const allFilt = String((typeof window !== 'undefined' && window.__allNewsImpactFilter) || 'all').toLowerCase();
   const news = rawNews
-    .filter(n => Number(n.expire_ts || n.ts || 0) > nowSec)
+    .filter(n => n && window.DashboardPanels.newsPhase(n, nowSec) !== 'expired')
+    .filter(n => window.DashboardPanels.newsKind(n) === 'headline' || Number(n.ts) > nowSec)
     .filter(n => allFilt === 'all' || String(n.impact || 'low').toLowerCase() === allFilt);
   document.querySelectorAll('#news-impact-all-bar .news-impact-btn').forEach(btn => {
     btn.classList.toggle('active', (btn.dataset.imp || '').toLowerCase() === allFilt);
@@ -3331,15 +3290,15 @@ function renderBot5(d) {
   // The list holds 400+ rows; rebuilding it on every engine push (~3/sec) was
   // the single most expensive thing this page did - it churned the DOM and
   // forced a full page layout that every canvas read then paid for. Rebuild
-  // only when the payload really changes, plus once a minute so the relative
-  // "in 3h 6m" labels stay fresh. Expired rows are still removed instantly by
-  // tickBot5Countdown, and the next rebuild picks the filtered list up anyway.
-  let newsSig = `${Math.floor(nowSec / 60)}|${news.length}|${Number(b.news_total || 0)}|${Number(b.feed_updated || 0)}|${allFilt}`;
+  // only when the payload changes and the drawer is open. Relative time labels
+  // update in place; expired rows are removed by the countdown clock.
+  let newsSig = `${b.news_sig || b.feed_updated || ''}|${LANG}|${news.length}|${Number(b.news_total || 0)}|${allFilt}`;
   for (let ni = 0; ni < news.length; ni++) {
     const n0 = news[ni];
     newsSig += `|${Number(n0.ts || 0)}:${n0.traded ? 1 : 0}:${String(n0.side || '')}`;
   }
-  const newsDirty = !!newsEl && newsEl.dataset.sig !== newsSig;
+  const newsVisible = botsDrawerOpen() && $('view-bots')?.classList.contains('active') && !document.hidden;
+  const newsDirty = !!newsEl && newsVisible && newsEl.dataset.sig !== newsSig;
   if (newsEl && newsDirty) {
     newsEl.dataset.sig = newsSig;
     // tell the decorative candle background a heavy (400+ row) rebuild is
@@ -3347,32 +3306,18 @@ function renderBot5(d) {
     try { window.dispatchEvent(new Event('softradex:busy')); } catch (e) {}
   }
   if (newsEl && newsDirty && !news.length) {
+    newsEl.__renderer?.pause();
+    newsEl.__renderer = null;
     newsEl.innerHTML = `<div class="news-empty">${isBn ? 'ক্যালেন্ডারে কোনো আসন্ন ইভেন্ট নেই' : 'No upcoming events on the calendar'}</div>`;
   } else if (newsEl && newsDirty) {
-    newsEl.innerHTML = news.map((n) => {
+    const renderRow = (n) => {
       const ts = Number(n.ts || 0);
-      const diffSec = ts - nowSec;
-      const mins = Math.round(diffSec / 60);
       const isPast = n.past === true;
+      const expires = window.DashboardPanels.newsKind(n) === 'headline'
+        ? window.DashboardPanels.newsExpires(n) : ts;
+      if (expires <= Date.now() / 1000) return '';
       const side = String(n.side || '').toUpperCase();
-      let whenTxt = '';
-      if (isPast) {
-        const agoMin = Math.max(1, Math.round(-diffSec / 60));
-        const agoTxt = agoMin < 60 ? (isBn ? `${agoMin}মি. আগে` : `${agoMin}m ago`)
-          : agoMin < 1440 ? (isBn ? `${Math.floor(agoMin / 60)}ঘ. আগে` : `${Math.floor(agoMin / 60)}h ago`)
-          : (isBn ? `${Math.floor(agoMin / 1440)}দিন আগে` : `${Math.floor(agoMin / 1440)}d ago`);
-        whenTxt = '📰 ' + agoTxt;
-      } else if (diffSec <= 0) {
-        whenTxt = isBn ? '⏱ লাইভ' : '⏱ LIVE';
-      } else if (mins < 60) {
-        whenTxt = isBn ? `আর ${mins}মি.` : `in ${mins}m`;
-      } else if (mins < 1440) {
-        const h = Math.floor(mins / 60), rm = mins % 60;
-        whenTxt = isBn ? `আর ${h}ঘ.${rm ? ` ${rm}মি.` : ''}` : `in ${h}h${rm ? ` ${rm}m` : ''}`;
-      } else {
-        const d = Math.floor(mins / 1440), rh = Math.floor((mins % 1440) / 60);
-        whenTxt = isBn ? `আর ${d}দিন ${rh}ঘ.` : `in ${d}d ${rh}h`;
-      }
+      const whenTxt = newsRelativeTime(ts, isPast, Date.now() / 1000);
       const when = ts ? fmtNewsWhen(ts, LANG === 'bn') : '';
       const fStr = n.forecast != null ? `<span class="news-forecast-tag" title="Forecast: ${esc(n.forecast)}">F: ${esc(n.forecast)}</span>` : '';
 
@@ -3405,7 +3350,7 @@ function renderBot5(d) {
       const srcTag = srcLabel
         ? `<span class="news-src-badge" title="${esc((n.publisher ? n.publisher + ' · ' : '') + (n.source || ''))}">${esc(srcLabel)}</span>` : '';
 
-      return `<div class="news-row${n.traded ? ' traded' : ''}${(n.qualified === false && !isPast) ? ' watch-only' : ''}${isPast ? ' published' : ''}" data-ts="${isPast ? Number(n.expire_ts || ts) : ts}">
+      return `<div class="news-row${n.traded ? ' traded' : ''}${(n.qualified === false && !isPast) ? ' watch-only' : ''}${isPast ? ' published' : ''}" data-ts="${expires}" data-news-time="${ts}" data-news-past="${isPast}">
         <div class="news-row-top">
           <span class="news-impact imp-${esc(n.impact || 'low')}">${esc(String(n.impact || 'low').toUpperCase())}</span>
           <span class="news-cur">${esc(n.currency || '')}</span>
@@ -3421,7 +3366,15 @@ function renderBot5(d) {
         </div>
         ${impacts.length ? `<div class="news-row-impacts"><span class="impacts-label">${isBn ? 'ইমপ্যাক্ট:' : 'Markets:'}</span>${impactPills}</div>` : ''}
       </div>`;
-    }).join('');
+    };
+    if (window.NewsListRenderer) {
+      if (!newsEl.__renderer) newsEl.__renderer = window.NewsListRenderer.create({
+        element: newsEl,
+        visible: () => !document.hidden && botsDrawerOpen() && $('view-bots')?.classList.contains('active'),
+        complete: () => updateNewsRelativeTimes(true)
+      });
+      newsEl.__renderer.update(news, newsSig, renderRow);
+    } else newsEl.innerHTML = news.map(renderRow).join('');
   }
 
   // ---- status lines --------------------------------------------------
@@ -3458,6 +3411,11 @@ function renderBot5(d) {
   if ($('bot5-pricemap')) renderPriceMap('bot5', b);
 }
 
+window.addEventListener('market:outlook-data', () => {
+  const payload = window.__lastPollData;
+  if (payload) renderBot5(payload);
+});
+
 function fmtCountdown(mins) {
   const m = Math.max(0, Math.round(Number(mins) || 0));
   if (m >= 1440) return `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`;
@@ -3479,6 +3437,7 @@ function fmtCountdown(mins) {
    ========================================================================== */
 let sessionsBoard = null;
 let sessionsSig = '';
+let sessionsClockAnchor = null;
 
 const SESSION_LABEL = { sydney: 'sessSydney', tokyo: 'sessTokyo', london: 'sessLondon', newyork: 'sessNewYork' };
 const SESSION_REGION = { sydney: 'sessRegAu', tokyo: 'sessRegAsia', london: 'sessRegEu', newyork: 'sessRegNa' };
@@ -3493,7 +3452,7 @@ function sessMoney(v) { return '$' + Math.abs(Number(v) || 0).toFixed(2); }
 
 function sessWhen(row, secs) {
   if (row.state === 'open') return `LIVE · Ends in ${sessHms(secs)}`;
-  if (row.weekend) return 'Weekend break · reopens Monday';
+  if (row.weekend) return `Weekend break · starts in ${sessHms(secs)}`;
   return `Starts in ${sessHms(secs)}`;
 }
 
@@ -3604,6 +3563,9 @@ function renderSessions(data) {
   }
   bindSessionsUI();
   sessionsBoard = board;
+  if (!sessionsClockAnchor || sessionsClockAnchor.stamp !== Number(board.now_utc)) {
+    sessionsClockAnchor = { stamp: Number(board.now_utc), server: Number(board.now_utc) || Date.now()/1000, received: Date.now() };
+  }
 
   if (sel) {
     const syms = Array.isArray(board.symbols) && board.symbols.length
@@ -3687,8 +3649,8 @@ function renderSessions(data) {
     }
   }
   if (updEl) {
-    const ago = Math.max(0, Math.round(Date.now() / 1000 - Number(board.updated || 0)));
-    updEl.textContent = `${t('sessUpdated')} ${ago}s · ${board.source === 'mt5' ? 'MT5 M15' : t('sessClockOnly')}`;
+    const ago = Math.max(0, Math.round(Date.now() / 1000 - Number(board.history_updated || board.updated || 0)));
+    updEl.textContent = `${t('sessUpdated')} ${ago}s · ${board.source === 'mt5' ? 'MT5 M15' : board.source === 'tradingview+public' ? 'SoftradeX + public M15' : t('sessClockOnly')}`;
   }
   tickSessionsClock();
 }
@@ -3697,18 +3659,19 @@ function renderSessions(data) {
 function tickSessionsClock() {
   const rows = document.querySelectorAll('.sess-row');
   if (!rows.length || !sessionsBoard) return;
-  const skew = Number(sessionsBoard.now_utc || 0) - Date.now() / 1000;
-  const nowUtc = Date.now() / 1000 + skew;
+  const anchor = sessionsClockAnchor;
+  const nowUtc = anchor ? anchor.server + (Date.now() - anchor.received)/1000 : Date.now()/1000;
   const byKey = {};
   (sessionsBoard.sessions || []).forEach(r => { byKey[r.key] = r; });
   rows.forEach(el => {
     const row = byKey[el.dataset.key];
     if (!row) return;
-    const isOpen = row.state === 'open';
+    const isOpen = nowUtc >= Number(row.open_ts) && nowUtc < Number(row.close_ts);
     const secs = isOpen ? Number(row.close_ts || 0) - nowUtc : Number(row.open_ts || 0) - nowUtc;
     const countEl = el.querySelector('.sess-count');
-    if (countEl) countEl.textContent = sessWhen(row, secs);
+    if (countEl) countEl.textContent = sessWhen({...row, state: isOpen ? 'open' : 'closed'}, secs);
     const bar = el.querySelector('.sess-bar-fill');
+    if (bar && !isOpen) bar.style.width = '0%';
     if (bar && isOpen) {
       const span = Math.max(1, Number(row.close_ts || 0) - Number(row.open_ts || 0));
       const done = Math.max(0, Math.min(1, (nowUtc - Number(row.open_ts || 0)) / span));
@@ -3716,8 +3679,8 @@ function tickSessionsClock() {
     }
     // the ticker also flips the card the moment a session opens / closes, so the
     // panel is never stale for the few hundred ms before the next push
-    if (isOpen && secs <= 0) { el.classList.remove('live'); el.classList.add('closed'); }
-    else if (!isOpen && secs <= 0) { el.classList.remove('closed'); el.classList.add('live'); }
+    el.classList.toggle('live', isOpen);
+    el.classList.toggle('closed', !isOpen);
   });
 }
 
@@ -3894,7 +3857,7 @@ function renderAiMarket(data) {
       verdict: 'MIXED',
       score: 0,
       confidence: 0,
-      reasons: ['Awaiting MT5 candles for ' + (AI_TF_LABEL[tf] || tf)],
+      reasons: ['Awaiting public API candles for ' + (AI_TF_LABEL[tf] || tf)],
     };
   });
 
@@ -3940,7 +3903,7 @@ function renderAiMarket(data) {
         `<span class="ai-target level"><b>${esc(t('aiLevels'))}</b> ` +
           `<small>${aiPx(tgt.level_up, digits)} / ${aiPx(tgt.level_down, digits)}</small></span>`;
     } else {
-      tgtEl.innerHTML = `<span class="ai-target">${esc(board.source === 'mt5' ? t('aiNoData') : t('aiNoTerminal'))}</span>`;
+      tgtEl.innerHTML = `<span class="ai-target">${esc(t('aiNoData'))}</span>`;
     }
   }
 
@@ -3961,7 +3924,7 @@ function tickAiAge() {
   const el = $('ai-updated');
   if (!el || !aiBoard) return;
   const ago = Math.max(0, Math.round(Date.now() / 1000 - Number(aiBoard.updated || 0)));
-  el.textContent = `${t('aiUpdated')} ${ago}s · ${aiBoard.source === 'mt5' ? t('aiClosed') : t('aiNoTerminal')}`;
+  el.textContent = `${t('aiUpdated')} ${ago}s · ${aiBoard.source === 'public' ? 'Public API · closed candles' : t('aiNoData')}`;
 }
 
 function bindAiMarketUI() {
@@ -4012,9 +3975,11 @@ let flowPick = '';          // optimistic selection while the backend round-trip
 
 function flowBoard() { return (S && S.bot5 && S.bot5.ai) || null; }
 
-/* The market the whole pipeline follows: the user's pick first, then whatever
-   the AI board reports back, then the session board, then the traded market. */
+/* The selected chart market leads the pipeline; backend snapshots can lag it. */
 function flowSymbol() {
+  const chart = window.SoftradeXTerminal || window.BinanceTerminal;
+  const selected = chart && typeof chart.getCurrentSymbol === 'function' ? chart.getCurrentSymbol() : '';
+  if (String(selected || '').trim()) return String(selected).trim();
   const board = flowBoard();
   const backend = board && board.symbol ? String(board.symbol) : '';
   if (flowPick && backend && backend.toUpperCase() === flowPick.toUpperCase()) flowPick = '';
@@ -4314,13 +4279,36 @@ function updateFlowStageLivePrices() {
 }
 
 /* ----------------------------------------------------- the side drawers */
+function setBotsDrawerFullscreen(on) {
+  const drawer = $('bots-drawer');
+  if (!drawer) return;
+  drawer.classList.toggle('fullscreen', !!on);
+  const toggle = $('bots-fs-toggle');
+  const icon = $('bots-fs-icon');
+  const label = $('bots-fs-label');
+  if (toggle) toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if (icon) icon.textContent = on ? '🗗' : '⛶';
+  if (label) label.textContent = on ? 'Side View' : 'Fullscreen';
+}
+
 function closeFlowDrawers() {
   const dash = $('dash');
   if (!dash) return;
+  // Clear the fixed fullscreen surface before hiding its contents.
+  setBotsDrawerFullscreen(false);
+  $('bot5-news')?.__renderer?.pause();
   dash.classList.remove('drawer-left-open', 'drawer-right-open');
   const scrim = $('drawer-scrim');
   if (scrim) scrim.hidden = true;
   document.body.classList.remove('no-scroll');
+  ['rail-positions', 'rail-history', 'rail-bots', 'rail-activity'].forEach(id => {
+    const rail = $(id);
+    if (rail) rail.setAttribute('aria-expanded', 'false');
+  });
+  ['positions-drawer', 'bots-drawer'].forEach(id => {
+    const drawer = $(id);
+    if (drawer) drawer.setAttribute('aria-hidden', 'true');
+  });
 }
 
 function initFlowUI() {
@@ -4349,11 +4337,15 @@ function initFlowUI() {
     if (actTab) actTab.classList.toggle('active', !isBots);
     if (botsView) botsView.classList.toggle('active', isBots);
     if (actView) actView.classList.toggle('active', !isBots);
+    if (!isBots) $('bot5-news')?.__renderer?.pause();
+    else if (S && botsDrawerOpen()) { renderBot5(S); $('bot5-news')?.__renderer?.resume(); }
   };
   window.__switchRightDrawerTab = switchRightDrawerTab;
 
   const setDrawer = (side, tab) => {
     if (!dash) return;
+    if (!side) { closeFlowDrawers(); return; }
+    if (side !== 'right') setBotsDrawerFullscreen(false);
     dash.classList.toggle('drawer-left-open', side === 'left');
     dash.classList.toggle('drawer-right-open', side === 'right');
     const open = !!side;
@@ -4372,7 +4364,10 @@ function initFlowUI() {
     const bd = $('bots-drawer');
     if (bd) bd.setAttribute('aria-hidden', side === 'right' ? 'false' : 'true');
     // the drawer was paused while shut - paint it with the newest engine state
-    if (side === 'right' && S) renderBotsPanels(S);
+    if (side === 'right' && S) {
+      renderBotsPanels(S);
+      $('bot5-news')?.__renderer?.resume();
+    }
 
     if (side === 'left' && tab) {
       switchLeftDrawerTab(tab);
@@ -4470,11 +4465,7 @@ function initFlowUI() {
     fsToggle.addEventListener('click', () => {
       const drawer = $('bots-drawer');
       if (!drawer) return;
-      const isFs = drawer.classList.toggle('fullscreen');
-      const icon = $('bots-fs-icon');
-      const lbl = $('bots-fs-label');
-      if (icon) icon.textContent = isFs ? '🗗' : '⛶';
-      if (lbl) lbl.textContent = isFs ? 'Side View' : 'Fullscreen';
+      setBotsDrawerFullscreen(!drawer.classList.contains('fullscreen'));
     });
   }
 
@@ -4595,11 +4586,17 @@ function setupFlowWires() {
 }
 
 function tickBot5Countdown() {
+  if (document.hidden) return;
   const now = Date.now() / 1000;
   const el = $('bot5-countdown');
   const wEl = $('watch-countdown');
   const b5 = S && S.bot5;
-  const ev = window.__currentNewsCardEvent || (b5 && (b5.active_event || (Array.isArray(b5.news) ? (b5.news.find(n => !n.past && (Number(n.ts || 0) >= (now - 60))) || b5.news[0]) : null)));
+  updateNewsRelativeTimes();
+  let ev = window.__currentNewsCardEvent || null;
+  if (now >= renderBot5.nextNewsExpiry || (ev && window.DashboardPanels.newsPhase(ev, now) === 'expired')) {
+    renderBot5(S || {});
+    ev = window.__currentNewsCardEvent || null;
+  }
   if (el || wEl) {
     if (!ev || !ev.ts) {
       if (el) el.textContent = '—';
@@ -4607,7 +4604,7 @@ function tickBot5Countdown() {
     } else {
       const secs = Math.round(Number(ev.ts) - now);
       if (secs <= 0) {
-        const liveTxt = '⏱ ' + (LANG === 'bn' ? 'লাইভ' : 'LIVE');
+        const liveTxt = 'IMPACT · ' + sessHms(Number(ev.ts) + window.DashboardPanels.impactSeconds(ev) - now);
         if (el) el.textContent = liveTxt;
         if (wEl) {
           wEl.textContent = liveTxt;
@@ -4638,11 +4635,11 @@ function tickBot5Countdown() {
         const countTxt = m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
         const countCls = 'news-countdown' + (secs <= 300 ? ' soon' : '');
         if (el) {
-          el.textContent = countTxt;
+          el.textContent = 'STARTS IN ' + countTxt;
           el.className = countCls;
         }
         if (wEl) {
-          wEl.textContent = countTxt;
+          wEl.textContent = 'STARTS IN ' + countTxt;
           wEl.className = countCls;
         }
         const mins = Math.round(secs / 60);
@@ -4665,7 +4662,7 @@ function tickBot5Countdown() {
 
   // "previous news show korbe na. jeta sesh ota chole jeba" -> 
   // Live auto-removal of finished news from DOM immediately every second
-  const rows = document.querySelectorAll('#bot5-news .news-row');
+  const rows = botsDrawerOpen() ? document.querySelectorAll('#bot5-news .news-row') : [];
   if (rows && rows.length) {
     let removed = false;
     rows.forEach((row) => {
@@ -5540,10 +5537,10 @@ function processSpeechQueue() {
   clearSpeakingHighlight();
   const el = document.getElementById(item.elId);
   if (el) {
+    // Only the lamp lights up: scrolling the page to the spoken line used to
+    // drag the reader back up the dashboard every few seconds while a bot was
+    // talking, so a reader who scrolled down could not stay there.
     el.classList.add('voice-light-pulse');
-    try {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch (e) {}
   }
 
   try {
@@ -5674,10 +5671,10 @@ function renderFeed(d) {
 
 /* ----------------------------------------------------------------- footer */
 function renderFooter(d) {
-  const src = { mt5: 'source: MT5 terminal', ea: 'source: EA bridge', none: 'source: logged out' }[d.source] || 'source: idle';
+  const src = { public: 'source: public market APIs', none: 'source: waiting for API data' }[d.source] || 'source: idle';
   $('foot-source').textContent = src;
   $('foot-latency').textContent = `engine ${d.engine_latency_ms ?? '—'} ms`;
-  $('foot-version').textContent = `MT5 ${d.env && d.env.mt5_version ? 'v' + d.env.mt5_version : 'n/a'}`;
+  $('foot-version').textContent = `${CFG.app || 'SoftradeX'} v${CFG.version || '1.0.0'}`;
   const now = new Date();
   $('server-clock').textContent = d.server_time ? d.server_time.split(' ')[1] : '--:--:--';
   $('last-update').textContent = `updated ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} (local)`;
@@ -5720,65 +5717,7 @@ function showConnectError(err) {
   box.classList.remove('hidden');
 }
 
-async function doConnect() {
-  showConnectError(null);
-  const login = $('login').value.trim();
-  const server = currentServer();
-  if (!login) { showConnectError({ message: t('needLogin') }); $('login').focus(); return; }
-  if (!server) { showConnectError({ message: t('serverPick') }); ($('server-select').value === SERVER_CUSTOM ? $('server') : $('server-select')).focus(); return; }
-
-  const btn = $('connect-btn');
-  btn.disabled = true;
-  $('connect-progress').classList.remove('hidden');
-  try {
-    const body = {
-      login,
-      password: $('password').value,
-      server,
-      path: $('terminal-path').value || '',
-      remember: $('remember').checked,
-    };
-    const r = await fetch('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j.ok) {
-      showConnectError(j.error || { message: 'Login failed' });
-    } else {
-      // only a working login is remembered
-      if ($('remember').checked) {
-        localStorage.setItem('exdash.login', login);
-        localStorage.setItem('exdash.server', server);
-      }
-      connectViewPinned = false;
-      toast('ok', `Logged in: ${j.account ? j.account.login : login} · ${(j.account && j.account.server) || server}`);
-    }
-  } catch (e) {
-    showConnectError({ message: String(e) });
-  } finally {
-    btn.disabled = false;
-    $('connect-progress').classList.add('hidden');
-  }
-}
-
-/* Full logout: server drops the MT5 session, the UI goes back to the login page */
-async function doDisconnect() {
-  try { await fetch('/api/disconnect', { method: 'POST' }); } catch (e) {}
-  S = null;
-  wasConnected = false;
-  dashboardPreview = false;
-  dashboardPreviewUnlocked = false;
-  connectViewPinned = false;
-  fullResetUI();
-  histSig = '';
-  lastClosedId = null;
-  $('dash').classList.add('hidden');
-  $('connect-view').classList.remove('hidden');
-  $('settings-modal').classList.add('hidden');
-  showConnectError(null);
-  toast('ok', 'Disconnected — Exness account login din');
-}
-
 function bindUI() {
-  el('#connect-form').addEventListener('submit', (e) => { e.preventDefault(); doConnect(); });
   function closeDashboardPassword(accepted) {
     const modal = $('dashboard-password-modal');
     if (modal) modal.classList.add('hidden');
@@ -5789,6 +5728,7 @@ function bindUI() {
     if (resolve) resolve(accepted);
   }
   function askDashboardPassword() {
+    if (dashboardPasswordResolve) return Promise.resolve(false);
     const modal = $('dashboard-password-modal');
     const input = $('dashboard-password-input');
     const error = $('dashboard-password-error');
@@ -5798,8 +5738,9 @@ function bindUI() {
     setTimeout(() => input.focus(), 30);
     return new Promise((resolve) => { dashboardPasswordResolve = resolve; });
   }
+  window.requestDashboardLogin = askDashboardPassword;
   function unlockDashboardPreview() {
-    if (dashboardPreviewUnlocked) return true;
+    if (!CFG.auth_required || CFG.authed || dashboardPreviewUnlocked) return true;
     return askDashboardPassword().then((entered) => {
       if (!entered) return false;
       dashboardPreviewUnlocked = true;
@@ -5809,14 +5750,22 @@ function bindUI() {
   }
   const passwordForm = $('dashboard-password-form');
   if (passwordForm) {
-    passwordForm.addEventListener('submit', (event) => {
+    passwordForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const input = $('dashboard-password-input');
       const error = $('dashboard-password-error');
-      if (input && input.value === '0186') {
+      try {
+        const response = await fetch('/api/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: input ? input.value : ''}) });
+        const result = await response.json();
+        if (!response.ok || !result || result.ok !== true || result.authed !== true) throw new Error(result && result.error || 'Incorrect password or login temporarily blocked');
+        CFG.authed = true;
+        stopHttpPoll();
+        setPrivateStateReady(true);
+        connectWS();
+        if (!httpPollTimer) void loadInitial();
         closeDashboardPassword(true);
-      } else if (error) {
-        error.textContent = LANG === 'bn' ? 'ভুল password — access denied' : 'Incorrect password — access denied';
+      } catch (e) {
+        if (error) error.textContent = String(e.message || e);
         if (input) { input.select(); input.focus(); }
       }
     });
@@ -5841,31 +5790,13 @@ function bindUI() {
         window.SoftradeXTerminal.refresh();
       }
     }, 60);
-    toast('ok', LANG === 'bn' ? 'Exness ড্যাশবোর্ড ও চার্ট দেখানো হচ্ছে' : 'Exness dashboard & chart opened');
+    toast('ok', LANG === 'bn' ? 'SoftradeX ড্যাশবোর্ড ও চার্ট দেখানো হচ্ছে' : 'SoftradeX dashboard & chart opened');
   });
   const connWidget = $('conn-widget');
   if (connWidget) {
+    connWidget.title = 'Public API market data · click to refresh';
     connWidget.style.cursor = 'pointer';
-    connWidget.addEventListener('click', async () => {
-      if ($('dash').classList.contains('hidden')) {
-        if (!(await unlockDashboardPreview())) return;
-        dashboardPreview = true;
-        connectViewPinned = false;
-        $('dash').classList.remove('hidden');
-        $('connect-view').classList.add('hidden');
-        setTimeout(() => {
-          window.dispatchEvent(new Event('resize'));
-          if (window.SoftradeXTerminal && window.SoftradeXTerminal.refresh) {
-            window.SoftradeXTerminal.refresh();
-          }
-        }, 60);
-      } else {
-        dashboardPreview = false;
-        connectViewPinned = true;
-        $('connect-view').classList.remove('hidden');
-        $('dash').classList.add('hidden');
-      }
-    });
+    connWidget.addEventListener('click', () => { void loadInitial(); void fetchMarketWatch(true); });
   }
   bindBotUI();
   bindBot2UI();
@@ -5882,21 +5813,6 @@ function bindUI() {
       toast('ok', LANG === 'bn' ? 'মার্কেট ওয়াচ প্রেশার রিফ্রেশ হয়েছে' : 'Market Watch Pressure refreshed');
     });
   }
-  $('server-select').addEventListener('change', onServerChange);
-  $('server').addEventListener('input', () => { $('server-hint').textContent = t('serverHintCustom'); });
-  $('mt5-status').addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'mt5-recheck') { e.preventDefault(); void loadConfig(true); }
-  });
-  $('topbar-disconnect').addEventListener('click', doDisconnect);
-  $('pw-toggle').addEventListener('click', () => {
-    const p = $('password');
-    p.type = p.type === 'password' ? 'text' : 'password';
-  });
-  $('lang-btn').addEventListener('click', () => {
-    LANG = LANG === 'en' ? 'bn' : 'en';
-    localStorage.setItem('exdash.lang', LANG);
-    applyLang();
-  });
   const topbarMuteBtn = $('topbar-mute-btn');
   if (topbarMuteBtn) {
     topbarMuteBtn.addEventListener('click', () => {
@@ -5966,11 +5882,22 @@ function bindUI() {
     modal.classList.add('hidden');
     toast(res && res.ok ? 'ok' : 'error', res && res.ok ? 'Settings saved' : 'Settings could not be saved');
   });
-  $('set-disconnect').addEventListener('click', () => { modal.classList.add('hidden'); void doDisconnect(); });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') modal.classList.add('hidden'); });
 }
 
 let CFG = {};
+
+// Auxiliary calendar readers wait for configuration/login and discard responses
+// from an earlier session. This is available to scripts loaded before app.js.
+function setPrivateStateReady(ready) {
+  const access = window.SoftradeXStateAccess ||
+    (window.SoftradeXStateAccess = {ready: false, revision: 0});
+  const next = !!ready;
+  if (access.ready === next) return;
+  access.ready = next;
+  access.revision++;
+  window.dispatchEvent(new CustomEvent('softradex:state-access', {detail: {ready: next}}));
+}
 
 async function loadMore(reset) {
   if (reset) extraRows = [];
@@ -5992,85 +5919,19 @@ async function loadMore(reset) {
 }
 
 async function loadInitial() {
+  if (CFG.auth_required && !CFG.authed) return;
+  const generation = httpPollGeneration;
   try {
     const r = await fetch('/api/state');
+    if (generation !== httpPollGeneration) return;
+    if (r.status === 401 || r.status === 403) { pausePrivateState(); return; }
+    if (!r.ok) return;
     const j = await r.json();
     if (j && Object.keys(j).length) applyState(j);
   } catch (e) {}
 }
 
-const SERVER_CUSTOM = '__custom__';
-
-/* Build the Exness server dropdown from GET /api/config */
-function buildServerSelect() {
-  const sel = $('server-select');
-  const groups = CFG.servers || {};
-  const real = groups.real || [];
-  const trial = groups.trial || [];
-  let html = `<option value="" disabled selected>${esc(t('serverPick'))}</option>`;
-  if (real.length) {
-    html += `<optgroup label="${esc(t('serverReal'))}">` +
-      real.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join('') + '</optgroup>';
-  }
-  if (trial.length) {
-    html += `<optgroup label="${esc(t('serverTrial'))}">` +
-      trial.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join('') + '</optgroup>';
-  }
-  html += `<option value="${SERVER_CUSTOM}">${esc(t('serverOther'))}</option>`;
-  sel.innerHTML = html;
-
-  const all = real.concat(trial);
-  const suggestions = CFG.known_servers || all;
-  $('servers').innerHTML = suggestions.map((s) => `<option value="${esc(s)}">`).join('');
-
-  // restore the last choice (server -> login, saved in the browser)
-  const lastServer = CFG.saved_server || localStorage.getItem('exdash.server') || '';
-  const lastLogin = CFG.saved_login || localStorage.getItem('exdash.login') || '';
-  if (lastLogin) $('login').value = lastLogin;
-  if (lastServer) {
-    if (all.includes(lastServer)) sel.value = lastServer;
-    else { sel.value = SERVER_CUSTOM; $('server').value = lastServer; }
-  }
-  onServerChange();
-}
-
-function onServerChange() {
-  const custom = $('server-select').value === SERVER_CUSTOM;
-  $('server').classList.toggle('hidden', !custom);
-  $('server-hint').textContent = custom ? t('serverHintCustom') : t('serverHint');
-  if (custom) $('server').focus();
-}
-
-function currentServer() {
-  const v = $('server-select').value;
-  return (v === SERVER_CUSTOM ? $('server').value : v).trim();
-}
-
-/* MT5 terminal availability - shown before the user even tries to log in */
-function renderMt5Status() {
-  const box = $('mt5-status');
-  const terms = CFG.terminals || [];
-  const exness = CFG.exness_terminals || [];
-  const url = CFG.exness_download || 'https://www.exness.com/metatrader-5/';
-  const plain = CFG.mt5_download || 'https://www.metatrader5.com/en/download';
-  const links = `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(t('mt5Download'))}</a>` +
-    `<a href="${esc(plain)}" target="_blank" rel="noopener noreferrer">${esc(t('mt5DownloadPlain'))}</a>`;
-  const recheck = `<a href="#" id="mt5-recheck">${esc(t('mt5Recheck'))}</a>`;
-  // any MT5 build can log into an Exness account (the server name is resolved
-  // through MetaQuotes' global directory), so one terminal is all we need
-  if (terms.length) {
-    box.className = 'mt5-status ok';
-    box.innerHTML = `<b>✅ ${esc(t('mt5Ready'))}</b><span class="path">${esc(exness[0] || terms[0])}</span>` +
-      `<span class="path">${esc(t('mt5ReadySub'))}</span>${recheck}`;
-  } else {
-    box.className = 'mt5-status warn';
-    box.innerHTML = `<b>⚠️ ${esc(t('mt5Missing'))}</b>${links}${recheck}`;
-  }
-}
-
-/* The Start buttons ship disabled in the HTML so the dashboard can never
-   arm a bot before an account is connected and automated trading is
-   enabled on the server. */
+/* Order execution is unavailable in this public market dashboard. */
 const BOT_START_BUTTONS = ['bot-start', 'bot2-start', 'bot3-start', 'bot4-start',
   'bot5-start', 'bot6-start', 'bot7-start'];
 function syncBotStartButtons(connected) {
@@ -6079,9 +5940,7 @@ function syncBotStartButtons(connected) {
     const btn = $(id);
     if (!btn) return;
     btn.disabled = !ready;
-    btn.title = ready ? '' : (botsEnabled
-      ? 'Log in to an Exness account to start a bot'
-      : 'Automated trading is disabled in config/config.json (bots_enabled: false)');
+    btn.title = ready ? '' : 'Order execution is unavailable in this public API dashboard';
   });
 }
 
@@ -6089,28 +5948,16 @@ async function loadConfig(silent) {
   let fresh;
   try {
     const r = await fetch('/api/config');
+    if (!r.ok) throw new Error('Configuration HTTP ' + r.status);
     fresh = await r.json();
-  } catch (e) { if (!silent) CFG = {}; return; }
-  const prevTerminals = (CFG.terminals || []).join('|');
+    if (!fresh || typeof fresh !== 'object' || Array.isArray(fresh)) throw new Error('Invalid configuration response');
+  } catch (e) { if (!silent) { CFG = {}; setPrivateStateReady(false); } return; }
   CFG = fresh;
-  botsEnabled = !!fresh.bots_enabled;
+  botsEnabled = false;
   syncBotStartButtons();
-
-  const sel = $('terminal-path');
-  const list = CFG.terminals || [];
-  if (!silent || prevTerminals !== list.join('|')) {
-    const keep = sel.value;
-    sel.innerHTML = '<option value="">Auto-detect (recommended)</option>' +
-      list.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
-    if (CFG.terminal_path) sel.value = CFG.terminal_path;
-    else if ((CFG.exness_terminals || []).length) sel.value = CFG.exness_terminals[0];
-    else if (keep) sel.value = keep;
-  }
-  renderMt5Status();
-  if (silent) return;
-  buildServerSelect();
-  $('remember').checked = CFG.remember_login !== false;
   $('foot-version').textContent = `${CFG.app} v${CFG.version}`;
+  setPrivateStateReady(!CFG.auth_required || !!CFG.authed);
+
 }
 
 /* ------------------------------------------------------------------- market watch dials
@@ -6339,7 +6186,7 @@ function updateMarketWatchDials() {
     if (clockEl) {
       clockEl.textContent = clockFor(w.updated_at);
       clockEl.title = isLive ? 'Last live reading'
-        : (w.price_source === 'public' ? 'Public feed price - Yahoo / Binance (MT5 not connected)' : 'Simulated data - MT5 not connected');
+        : (w.price_source === 'public' ? 'Public API price - Yahoo / Binance' : 'Simulated data - MT5 not connected');
       clockEl.classList.toggle('sim', !isLive);
     }
 
@@ -6463,18 +6310,23 @@ function getBasePriceForSym(sym) {
 function findWatchForSymbol(sym) {
   if (!sym) return null;
   const sUpper = String(sym).toUpperCase();
-  const sClean = sUpper.replace(/M$/, '').replace(/\.$/, '');
+  const marketKey = value => {
+    const key = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/M$/, '');
+    return ({BTCUSD:'BTCUSDT',ETHUSD:'ETHUSDT',SOLUSD:'SOLUSDT',GOLD:'XAUUSD',XAUUSD247:'XAUUSD'})[key] || key;
+  };
+  const sClean = marketKey(sym);
   
   if (marketWatches && marketWatches.length) {
     let w = marketWatches.find(x => String(x.symbol || '').toUpperCase() === sUpper);
     if (w) return w;
-    w = marketWatches.find(x => String(x.symbol || '').toUpperCase().replace(/M$/, '').replace(/\.$/, '') === sClean);
+    w = marketWatches.find(x => marketKey(x.symbol) === sClean);
     if (w) return w;
   }
 
   if (typeof _tickerData !== 'undefined') {
     if (_tickerData.has(sUpper)) return _tickerData.get(sUpper);
     if (_tickerData.has(sClean)) return _tickerData.get(sClean);
+    for (const [key, row] of _tickerData) if (marketKey(key) === sClean) return row;
   }
 
   return null;
@@ -6947,23 +6799,28 @@ function updatePriceCurves() {
    In-place DOM updates on incoming ticks with green/red flash animations.
 */
 const DEFAULT_TICKER_MARKETS = [
-  { symbol: 'XAUUSD', displayName: 'XAU/USD (Gold)', ask: 2652.40, bid: 2652.15, digits: 2, change_pct: 0.45, direction: 'UP', spread: 0.25 },
-  { symbol: 'EURUSD', displayName: 'EUR/USD', ask: 1.08542, bid: 1.08528, digits: 5, change_pct: 0.16, direction: 'UP', spread: 0.00014 },
-  { symbol: 'BTCUSD', displayName: 'BTC/USD (Bitcoin)', ask: 83750.00, bid: 83740.00, digits: 2, change_pct: 1.85, direction: 'UP', spread: 10.0 },
-  { symbol: 'GBPUSD', displayName: 'GBP/USD', ask: 1.29145, bid: 1.29130, digits: 5, change_pct: -0.09, direction: 'DOWN', spread: 0.00015 },
-  { symbol: 'USDJPY', displayName: 'USD/JPY', ask: 152.420, bid: 152.405, digits: 3, change_pct: 0.26, direction: 'UP', spread: 0.015 },
-  { symbol: 'USOIL', displayName: 'US OIL (Crude)', ask: 71.35, bid: 71.30, digits: 2, change_pct: -0.38, direction: 'DOWN', spread: 0.05 },
-  { symbol: 'USTEC', displayName: 'NAS100 (Tech)', ask: 19885.50, bid: 19884.00, digits: 2, change_pct: 0.72, direction: 'UP', spread: 1.5 },
-  { symbol: 'US30', displayName: 'US30 (Dow Jones)', ask: 42160.00, bid: 42155.00, digits: 2, change_pct: 0.31, direction: 'UP', spread: 5.0 },
-  { symbol: 'ETHUSD', displayName: 'ETH/USD (Ethereum)', ask: 2648.50, bid: 2647.20, digits: 2, change_pct: -0.45, direction: 'DOWN', spread: 1.3 },
-  { symbol: 'AUDUSD', displayName: 'AUD/USD', ask: 0.65485, bid: 0.65470, digits: 5, change_pct: -0.15, direction: 'DOWN', spread: 0.00015 },
-  { symbol: 'GBPJPY', displayName: 'GBP/JPY', ask: 196.820, bid: 196.800, digits: 3, change_pct: 0.18, direction: 'UP', spread: 0.020 },
-  { symbol: 'DXY', displayName: 'USD INDEX', ask: 104.55, bid: 104.50, digits: 2, change_pct: 0.12, direction: 'UP', spread: 0.05 },
+  { symbol: 'XAUUSD', displayName: 'XAU/USD (Gold)', digits: 2 },
+  { symbol: 'EURUSD', displayName: 'EUR/USD', digits: 5 },
+  { symbol: 'BTCUSD', displayName: 'BTC/USD (Bitcoin)', digits: 2 },
+  { symbol: 'GBPUSD', displayName: 'GBP/USD', digits: 5 },
+  { symbol: 'USDJPY', displayName: 'USD/JPY', digits: 3 },
+  { symbol: 'USOIL', displayName: 'US OIL (Crude)', digits: 2 },
+  { symbol: 'USTEC', displayName: 'NAS100 (Tech)', digits: 2 },
+  { symbol: 'US30', displayName: 'US30 (Dow Jones)', digits: 2 },
+  { symbol: 'ETHUSD', displayName: 'ETH/USD (Ethereum)', digits: 2 },
+  { symbol: 'AUDUSD', displayName: 'AUD/USD', digits: 5 },
+  { symbol: 'GBPJPY', displayName: 'GBP/JPY', digits: 3 },
+  { symbol: 'DXY', displayName: 'USD INDEX', digits: 2 },
 ];
 
 const _tickerData = new Map();
 let _tickerInitialized = false;
 let _microTicksTimer = null;
+
+function tickerSymbol(value) {
+  const symbol = String(value || '').trim().replace(/m$/, '').toUpperCase();
+  return symbol === 'BTCUSD' ? 'BTCUSDT' : symbol;
+}
 
 function symbolDefaultDigits(sym) {
   const s = String(sym || '').toUpperCase();
@@ -6982,7 +6839,7 @@ function buildTickerItemHtml(w, copyId, isCompact = false) {
   const dirCls = dir === 'UP' ? 'up' : (dir === 'DOWN' ? 'down' : 'flat');
   const dirIcon = dir === 'UP' ? '▲' : (dir === 'DOWN' ? '▼' : '►');
   const chg = Number(w.change_pct || 0);
-  const chgStr = `${chg > 0 ? '+' : ''}${chg.toFixed(2)}%`;
+  const chgStr = priceVal > 0 ? `${chg > 0 ? '+' : ''}${chg.toFixed(2)}%` : '—';
   const spread = Number(w.spread || 0);
   const spreadStr = spread > 0 ? (digits > 4 ? (spread * 100000).toFixed(1) : spread.toFixed(1)) : '';
   const isOpen = (typeof isMarketOpen === 'function') ? isMarketOpen(sym) : true;
@@ -7014,7 +6871,7 @@ function initMarketTickerTape() {
   _tickerInitialized = true;
 
   DEFAULT_TICKER_MARKETS.forEach(m => {
-    _tickerData.set(m.symbol.toUpperCase(), { ...m });
+    _tickerData.set(tickerSymbol(m.symbol), { ...m });
   });
 
   renderMarketTickerDom(true);
@@ -7055,7 +6912,7 @@ function updateMarketTickerTape(watches) {
   let hasNew = false;
   watches.forEach(w => {
     if (!w || !w.symbol) return;
-    const sym = String(w.symbol).toUpperCase();
+    const sym = tickerSymbol(w.symbol);
     if (!_tickerData.has(sym)) {
       hasNew = true;
     }
@@ -7063,9 +6920,9 @@ function updateMarketTickerTape(watches) {
 
   watches.forEach(w => {
     if (!w || !w.symbol) return;
-    const sym = String(w.symbol).toUpperCase();
+    const sym = tickerSymbol(w.symbol);
     const existing = _tickerData.get(sym);
-    const newPrice = Number(w.ask || w.bid || 0);
+    const newPrice = w.price_source === 'sim' || w.stale ? 0 : Number(w.ask || w.bid || 0);
     const digits = Number(w.digits !== undefined ? w.digits : (existing ? existing.digits : symbolDefaultDigits(sym)));
 
     let priceDir = null;
@@ -7079,17 +6936,17 @@ function updateMarketTickerTape(watches) {
       ...w,
       symbol: sym,
       displayName: w.displayName || (existing ? existing.displayName : sym),
-      ask: newPrice || (existing ? existing.ask : 0),
-      bid: Number(w.bid) || (existing ? existing.bid : 0),
+      ask: newPrice,
+      bid: newPrice > 0 ? Number(w.bid) || newPrice : 0,
       digits,
       direction: w.direction || (priceDir === 'up' ? 'UP' : (priceDir === 'down' ? 'DOWN' : (existing ? existing.direction : 'FLAT'))),
       change_pct: w.change_pct !== undefined ? w.change_pct : (existing ? existing.change_pct : 0),
     });
 
-    if (newPrice > 0) {
-      const priceStr = nf(newPrice, digits);
+    {
+      const priceStr = newPrice > 0 ? nf(newPrice, digits) : '—';
       const chg = Number(w.change_pct !== undefined ? w.change_pct : (existing ? existing.change_pct : 0));
-      const chgStr = `${chg > 0 ? '+' : ''}${chg.toFixed(2)}%`;
+      const chgStr = newPrice > 0 ? `${chg > 0 ? '+' : ''}${chg.toFixed(2)}%` : '—';
       const dir = String(w.direction || (priceDir === 'up' ? 'UP' : (priceDir === 'down' ? 'DOWN' : (existing ? existing.direction : 'FLAT')))).toUpperCase();
       const dirCls = dir === 'UP' ? 'up' : (dir === 'DOWN' ? 'down' : 'flat');
       const dirIcon = dir === 'UP' ? '▲' : (dir === 'DOWN' ? '▼' : '►');
@@ -7128,43 +6985,13 @@ function updateMarketTickerTape(watches) {
   });
 
   const topTrack = $('market-ticker-track');
-  if (hasNew && (!topTrack || !topTrack.children.length)) {
+  if (hasNew) {
     renderMarketTickerDom(true);
   }
 }
 
 function startDisconnectedMicroTicks() {
-  if (_microTicksTimer) return;
-  _microTicksTimer = setInterval(() => {
-    // live data from either transport (socket or HTTP polling) beats fake ticks
-    if ((wsAlive || httpPollTimer) && wasConnected) return;
-
-    const items = Array.from(_tickerData.values());
-    if (!items.length) return;
-    const count = 1 + Math.floor(Math.random() * 2);
-    for (let i = 0; i < count; i++) {
-      const idx = Math.floor(Math.random() * items.length);
-      const item = items[idx];
-      if (!item || !item.ask) continue;
-      const digits = item.digits || 2;
-      const step = Math.pow(10, -digits) * (1 + Math.floor(Math.random() * 3));
-      const up = Math.random() > 0.48;
-      const delta = up ? step : -step;
-      const newPrice = Number((item.ask + delta).toFixed(digits));
-      const newChg = Number(((item.change_pct || 0) + (up ? 0.01 : -0.01)).toFixed(2));
-      recordPriceTick(item.symbol, newPrice, newPrice);
-      updateMarketTickerTape([{
-        symbol: item.symbol,
-        displayName: item.displayName,
-        ask: newPrice,
-        bid: Number((item.bid + delta).toFixed(digits)),
-        digits,
-        direction: up ? 'UP' : 'DOWN',
-        change_pct: newChg,
-      }]);
-    }
-    updatePriceCurves();
-  }, 1600);
+  // Transport loss preserves the unavailable state; only provider quotes move prices.
 }
 
 function onTickerItemClick(sym) {
@@ -7236,6 +7063,12 @@ function flashBot3RecalcPulse() {
 }
 
 async function triggerBot3Recalculate(manual = false) {
+  if (!botsEnabled || CFG.order_execution === false) {
+    // Public setup analysis has its own read-only refresh; bot3's mutation
+    // endpoint is disabled by the server in this dashboard.
+    if (manual && window.TvSetups) window.TvSetups.refresh();
+    return;
+  }
   if (_bot3RecalcPending) return;
   _bot3RecalcPending = true;
   updateBot3TimerPills(0);
@@ -7267,6 +7100,7 @@ async function triggerBot3Recalculate(manual = false) {
 }
 
 function tickBot3RecalcTimer() {
+  if (!botsEnabled || CFG.order_execution === false) return;
   if (_bot3RecalcPending) return;
   bot3RecalcRemaining--;
   if (bot3RecalcRemaining <= 0) {
@@ -7377,20 +7211,18 @@ function init3DTiltEngine() {
 }
 
 /* ------------------------------------------------------------------- init */
-(function init() {
-  const q = new URLSearchParams(location.search);
-  if (q.get('lang') === 'bn' || q.get('lang') === 'en') { LANG = q.get('lang'); localStorage.setItem('exdash.lang', LANG); }
+function initDashboard() {
   bindUI();
   updateVoiceMuteButtons();
   applyLang();
   renderStatLabels();
   init3DTiltEngine();
-  void loadConfig();
-  connectWS();
-  void loadInitial();
+  void loadConfig().then(() => {
+    connectWS();
+    if (!httpPollTimer) void loadInitial();
+  });
   setInterval(() => { if (!wsAlive && !httpPollTimer) void loadInitial(); }, 3000);
-  // while logged out, pick up a freshly installed MT5 terminal automatically
-  setInterval(() => { if (!wasConnected) void loadConfig(true); }, 15000);
+
   setInterval(() => { if (wsAlive) { try { ws.send(JSON.stringify({ type: 'ping' })); } catch (e) {} } }, 20000);
   // Half-dead socket watchdog: a sleeping machine / dropped NAT entry does not
   // fire onclose, so a socket silent for several ping cycles is recycled.
@@ -7413,6 +7245,19 @@ function init3DTiltEngine() {
   // Market Pressure Watch Dials: NO ticker at all. One seed fetch here, then every
   // engine-tick WebSocket snapshot patches the dials in place (live time included).
   initFlowUI();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (_stateTimer) { clearTimeout(_stateTimer); _stateTimer = null; }
+      $('bot5-news')?.__renderer?.pause();
+    } else {
+      if (_statePending) queueStateFrame(_statePending);
+      else if (S) renderBot5(S);
+      if (wakeHttpPoll) wakeHttpPoll();
+      $('bot5-news')?.__renderer?.resume();
+      tickBot5Countdown();
+      tickSessionsClock();
+    }
+  });
   initMarketTickerTape();
   void fetchMarketWatch();
   // live trade flow balance: our side rides the engine ticks, the whole world
@@ -7438,9 +7283,6 @@ function init3DTiltEngine() {
 
     // Update in-memory marketWatches item
     let w = typeof findWatchForSymbol === 'function' ? findWatchForSymbol(sym) : null;
-    if (!w && marketWatches && marketWatches.length > 0) {
-      w = marketWatches[0];
-    }
     if (w) {
       w.buyer_pct = buyPct;
       w.seller_pct = sellPct;
@@ -7460,7 +7302,7 @@ function init3DTiltEngine() {
     const grid = $('market-watch-grid');
     if (grid) {
       const card = grid.querySelector('.watch-card');
-      if (card) {
+      if (card && w && String(card.dataset.sym || '').toUpperCase() === String(w.symbol || '').toUpperCase()) {
         // 1. Rotate Needle
         const wrap = card.querySelector('.watch-hand-wrap');
         if (wrap) wrap.style.transform = `rotate(${needleDeg}deg)`;
@@ -7559,7 +7401,8 @@ function init3DTiltEngine() {
     const sym = String(stats.symbol || flowSymbol() || 'GOLD').trim();
     const buyPct = Math.max(1, Math.min(99, Math.round(Number(stats.buyPct) || 50)));
     const sellPct = 100 - buyPct;
-    const price = Number(stats.lastPrice) > 0 ? Number(stats.lastPrice) : 4168.20;
+    const price = Number(stats.lastPrice);
+    if (!Number.isFinite(price) || price <= 0) return;
     const digits = sym.includes('EUR') || sym.includes('GBP') ? 5 : (sym.includes('JPY') ? 3 : 2);
 
     // Compute live Direction & Confidence from order flow tape
@@ -7659,7 +7502,7 @@ function init3DTiltEngine() {
         ${LANG === 'bn' ? 'অর্ডার ফ্লো' : 'Order Flow'} <b>${buyPct}% BUY / ${sellPct}% SELL</b> · 
         ${LANG === 'bn' ? 'প্রাইস' : 'Price Now'} <b>${price.toFixed(digits)}</b>
         <span class="ai-why" title="Traders Order Flow Terminal Auto-Analysis">
-          ${LANG === 'bn' ? 'কারণ' : 'Why'}: ${stats.speed} tx/s গতি · ডেল্টা ${deltaStr}
+          ${LANG === 'bn' ? 'কারণ' : 'Why'}: ${stats.speed} tx/s · Delta ${deltaStr}
         </span>
       `;
     }
@@ -7773,4 +7616,6 @@ function init3DTiltEngine() {
       drawBotCurve(botKey, sym);
     });
   });
-})();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initDashboard);
+else initDashboard();

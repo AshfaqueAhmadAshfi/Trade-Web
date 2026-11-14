@@ -1,0 +1,274 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "seconds": 1.024,
+    "bytes": 130660,
+    "content_type": "text/html; charset=utf-8",
+    "cache_control": "no-cache, no-store, must-revalidate",
+    "summary": {}
+  },
+  {
+    "path": "/api/health",
+    "status": 200,
+    "seconds": 1.03,
+    "bytes": 93,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "hosted": true,
+      "connected": true,
+      "source": "public",
+      "uptime_engine": true
+    }
+  },
+  {
+    "path": "/api/auth",
+    "status": 200,
+    "seconds": 0.89,
+    "bytes": 64,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "auth_required": false
+    }
+  },
+  {
+    "path": "/api/config",
+    "status": 200,
+    "seconds": 0.901,
+    "bytes": 2407,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "hosted": true,
+      "auth_required": false,
+      "live_stream": false
+    }
+  },
+  {
+    "path": "/api/state",
+    "status": 200,
+    "seconds": 1.425,
+    "bytes": 1200946,
+    "content_type": "application/json",
+    "cache_control": "no-store",
+    "summary": {
+      "hosted": true,
+      "connected": true,
+      "source": "public",
+      "error": null,
+      "account_present": false,
+      "positions_count": 0,
+      "bot5_ai_source": "no terminal"
+    }
+  },
+  {
+    "path": "/api/bot",
+    "status": 200,
+    "seconds": 0.127,
+    "bytes": 709,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "connected": true
+    }
+  },
+  {
+    "path": "/api/bot2",
+    "status": 200,
+    "seconds": 0.142,
+    "bytes": 1256,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "connected": true
+    }
+  },
+  {
+    "path": "/api/bot3",
+    "status": 200,
+    "seconds": 0.179,
+    "bytes": 3529,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "connected": true
+    }
+  },
+  {
+    "path": "/api/bot4",
+    "status": 200,
+    "seconds": 0.167,
+    "bytes": 832,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "connected": true
+    }
+  },
+  {
+    "path": "/api/bot5",
+    "status": 200,
+    "seconds": 0.26,
+    "bytes": 1182849,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "connected": true
+    }
+  },
+  {
+    "path": "/api/bot6",
+    "status": 200,
+    "seconds": 0.209,
+    "bytes": 1118,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "connected": true
+    }
+  },
+  {
+    "path": "/api/bot7",
+    "status": 200,
+    "seconds": 0.163,
+    "bytes": 1278,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "connected": true
+    }
+  },
+  {
+    "path": "/api/chart/symbols",
+    "status": 200,
+    "seconds": 0.157,
+    "bytes": 27105,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "connected": false,
+      "source": "public",
+      "symbols_count": 102
+    }
+  },
+  {
+    "path": "/api/chart/ticker?symbol=XAUUSDm",
+    "status": 200,
+    "seconds": 0.117,
+    "bytes": 193,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "source": "public",
+      "price": 3890.83,
+      "symbol": "XAUUSDm"
+    }
+  },
+  {
+    "path": "/api/chart/candles?symbol=XAUUSDm&tf=5m&count=100",
+    "status": 200,
+    "seconds": 0.237,
+    "bytes": 5420,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "symbol": "XAUUSDm",
+      "bars_count": 100
+    }
+  },
+  {
+    "path": "/api/chart/candles?symbol=XAUUSDm&tf=1d&count=400",
+    "status": 200,
+    "seconds": 0.081,
+    "bytes": 21646,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "symbol": "XAUUSDm",
+      "bars_count": 400
+    }
+  },
+  {
+    "path": "/api/chart/tvquote?symbol=XAUUSDm",
+    "status": 200,
+    "seconds": 0.237,
+    "bytes": 174,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "source": "TradingView",
+      "price": 3899.74,
+      "symbol": "XAUUSDm",
+      "tv_symbol": "OANDA:XAUUSD"
+    }
+  },
+  {
+    "path": "/api/tv/setups?symbol=XAUUSDm",
+    "status": 200,
+    "seconds": 0.188,
+    "bytes": 1371,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "source": "TradingView",
+      "price": 3899.74,
+      "symbol": "XAUUSDm",
+      "tv_symbol": "OANDA:XAUUSD",
+      "levels_count": 5
+    }
+  },
+  {
+    "path": "/api/orderflow/venues",
+    "status": 200,
+    "seconds": 0.323,
+    "bytes": 404,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "venues_count": 6
+    }
+  },
+  {
+    "path": "/api/orderflow/trades?venue=binance&market=BTC&limit=5",
+    "status": 422,
+    "seconds": 0.204,
+    "error": null
+  },
+  {
+    "path": "/api/bd/watch",
+    "status": 200,
+    "seconds": 0.492,
+    "bytes": 13483,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "live_stream": true
+    }
+  },
+  {
+    "path": "/api/bd/state?symbol=DSEX",
+    "status": 200,
+    "seconds": 2.361,
+    "bytes": 12676,
+    "content_type": "application/json",
+    "cache_control": null,
+    "summary": {
+      "ok": true,
+      "symbol": "DSEX"
+    }
+  }
+]

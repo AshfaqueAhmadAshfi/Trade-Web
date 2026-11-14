@@ -70,12 +70,12 @@
     BAm: 'NYSE:BA',
     DISm: 'NYSE:DIS',
     NKEm: 'NYSE:NKE',
-    COINm: 'NYSE:COIN',
+    COINm: 'NASDAQ:COIN',
     PFEm: 'NYSE:PFE',
     Vm: 'NYSE:V',
     MAm: 'NYSE:MA',
     KOm: 'NYSE:KO',
-    WMTm: 'NYSE:WMT',
+    WMTm: 'NASDAQ:WMT',
     XOMm: 'NYSE:XOM'
   };
 
@@ -141,6 +141,9 @@
 
   function frameSrc(symbol, interval, marker) {
     var cfg = encodeURIComponent(JSON.stringify({
+      autosize: true,
+      width: '100%',
+      height: '100%',
       symbol: symbol,
       interval: interval,
       timezone: 'Etc/UTC',
@@ -166,8 +169,10 @@
   var tvSymbol = 'OANDA:XAUUSD';
   var tvInterval = '5';
   var hasMapping = true;     // current market has a TradingView symbol
-  var wantActive = true;     // user preference, persisted
-  try { wantActive = localStorage.getItem(STORAGE_KEY) !== '0'; } catch (e) {}
+  // The dashboard now has a single chart: TradingView. The old built-in
+  // canvas is never brought back (the indicator studies that needed it are
+  // hidden as well).
+  var wantActive = true;
 
   var frameReady = false;    // the current src actually painted something
   var tvBroken = false;      // embed unreachable -> the built-in chart draws
@@ -176,6 +181,14 @@
   var retryTimer = null;
   var autoRetries = 0;
   var frameSeq = 0;          // bumps on every real chart load (see frameSrc)
+  var lastW = 0;             // last laid-out slot size - the embed is re-fitted
+  var lastH = 0;             // when it changes (see scheduleFit)
+  var frameW = 0;            // ... and its own size, because the indicator
+  var frameH = 0;            // stack hides the frame without resizing the box
+  var frameWatcher = null;
+  var fitTimer = null;
+  var quoteBusy = false;      // one /api/chart/tvquote request at a time
+  var quoteRequest = null;
 
   function clearLoadTimer() {
     if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
@@ -222,6 +235,7 @@
       brokenReason = '';
       hideNotice();
     }
+    syncVisible();
     // Always refresh the visibility: the loading placeholder is only removed
     // by the `tv-frame-ready` class, which applyVisibility() owns. Returning
     // early on a healthy frame left "Loading …" painted on top of a chart that
@@ -277,8 +291,8 @@
     var text = el.querySelector('.tv-offline-text');
     if (text) {
       text.textContent = brokenReason === 'offline'
-        ? 'No internet connection - TradingView cannot load, so the built-in chart is drawing the candles.'
-        : 'TradingView did not answer (blocked or offline) - the built-in chart is drawing the candles.';
+        ? 'No internet connection - TradingView cannot load. Retry when the connection is back.'
+        : 'TradingView did not answer (blocked or offline). Retry TradingView.';
     }
     el.classList.add('show');
   }
@@ -314,7 +328,13 @@
       sizeWatcher = new ResizeObserver(function () {
         if (!boxHasSize() || !wantActive || !hasMapping) return;
         if (!frame) { mountWidget(); return; }
-        if (frame.dataset.tv !== frameKey() || !frameReady) applyFrame();
+        if (frame.dataset.tv !== frameKey() || !frameReady) { applyFrame(); return; }
+        var w = box.clientWidth, h = box.clientHeight;
+        // small reflows (a badge growing, a scrollbar) are noise
+        if (Math.abs(w - lastW) <= 24 && Math.abs(h - lastH) <= 24) return;
+        lastW = w;
+        lastH = h;
+        scheduleFit();
       });
       sizeWatcher.observe(box);
       return;
@@ -329,13 +349,81 @@
     }, 1000);
   }
 
+  /* --------------------------------------------------- re-fit on resize --- */
+  // The embed lays its bars out and fits its price scale once, for the size it
+  // is given. When the dashboard re-flows afterwards (sidebar, workspace dock,
+  // indicator stack, window resize) an already-drawn widget keeps that old
+  // geometry: the live candles slide to the left and the current price ends up
+  // outside the visible scale - the "I have to look below the chart to see the
+  // price" report. Re-opening the embed once the new size has settled makes
+  // TradingView fit the range to the last bar again.
+  function scheduleFit() {
+    if (fitTimer) clearTimeout(fitTimer);
+    fitTimer = setTimeout(function () {
+      fitTimer = null;
+      if (!frame || !wantActive || !hasMapping || !boxHasSize()) return;
+      frame.dataset.tv = '';
+      applyFrame();
+    }, 700);
+  }
+
+  /* ------------------------------------------------- TradingView quote --- */
+  // The header price has to be the price the candles are drawn at. MT5 quotes
+  // the broker's own feed, which sits a few tenths of a percent away from the
+  // OANDA feed the embed shows; this asks the server for the TradingView quote
+  // of the same instrument and publishes it for the ribbon.
+  function pollTvQuote() {
+    if (document.hidden) return;
+    if (quoteBusy || !ourSymbol || !tvSymbol) return;
+    var requestedSymbol = ourSymbol, requestedTv = tvSymbol;
+    var controller = new AbortController();
+    quoteRequest = controller;
+    quoteBusy = true;
+    var timeout = setTimeout(function () { controller.abort(); }, 10000);
+    return fetch('/api/chart/tvquote?symbol=' + encodeURIComponent(requestedSymbol) + '&tv_symbol=' + encodeURIComponent(requestedTv), {
+      cache: 'no-store', signal: controller.signal
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (controller !== quoteRequest || requestedSymbol !== ourSymbol || requestedTv !== tvSymbol) return;
+        if (!d || !d.ok || !(Number(d.price) > 0) || d.tv_symbol !== requestedTv) return;
+        window.SOFT_TV_QUOTE = {
+          symbol: requestedSymbol,
+          tv_symbol: d.tv_symbol,
+          price: Number(d.price),
+          change: Number(d.change) || 0,
+          high: Number(d.high) || 0,
+          low: Number(d.low) || 0,
+          at: Number(d.updated) > 0 ? Number(d.updated) * 1000 : Date.now(),
+          source: 'TradingView'
+        };
+        window.dispatchEvent(new CustomEvent('chart:tv-quote', { detail: window.SOFT_TV_QUOTE }));
+      })
+      .catch(function () { /* keep the last good quote */ })
+      .finally(function () {
+        clearTimeout(timeout);
+        if (controller === quoteRequest) { quoteBusy = false; quoteRequest = null; }
+      });
+  }
+
+  function startQuoteFeed() {
+    pollTvQuote();
+    setInterval(pollTvQuote, 2000);
+  }
+
   function mountWidget() {
     if (frame || !box) return;
+    lastW = box.clientWidth;
+    lastH = box.clientHeight;
     frame = document.createElement('iframe');
     frame.className = 'tv-chart-frame';
     frame.setAttribute('title', 'TradingView chart');
     frame.setAttribute('frameborder', '0');
     frame.setAttribute('allowtransparency', 'true');
+    // The vendor widget still registers unload handlers. Explicitly opt its
+    // own origin into this deprecated feature, leaving the rest of the page
+    // and unrelated origins under the browser's default permissions policy.
+    frame.setAttribute('allow', "unload 'src'");
     // TradingView refuses to draw when the embed arrives with a referrer it
     // does not like (an IP host such as http://192.168.x.x/ or
     // http://127.0.0.1:8787 shows "Something went wrong" inside the frame).
@@ -344,6 +432,26 @@
     frame.addEventListener('load', onFrameLoad);
     frame.addEventListener('error', function () { markBroken('blocked'); });
     box.appendChild(frame);
+    frameW = frame.clientWidth;
+    frameH = frame.clientHeight;
+    // The MSB/OB stack keeps the frame at display:none. TradingView still
+    // answers its load at that 0x0 size, so the widget that is revealed when
+    // the stack is turned off has no usable geometry - the candles sit at the
+    // far left and the live price falls outside the scale. Watch the frame
+    // itself and re-open it the moment it is given a real size.
+    if (typeof ResizeObserver !== 'undefined') {
+      frameWatcher = new ResizeObserver(function () {
+        var w = frame.clientWidth, h = frame.clientHeight;
+        if (w <= 4 || h <= 4) return;
+        if (Math.abs(w - frameW) <= 24 && Math.abs(h - frameH) <= 24) return;
+        frameW = w;
+        frameH = h;
+        syncVisible();
+        if (!frameReady) return;      // the load in flight will paint this size
+        scheduleFit();
+      });
+      frameWatcher.observe(frame);
+    }
     applyFrame();
   }
 
@@ -370,6 +478,17 @@
     // drawing the first market. A one-off query marker makes it a real load.
     frameSeq++;
     frame.src = frameSrc(tvSymbol, tvInterval, frameSeq);
+  }
+
+  /* ------------------------------------------- which chart is on screen -- */
+  // Visibility only controls layout. The embed and the indicator stack share
+  // the same TradingView instrument and quote regardless of this flag.
+  function syncVisible() {
+    var shown = !!(frame && frame.isConnected && frame.offsetParent !== null &&
+      getComputedStyle(frame).display !== 'none');
+    if (window.SOFT_TV_VISIBLE === shown) return;
+    window.SOFT_TV_VISIBLE = shown;
+    window.dispatchEvent(new CustomEvent('chart:tv-visible', { detail: { visible: shown } }));
   }
 
   function updateButton() {
@@ -402,32 +521,24 @@
   }
 
   function applyVisibility() {
-    var show = wantActive && hasMapping && !tvBroken;
-    if (wrapper) wrapper.classList.toggle('tv-mode', show);
-    if (box) box.classList.toggle('tv-frame-ready', show && frameReady);
+    // TradingView is the only chart. Even when the embed fails we keep its
+    // slot and show the retry notice; the built-in canvas never appears.
+    if (wrapper) wrapper.classList.add('tv-mode');
+    if (box) box.classList.toggle('tv-frame-ready', frameReady);
 
-    var wasActive = window.SOFT_TV_ACTIVE === true;
-    window.SOFT_TV_ACTIVE = show;
+    window.SOFT_TV_ACTIVE = true;
     updateButton();
-    window.dispatchEvent(new CustomEvent('chart:tv-mode', { detail: { active: show } }));
+    window.dispatchEvent(new CustomEvent('chart:tv-mode', { detail: { active: true } }));
 
-    if (show) {
+    if (hasMapping) {
       watchBoxSize();      // a hidden slot cannot paint the embed
       mountWidget();       // mounts + arms the load watchdog
       applyFrame();
-      if (box) box.style.display = 'block';
-      var canvasBox = wrapper && wrapper.querySelector('.binance-canvas-box');
-      if (canvasBox) canvasBox.style.display = 'none';
-    } else if (wasActive) {
-      // TradingView just stopped drawing the candles - the built-in chart
-      // needs one fresh snapshot (the feed skipped it while TV was on).
-      window.dispatchEvent(new CustomEvent('chart:refresh'));
     }
-    if (!show) {
-      if (box) box.style.display = 'none';
-      var builtIn = wrapper && wrapper.querySelector('.binance-canvas-box');
-      if (builtIn) builtIn.style.display = '';
-    }
+    if (box) box.style.display = 'block';
+    var canvasBox = wrapper && wrapper.querySelector('.binance-canvas-box');
+    if (canvasBox) canvasBox.style.display = 'none';
+    syncVisible();
   }
 
   /* ------------------------------------------------------- cross chip --- */
@@ -585,9 +696,22 @@
       retryNow();
     });
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden && tvBroken && autoRetries < MAX_AUTO_RETRIES) {
+      if (document.hidden) return;
+      if (tvBroken && autoRetries < MAX_AUTO_RETRIES) {
         autoRetries++;
         retryNow();
+        return;
+      }
+      // ResizeObserver notifications only arrive while the page is being
+      // painted, so a chart revealed while the tab was in the background kept
+      // its old geometry until something else resized it. Re-check on return.
+      if (frame && frameReady) {
+        var w = frame.clientWidth, h = frame.clientHeight;
+        if (w > 4 && h > 4 && (Math.abs(w - frameW) > 24 || Math.abs(h - frameH) > 24)) {
+          frameW = w;
+          frameH = h;
+          scheduleFit();
+        }
       }
     });
 
@@ -596,6 +720,12 @@
       var detail = ev.detail || {};
       var meta = detail.meta || {};
       var key = detail.symbol || meta.symbol || '';
+      if (key !== ourSymbol) {
+        if (quoteRequest) quoteRequest.abort();
+        quoteRequest = null;
+        quoteBusy = false;
+        window.SOFT_TV_QUOTE = null;
+      }
       ourSymbol = key;
       void refreshCross();       // new market = new candles = new crossover
       var mapped = tvSymbolFor(key, meta);
@@ -603,9 +733,11 @@
         tvSymbol = mapped;
         hasMapping = true;
       } else {
+        tvSymbol = '';
         hasMapping = false;
       }
       applyVisibility();
+      pollTvQuote();
     });
 
     window.addEventListener('chart:interval', function (ev) {
@@ -618,8 +750,23 @@
       }
     });
 
+    // The dashboard opens on the TradingView chart, full stop: a stored
+    // "built-in chart" preference from an older visit no longer hides it.
+    wantActive = true;
+    try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {}
+
+    // The indicator stack shows/hides the frame by toggling a class on the
+    // wrapper, so the price source is re-read whenever that class changes.
+    if (typeof MutationObserver !== 'undefined' && wrapper) {
+      new MutationObserver(syncVisible).observe(wrapper, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+    }
+
     applyVisibility();
     startCrossFeed();
+    startQuoteFeed();
   }
 
   if (document.readyState === 'loading') {
@@ -642,6 +789,10 @@
       };
     },
     retry: function () { autoRetries = 0; retryNow(); },
+    refreshQuote: pollTvQuote,
+    // Re-open the embed at the size it has now (fresh price scale, last bar in
+    // view). The resize/visibility paths call this on their own.
+    refit: function () { scheduleFit(); },
     // Switch the chart without touching the saved preference (the indicator
     // layer uses this so TradingView comes back on the next reload).
     setActive: function (value, persist) { setWantActive(value, persist !== false); }

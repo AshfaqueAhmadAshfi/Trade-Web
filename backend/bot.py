@@ -26,10 +26,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional
 
-try:  # pragma: no cover - only missing on non-Windows
-    import MetaTrader5 as mt5  # type: ignore
-except Exception:  # pragma: no cover
-    mt5 = None  # type: ignore
+from .mt5_client import mt5
 
 DEFAULTS: Dict[str, Any] = {
     "running": False,

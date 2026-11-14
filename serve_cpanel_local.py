@@ -9,20 +9,27 @@ way they will on the shared host (uvicorn, by contrast, would serve WebSockets
 and hide those problems).
 """
 import os
+import argparse
 import sys
 from pathlib import Path
 from socketserver import ThreadingMixIn
 from wsgiref.simple_server import WSGIServer, make_server, WSGIRequestHandler
 
-ROOT = Path(__file__).resolve().parent
+parser = argparse.ArgumentParser(description="Serve the actual Passenger entry point locally")
+parser.add_argument("--port", type=int, default=8799)
+parser.add_argument("--app-root", type=Path, default=Path(__file__).resolve().parent)
+args = parser.parse_args()
+if not 1 <= args.port <= 65535:
+    parser.error("Port must be between 1 and 65535")
+ROOT = args.app_root.resolve()
+if not (ROOT / "passenger_wsgi.py").is_file():
+    parser.error("Application root must contain passenger_wsgi.py")
 sys.path.insert(0, str(ROOT))
 os.chdir(str(ROOT))
 
 os.environ.setdefault("SOFTRADEX_MODE", "public")
 
-from a2wsgi import ASGIMiddleware  # noqa: E402
-
-from backend.app import app as asgi_app  # noqa: E402
+from passenger_wsgi import application  # noqa: E402
 
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
@@ -35,8 +42,8 @@ class QuietHandler(WSGIRequestHandler):
 
 
 httpd = make_server(
-    "127.0.0.1", 8799, ASGIMiddleware(asgi_app),
+    "127.0.0.1", args.port, application,
     server_class=ThreadingWSGIServer, handler_class=QuietHandler,
 )
-print("wsgi server ready on http://127.0.0.1:8799", flush=True)
+print(f"Passenger WSGI preview: http://127.0.0.1:{args.port}/dashboard", flush=True)
 httpd.serve_forever()

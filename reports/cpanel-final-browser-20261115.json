@@ -1,0 +1,58 @@
+{
+  "method": "DOM and runtime inspection; programmatic existing buttons/form because document.hidden was true",
+  "signed_out": {
+    "private_state_ready": false,
+    "authed": false,
+    "state_loaded": false,
+    "password_dialog_open": true,
+    "chart_news_rows": 0,
+    "state_requests_before_login": 0,
+    "console_messages": []
+  },
+  "market_switch": {
+    "method": "existing BTC tab button.click()",
+    "chart_market": "BTCUSDTm",
+    "binance_symbol": "BTCUSDTm",
+    "binance_pair": "BTCUSDT",
+    "venue_pairs": [
+      "BTC-USD",
+      "BTC/USD",
+      "BTC-USDT"
+    ],
+    "large_execution_market": "BTCUSDTm",
+    "large_execution_status": "Verified public executions · $25,000+ · anonymous venue fills",
+    "position_market": "BTCUSDTm",
+    "position_contract": "Hyperliquid · BTC perpetual (BTC)"
+  },
+  "logout": {
+    "method": "existing Logout button.click()",
+    "destination": "/access"
+  },
+  "after_login": {
+    "access": {
+      "ready": true,
+      "revision": 1
+    },
+    "aiTimeframes": 6,
+    "authed": true,
+    "chartNewsRows": 419,
+    "clock": "18:06:27",
+    "flowMarket": "XAUUSDm",
+    "hidden": true,
+    "market": "XAUUSDm",
+    "newsRows": 419,
+    "passwordAutocomplete": "current-password",
+    "passwordOpen": false,
+    "positionContract": "Hyperliquid · Gold perpetual (xyz:GOLD)",
+    "positionMarket": "XAUUSDm",
+    "sessions": [
+      "sydney",
+      "tokyo",
+      "london",
+      "newyork"
+    ],
+    "stateLoaded": true,
+    "stateRequests": 5,
+    "url": "http://127.0.0.1:8799/dashboard"
+  }
+}

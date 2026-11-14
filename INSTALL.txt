@@ -1,6 +1,6 @@
 =====================================================================
   SOFTRADE X  TRADE  -  INSTALL / RUN GUIDE
-  Exness / MT5 Trading Dashboard (FastAPI + web UI)
+  Public API Market Dashboard (FastAPI + web UI)
 =====================================================================
 
 WHAT YOU NEED
@@ -8,9 +8,8 @@ WHAT YOU NEED
   - Windows 10 or 11 (64-bit)
   - Python 3.10 - 3.13 installed  ->  https://www.python.org/downloads/
       (during install, tick "Add python.exe to PATH")
-  - Internet connection for the FIRST run only (installs packages)
-  - Optional: a running MetaTrader 5 terminal for live account data.
-      Without MT5 the dashboard still works on its public market feed.
+  - Internet connection for installation and ongoing live market data
+  - No MT5 software, broker login or terminal connection is required.
 
 HOW TO RUN (one click)
 ---------------------------------------------------------------------
@@ -40,9 +39,8 @@ FILES
   setup.bat          install / repair the Python environment
   backend\           FastAPI app (API + WebSocket + UI server)
   web\               dashboard front-end
-  config\config.json settings: port, bots, MT5 terminal path...
+  config\config.json settings: port, refresh intervals, analysis preferences
   data\              local history database
-  ea\                MetaTrader Expert Advisor for the EA bridge
   requirements.txt   python dependencies
 
 STOP / UNINSTALL
@@ -61,6 +59,6 @@ TROUBLESHOOTING
 
 SECURITY NOTE
 ---------------------------------------------------------------------
-  config\config.json contains your MT5 terminal path, saved login
-  and the EA bridge secret. This package is for YOUR machines -
-  do not share the folder as-is.
+  Broker connections and the EA bridge are disabled. Existing config
+  files may retain old saved settings. Keep any configured dashboard
+  password private; live market data requires internet.

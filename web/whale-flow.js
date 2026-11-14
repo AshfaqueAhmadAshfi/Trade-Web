@@ -38,6 +38,62 @@
   var rowCount = 0;
   var MAX_ROWS = 60;
   var lastLiveAt = 0;
+  var publicSeen = new Set();
+
+  function publicKey(value) {
+    return window.DashboardPanels ? window.DashboardPanels.canonical(value) : String(value || '').toUpperCase().replace(/M$/, '');
+  }
+  function followPublic(value) {
+    if (!value || publicKey(value) === publicKey(symbol)) return;
+    symbol = value;
+    meta = null;
+    publicSeen.clear();
+    buyCount = sellCount = followed = measured = 0;
+    buffered = []; priceWindow = []; lastPrice = 0; pendingRows = {};
+    setMarketHeader(); updateStats();
+    emptyTape('Waiting for verified public executions of $25,000 or more.');
+    status('Public venue feeds · ' + symbol + ' · large executions only', '');
+    metric('wf-follow', '—', 'wf-follow-sub', 'Position exits are not published');
+  }
+  function acceptPublic(detail) {
+    if (!detail || publicKey(detail.symbol) !== publicKey(symbol) || !symbol) return;
+    var now = Date.now();
+    (Array.isArray(detail.trades) ? detail.trades : []).slice().sort(function(a,b) {return Number(a.ts)-Number(b.ts);}).forEach(function(trade) {
+      var price=Number(trade.price), qty=Number(trade.qty), when=Number(trade.ts), side=String(trade.side).toUpperCase();
+      if (!(price>0) || !(qty>0) || !isFinite(price*qty) || price*qty<25000 ||
+          !(when>0) || when>now+5000 || when<now-300000 || ['BUY','SELL'].indexOf(side)<0) return;
+      var id=[detail.venue,detail.pair,trade.id || [when,side,price,qty].join('|')].join(':');
+      if (publicSeen.has(id)) return;
+      publicSeen.add(id);
+      if (publicSeen.size>2000) publicSeen.delete(publicSeen.values().next().value);
+      addRow({id:id,side:side,px:price,tm:when,value:price*qty,venue:detail.venue,pair:detail.pair,public:true},true);
+      lastLiveAt=now;
+      status('Verified public executions · $25,000+ · anonymous venue fills', 'online');
+    });
+    metric('wf-follow', '—', 'wf-follow-sub', 'Position exits are not published');
+  }
+  function initPublic() {
+    var term=window.SoftradeXTerminal;
+    followPublic(term && term.getCurrentSymbol ? term.getCurrentSymbol() : '');
+    window.addEventListener('chart:market',function(e) {var d=e.detail || {};followPublic(d.symbol || (d.meta || {}).symbol);});
+    window.addEventListener('orderflow:prints',function(e) {acceptPublic(e.detail);});
+    window.addEventListener('chart:tv-quote',function(e) {
+      var q=e.detail || {};
+      if (publicKey(q.symbol)!==publicKey(symbol) || !(Number(q.price)>0) || !isFinite(Number(q.price)) || !(Number(q.at)>0) || Date.now()-Number(q.at)>15000 || Number(q.at)>Date.now()+5000) return;
+      lastPrice=Number(q.price);priceWindow.push({t:Date.now(),p:lastPrice});updateMarketMove();
+    });
+    setInterval(function() {
+      if (document.hidden) return;
+      if (lastLiveAt && Date.now()-lastLiveAt>30000) status('Waiting for the next $25,000+ verified execution', '');
+      updateMarketMove();
+    },5000);
+    var legend=section.querySelector('.wf-legend');
+    if (legend) legend.textContent='$25,000+ public executions · venue instruments can differ from the chart · wallet identities are not disclosed';
+    var columns=section.querySelectorAll('.wf-columns span');
+    if (columns[3]) columns[3].textContent='EXECUTED USD';
+    if (columns[4]) columns[4].textContent='POSITION';
+    if (columns[5]) columns[5].textContent='EXIT DATA';
+  }
 
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) {
@@ -93,7 +149,7 @@
     var subEl = $('wf-market-sub');
     if (subEl) {
       subEl.textContent = symbol
-        ? symbol + (m.description ? ' · ' + m.description : '') + ' · 6s follow'
+        ? symbol + (m.description ? ' · ' + m.description : '') + (window.SOFTRADEX_PUBLIC_ONLY ? ' · public executions $25,000+' : ' · 6s follow')
         : 'waiting for the chart…';
     }
   }
@@ -137,6 +193,10 @@
 
   function updateMarketMove() {
     var now = Date.now();
+    if (window.SOFTRADEX_PUBLIC_ONLY && priceWindow.length && now-priceWindow[priceWindow.length-1].t>30000) {
+      metric('wf-move','—','wf-move-sub','Waiting for a fresh chart quote');
+      return;
+    }
     while (priceWindow.length && now - priceWindow[0].t > 300000) priceWindow.shift();
     if (!priceWindow.length || !lastPrice) {
       metric('wf-move', '—', 'wf-move-sub', 'no live ticks yet');
@@ -174,13 +234,13 @@
       '<span><span class="wf-side ' + (isBuy ? 'buy' : 'sell') + '">' +
         (isBuy ? '▲ BUY' : '▼ SELL') + '</span></span>' +
       '<span class="wf-price ' + (isBuy ? 'buy' : 'sell') + '">' + fmt(price) + '</span>' +
-      '<span class="wf-burst">' + (ticks ? '<b>' + ticks + '</b> tick' + (ticks === 1 ? '' : 's') : '—') + '</span>' +
+      '<span class="wf-burst">' + (row.public ? '$' + fmt(row.value,0) : ticks ? '<b>' + ticks + '</b> tick' + (ticks === 1 ? '' : 's') : '—') + '</span>' +
       '<span class="wf-move ' + (isBuy ? 'up' : 'down') + '">' +
-        (isBuy ? '▲ ' : '▼ ') + fmt(mv) + '</span>' +
+        (row.public ? '—' : (isBuy ? '▲ ' : '▼ ') + fmt(mv)) + '</span>' +
       '<span class="wf-follow-slot">' +
-        (live ? '<span class="wf-follow pending">measuring 6s…</span>' : followCell(row)) +
+        (row.public ? '<span class="wf-follow">Not published</span>' : live ? '<span class="wf-follow pending">measuring 6s…</span>' : followCell(row)) +
       '</span>' +
-      '<span class="wf-src' + (live ? ' live' : '') + '">' + (live ? 'TICK' : '1M') + '</span>';
+      '<span class="wf-src' + (live ? ' live' : '') + '">' + (row.public ? esc(String(row.venue || '').toUpperCase() + ' · ' + (row.pair || '')) : live ? 'TICK' : '1M') + '</span>';
     return el;
   }
 
@@ -442,6 +502,7 @@
       });
     }
 
+    if (window.SOFTRADEX_PUBLIC_ONLY) { initPublic(); return; }
     window.addEventListener('chart:market', function (ev) {
       var detail = (ev && ev.detail) || {};
       if (detail.symbol) follow(detail.symbol);

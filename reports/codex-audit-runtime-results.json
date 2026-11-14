@@ -1,0 +1,717 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "seconds": 0.31,
+    "type": "text/html; charset=utf-8",
+    "bytes": 13762
+  },
+  {
+    "path": "/access",
+    "status": 200,
+    "seconds": 0.31,
+    "type": "text/html; charset=utf-8",
+    "bytes": 13762
+  },
+  {
+    "path": "/dashboard",
+    "status": 200,
+    "seconds": 0.33,
+    "type": "text/html; charset=utf-8",
+    "bytes": 138426
+  },
+  {
+    "path": "/dashboard/",
+    "status": 200,
+    "seconds": 0.19,
+    "type": "text/html; charset=utf-8",
+    "bytes": 138426
+  },
+  {
+    "path": "/favicon.ico",
+    "status": 200,
+    "seconds": 0.05,
+    "type": "image/jpeg",
+    "bytes": 145506
+  },
+  {
+    "path": "/logo.jpg",
+    "status": 200,
+    "seconds": 0.05,
+    "type": "image/jpeg",
+    "bytes": 145506
+  },
+  {
+    "path": "/api/health",
+    "status": 200,
+    "seconds": 0.03,
+    "type": "application/json",
+    "bytes": 112,
+    "keys": [
+      "ok",
+      "hosted",
+      "public_only",
+      "connected",
+      "source",
+      "clients",
+      "uptime_engine"
+    ],
+    "source": "public"
+  },
+  {
+    "path": "/api/config",
+    "status": 200,
+    "seconds": 0.03,
+    "type": "application/json",
+    "bytes": 547,
+    "keys": [
+      "app",
+      "version",
+      "terminal_path",
+      "terminals",
+      "exness_terminals",
+      "mt5_ready",
+      "mt5_any_terminal",
+      "mt5_exness_branded",
+      "mt5_package",
+      "hosted",
+      "public_only",
+      "broker_connections",
+      "order_execution",
+      "data_source",
+      "live_stream",
+      "remember_login",
+      "bots_enabled",
+      "saved_login",
+      "saved_server",
+      "poll_interval_ms"
+    ]
+  },
+  {
+    "path": "/api/auth",
+    "status": 200,
+    "seconds": 0.02,
+    "type": "application/json",
+    "bytes": 63,
+    "keys": [
+      "ok",
+      "auth_required",
+      "authed",
+      "ttl_sec"
+    ]
+  },
+  {
+    "path": "/api/state",
+    "status": 401,
+    "seconds": 0.0,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/market-watch",
+    "status": 200,
+    "seconds": 0.02,
+    "type": "application/json",
+    "bytes": 7037,
+    "keys": [
+      "ok",
+      "updated_at",
+      "interval_sec",
+      "live_stream",
+      "count",
+      "watches",
+      "market_statuses"
+    ]
+  },
+  {
+    "path": "/api/history",
+    "status": 401,
+    "seconds": 0.02,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/export.csv",
+    "status": 401,
+    "seconds": 0.02,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/events",
+    "status": 401,
+    "seconds": 0.01,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/bot",
+    "status": 401,
+    "seconds": 0.01,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/bot2",
+    "status": 401,
+    "seconds": 0.01,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/bot3",
+    "status": 401,
+    "seconds": 0.01,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/bot4",
+    "status": 401,
+    "seconds": 0.02,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/bot5",
+    "status": 401,
+    "seconds": 0.02,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/bot6",
+    "status": 401,
+    "seconds": 0.02,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/bot7",
+    "status": 401,
+    "seconds": 0.02,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/chart/symbols",
+    "status": 200,
+    "seconds": 0.02,
+    "type": "application/json",
+    "bytes": 27105,
+    "keys": [
+      "available",
+      "connected",
+      "source",
+      "message",
+      "symbols",
+      "count",
+      "account",
+      "server_time"
+    ],
+    "source": "public"
+  },
+  {
+    "path": "/api/terminals",
+    "status": 401,
+    "seconds": 0.0,
+    "type": "application/json",
+    "bytes": 89,
+    "keys": [
+      "ok",
+      "error",
+      "detail"
+    ]
+  },
+  {
+    "path": "/api/docs",
+    "status": 200,
+    "seconds": 0.02,
+    "type": "text/html; charset=utf-8",
+    "bytes": 1025
+  },
+  {
+    "path": "/openapi.json",
+    "status": 200,
+    "seconds": 0.17,
+    "type": "application/json",
+    "bytes": 37088,
+    "keys": [
+      "openapi",
+      "info",
+      "paths",
+      "components"
+    ]
+  },
+  {
+    "path": "/api/orderflow/venues",
+    "status": 200,
+    "seconds": 0.05,
+    "type": "application/json",
+    "bytes": 877,
+    "keys": [
+      "venues"
+    ]
+  },
+  {
+    "path": "/api/orderflow/trades?venue=binance&market=BTC&limit=10",
+    "status": 200,
+    "seconds": 0.53,
+    "type": "application/json",
+    "bytes": 1146,
+    "keys": [
+      "venue",
+      "name",
+      "market",
+      "pair",
+      "trades",
+      "updated_at"
+    ]
+  },
+  {
+    "path": "/api/news/market?symbol=XAUUSDm",
+    "status": 200,
+    "seconds": 0.14,
+    "type": "application/json",
+    "bytes": 444155,
+    "keys": [
+      "ok",
+      "symbol",
+      "now",
+      "window_end",
+      "updated",
+      "events",
+      "scan",
+      "sources",
+      "method"
+    ],
+    "providers": [
+      {
+        "name": "tradingview",
+        "state": "ok",
+        "count": 432
+      },
+      {
+        "name": "forex-factory",
+        "state": "cached",
+        "count": 3
+      },
+      {
+        "name": "investing.com",
+        "state": "partial",
+        "count": 20
+      },
+      {
+        "name": "exness",
+        "state": "unavailable",
+        "count": 0
+      },
+      {
+        "name": "binance",
+        "state": "cached",
+        "count": 1
+      },
+      {
+        "name": "fxstreet",
+        "state": "ok",
+        "count": 30
+      },
+      {
+        "name": "forexlive",
+        "state": "ok",
+        "count": 25
+      },
+      {
+        "name": "actionforex",
+        "state": "ok",
+        "count": 20
+      },
+      {
+        "name": "cnbc",
+        "state": "ok",
+        "count": 33
+      },
+      {
+        "name": "marketwatch",
+        "state": "ok",
+        "count": 10
+      },
+      {
+        "name": "federal-reserve",
+        "state": "ok",
+        "count": 4
+      },
+      {
+        "name": "coindesk",
+        "state": "ok",
+        "count": 25
+      },
+      {
+        "name": "google-news",
+        "state": "ok",
+        "count": 546
+      }
+    ],
+    "events": 368
+  },
+  {
+    "path": "/api/news/market?symbol=BTCUSDTm",
+    "status": 200,
+    "seconds": 0.12,
+    "type": "application/json",
+    "bytes": 443571,
+    "keys": [
+      "ok",
+      "symbol",
+      "now",
+      "window_end",
+      "updated",
+      "events",
+      "scan",
+      "sources",
+      "method"
+    ],
+    "providers": [
+      {
+        "name": "tradingview",
+        "state": "ok",
+        "count": 432
+      },
+      {
+        "name": "forex-factory",
+        "state": "cached",
+        "count": 3
+      },
+      {
+        "name": "investing.com",
+        "state": "partial",
+        "count": 20
+      },
+      {
+        "name": "exness",
+        "state": "unavailable",
+        "count": 0
+      },
+      {
+        "name": "binance",
+        "state": "cached",
+        "count": 1
+      },
+      {
+        "name": "fxstreet",
+        "state": "ok",
+        "count": 30
+      },
+      {
+        "name": "forexlive",
+        "state": "ok",
+        "count": 25
+      },
+      {
+        "name": "actionforex",
+        "state": "ok",
+        "count": 20
+      },
+      {
+        "name": "cnbc",
+        "state": "ok",
+        "count": 33
+      },
+      {
+        "name": "marketwatch",
+        "state": "ok",
+        "count": 10
+      },
+      {
+        "name": "federal-reserve",
+        "state": "ok",
+        "count": 4
+      },
+      {
+        "name": "coindesk",
+        "state": "ok",
+        "count": 25
+      },
+      {
+        "name": "google-news",
+        "state": "ok",
+        "count": 546
+      }
+    ],
+    "events": 368
+  },
+  {
+    "path": "/api/tv/setups?symbol=XAUUSDm",
+    "status": 200,
+    "seconds": 0.03,
+    "type": "application/json",
+    "bytes": 1381,
+    "keys": [
+      "ok",
+      "symbol",
+      "tv_symbol",
+      "price",
+      "change",
+      "change_abs",
+      "source",
+      "updated",
+      "levels"
+    ],
+    "source": "TradingView"
+  },
+  {
+    "path": "/api/tv/setups?symbol=BTCUSDTm",
+    "status": 200,
+    "seconds": 0.86,
+    "type": "application/json",
+    "bytes": 1373,
+    "keys": [
+      "ok",
+      "symbol",
+      "tv_symbol",
+      "price",
+      "change",
+      "change_abs",
+      "source",
+      "updated",
+      "levels"
+    ],
+    "source": "TradingView"
+  },
+  {
+    "path": "/api/whales/positions?symbol=XAUUSDm",
+    "status": 200,
+    "seconds": 0.0,
+    "type": "application/json",
+    "bytes": 3799,
+    "keys": [
+      "market",
+      "provider",
+      "scanner_version",
+      "threshold_usd",
+      "scan_seconds",
+      "max_tracked",
+      "coverage",
+      "discovery_sources",
+      "identity",
+      "status",
+      "message",
+      "contract",
+      "contract_label",
+      "positions",
+      "buy_count",
+      "sell_count",
+      "scanning",
+      "updated_at",
+      "wallets_checked",
+      "candidates_total"
+    ]
+  },
+  {
+    "path": "/api/whales/positions?symbol=BTCUSDTm",
+    "status": 200,
+    "seconds": 0.03,
+    "type": "application/json",
+    "bytes": 3799,
+    "keys": [
+      "market",
+      "provider",
+      "scanner_version",
+      "threshold_usd",
+      "scan_seconds",
+      "max_tracked",
+      "coverage",
+      "discovery_sources",
+      "identity",
+      "status",
+      "message",
+      "contract",
+      "contract_label",
+      "positions",
+      "buy_count",
+      "sell_count",
+      "scanning",
+      "updated_at",
+      "wallets_checked",
+      "candidates_total"
+    ]
+  },
+  {
+    "path": "/api/chart/candles?symbol=BTCUSDTm&tf=5m&count=50",
+    "status": 200,
+    "seconds": 0.2,
+    "type": "application/json",
+    "bytes": 3185,
+    "keys": [
+      "symbol",
+      "tf",
+      "meta",
+      "bars"
+    ]
+  },
+  {
+    "path": "/api/chart/ticker?symbol=BTCUSDTm",
+    "status": 200,
+    "seconds": 0.0,
+    "type": "application/json",
+    "bytes": 216,
+    "keys": [
+      "symbol",
+      "price",
+      "open24",
+      "change",
+      "high",
+      "low",
+      "vol",
+      "digits",
+      "unit",
+      "currency",
+      "updated_at",
+      "stale",
+      "source"
+    ],
+    "source": "public"
+  },
+  {
+    "path": "/api/chart/tape?symbol=BTCUSDTm&limit=10",
+    "status": 200,
+    "seconds": 0.19,
+    "type": "application/json",
+    "bytes": 1777,
+    "keys": [
+      "symbol",
+      "meta",
+      "prints",
+      "recent"
+    ]
+  },
+  {
+    "path": "/api/chart/tvquote?symbol=AAPLm",
+    "status": 200,
+    "seconds": 0.34,
+    "type": "application/json",
+    "bytes": 168,
+    "keys": [
+      "ok",
+      "symbol",
+      "tv_symbol",
+      "price",
+      "change",
+      "high",
+      "low",
+      "updated",
+      "source"
+    ],
+    "source": "TradingView"
+  },
+  {
+    "path": "/api/chart/tvquote?symbol=USDTRYm",
+    "status": 200,
+    "seconds": 0.34,
+    "type": "application/json",
+    "bytes": 174,
+    "keys": [
+      "ok",
+      "symbol",
+      "tv_symbol",
+      "price",
+      "change",
+      "high",
+      "low",
+      "updated",
+      "source"
+    ],
+    "source": "TradingView"
+  },
+  {
+    "path": "/api/chart/tvquote?symbol=ADAUSDm",
+    "status": 200,
+    "seconds": 0.38,
+    "type": "application/json",
+    "bytes": 173,
+    "keys": [
+      "ok",
+      "symbol",
+      "tv_symbol",
+      "price",
+      "change",
+      "high",
+      "low",
+      "updated",
+      "source"
+    ],
+    "source": "TradingView"
+  },
+  {
+    "path": "/api/chart/tvcandles?symbol=XAUUSDm&tf=5m&count=50&tv_symbol=OANDA%3AXAUUSD",
+    "status": 200,
+    "seconds": 0.03,
+    "type": "application/json",
+    "bytes": 2955,
+    "keys": [
+      "ok",
+      "symbol",
+      "tv_symbol",
+      "tf",
+      "source",
+      "updated",
+      "bars"
+    ],
+    "source": "TradingView"
+  }
+]

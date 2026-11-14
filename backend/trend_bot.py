@@ -67,10 +67,7 @@ def _f(v, default: float) -> float:
     except (TypeError, ValueError):
         return float(default)
 
-try:  # pragma: no cover
-    import MetaTrader5 as mt5  # type: ignore
-except Exception:  # pragma: no cover
-    mt5 = None  # type: ignore
+from .mt5_client import mt5
 
 DEFAULTS: Dict[str, Any] = {
     "running": False,

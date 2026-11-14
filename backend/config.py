@@ -1,5 +1,5 @@
 """
-Central configuration for the Exness Trading Dashboard.
+Central configuration for the SoftradeX public market dashboard.
 
 Everything is stored in a small JSON file next to the project so the
 dashboard keeps its settings between restarts.
@@ -7,6 +7,7 @@ dashboard keeps its settings between restarts.
 from __future__ import annotations
 
 import json
+import copy
 import os
 import secrets
 import tempfile
@@ -14,7 +15,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict
 
-APP_NAME = "Exness Trading Dashboard"
+APP_NAME = "SoftradeX Market Dashboard"
 VERSION = "1.0.0"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,30 +29,18 @@ DB_FILE = DATA_DIR / "trades.db"
 
 
 # ---------------------------------------------------------------- hosted mode
-# cPanel (Passenger), Docker and any plain Linux box have no MetaTrader 5
-# terminal - the bridge package is Windows-only. In that case the same
-# dashboard is served in hosted mode: prices come from the public market feeds
-# (Binance + Yahoo REST), the browser polls over HTTP instead of a WebSocket,
-# and nothing waits for a terminal that cannot exist on that machine.
+# Public market APIs and HTTP polling are used on Windows, Linux and cPanel.
+# HOSTED is retained as a compatibility alias for existing feed guards.
 def _env_flag(name: str) -> bool:
     return str(os.environ.get(name, "")).strip().lower() in ("1", "true", "yes", "on")
 
 
 def detect_hosted() -> bool:
-    mode = str(os.environ.get("SOFTRADEX_MODE", "")).strip().lower()
-    if mode in ("public", "hosted", "web"):
-        return True
-    if mode in ("mt5", "local", "desktop"):
-        return False
-    if _env_flag("SOFTRADEX_HOSTED"):
-        return True
-    # The MT5 bridge is Windows-only, so every Linux host (cPanel, Docker, VPS)
-    # is hosted mode. A Windows PC keeps the desktop behaviour even if the
-    # package is not installed yet - the login page then explains how to set up
-    # the terminal instead of pretending to be a public feed dashboard.
-    return os.name != "nt"
+    """All platforms use public APIs, including old desktop mode settings."""
+    return True
 
 
+PUBLIC_ONLY = True
 HOSTED = detect_hosted()
 
 # Exness MT5 servers offered on the login page (from the user's own list).
@@ -267,7 +256,7 @@ def _ensure_dirs() -> None:
 
 def load_config() -> Dict[str, Any]:
     _ensure_dirs()
-    cfg = dict(DEFAULTS)
+    cfg = copy.deepcopy(DEFAULTS)
     if CONFIG_FILE.exists():
         try:
             stored = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))

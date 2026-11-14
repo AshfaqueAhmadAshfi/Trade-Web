@@ -23,17 +23,24 @@ os.chdir(str(BASE_DIR))
 
 # Real prices from the public feeds, no MT5 terminal, HTTP instead of WS.
 os.environ.setdefault("SOFTRADEX_MODE", "public")
+os.environ["SOFTRADEX_PASSENGER"] = "1"
 
 try:
     from a2wsgi import ASGIMiddleware  # noqa: E402
     from backend.app import app as asgi_app  # noqa: E402
 
     # ASGIMiddleware turns an ASGI app into the WSGI callable Passenger expects.
-    application = ASGIMiddleware(asgi_app)
+    _adapter = ASGIMiddleware(asgi_app, wait_time=5)
+
+    def application(environ, start_response):
+        # Apache supplies HTTPS itself. Do not trust client-supplied forwarded headers.
+        if str(environ.get("HTTPS", "")).lower() in ("on", "1"):
+            environ = dict(environ, **{"wsgi.url_scheme": "https"})
+        return _adapter(environ, start_response)
 except Exception:
-    _startup_err = traceback.format_exc()
+    traceback.print_exc(file=sys.stderr)
 
     def application(environ, start_response):
         start_response("500 Internal Server Error", [("Content-Type", "text/plain; charset=utf-8")])
-        return [b"Python App Startup Error:\n\n" + _startup_err.encode("utf-8", errors="replace")]
+        return [b"SoftradeX could not start. Check the private Passenger error log and installed Python dependencies.\n"]
 

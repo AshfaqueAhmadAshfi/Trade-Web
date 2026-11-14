@@ -98,7 +98,7 @@
   <script>
     // BD Stock Market page feeds the SAME chart terminal from the BD (DSE)
     // catalogue instead of Exness - identical component code, different feed.
-    window.SOFTRADEX_CONFIG = { feedName: 'BD DSE', symbolsUrl: '/api/chart/symbols?market=bd', wsPath: '/ws/chart' };
+    window.SOFTRADEX_CONFIG = { liveStream: false, feedName: 'BD DSE', symbolsUrl: '/api/chart/symbols?market=bd', wsPath: '/ws/chart' };
   </script>
 
   <div id="app">
@@ -729,7 +729,7 @@
     </div>
   </div>
 
-  <script src="/static/softradex-terminal.js?v=20261021_bd6"></script>
+  <script src="/static/softradex-terminal.js?v=public1"></script>
   <script src="/static/traders-terminal.js?v=20261022_bd11"></script>
   <script src="/static/bd-app.js?v=20261021_bd6"></script>
   <script src="/static/about-me.js?v=20261030_about1"></script>

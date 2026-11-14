@@ -32,6 +32,7 @@ import json
 import re
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -40,11 +41,10 @@ from urllib.parse import quote_plus
 
 from . import market_ai as ai_mod
 from . import sessions as sess_mod
+from . import public_feed
+from .news_sources import event_kind, impact_window
 
-try:  # pragma: no cover - only missing on non-Windows
-    import MetaTrader5 as mt5  # type: ignore
-except Exception:  # pragma: no cover
-    mt5 = None  # type: ignore
+from .mt5_client import mt5
 
 try:  # pragma: no cover
     import requests  # type: ignore
@@ -91,9 +91,74 @@ IMPACT_ORDER = {"holiday": 0, "low": 1, "medium": 2, "high": 3}
 
 # Headline sites publish in the past by nature ("Gold jumps..." was written an
 # hour ago), so their rows get a reading window in the list before they expire.
-HEADLINE_SOURCES = ("google-news", "yahoo-finance", "investing.com", "forex-factory")
+# --------------------------------------------------------------- fallbacks
+# MetaTrader reports trade_tick_value / trade_contract_size for every symbol;
+# a hosted copy of the dashboard (cPanel, no terminal attached) has neither, so
+# every money figure on the sessions board and on the AI targets collapsed to
+# $0.00. These are the standard broker contract sizes, used only while no
+# terminal is attached - a live terminal always wins over this table.
+_FALLBACK_CONTRACT = (
+    ("XAU", 100.0),      # gold: 100 oz per lot
+    ("XAG", 5000.0),     # silver: 5000 oz per lot
+    ("XPT", 100.0),
+    ("XPD", 100.0),
+    ("USOIL", 1000.0),   # barrels per lot
+    ("UKOIL", 1000.0),
+    ("XNGUSD", 10000.0),
+)
+
+
+def _fallback_money_per_price(lot: float = 0.01, symbol: str = "") -> float:
+    """Estimated money per 1.0 of price movement, without a terminal attached."""
+    try:
+        lot = float(lot) or 0.01
+    except (TypeError, ValueError):
+        lot = 0.01
+    key = re.sub(r"[^A-Z0-9]", "", str(symbol or "").upper())
+    if key.endswith("M") and len(key) > 3:
+        key = key[:-1]
+    units = 0.0
+    for prefix, size in _FALLBACK_CONTRACT:
+        if key.startswith(prefix):
+            units = size
+            break
+    if units <= 0:
+        if re.fullmatch(r"[A-Z]{6}", key):   # FX: one standard lot is 100k units
+            units = 100000.0
+        else:                                # crypto / single instruments
+            units = 1.0
+    return round(units * lot, 6)
+
+
+HEADLINE_SOURCES = ("google-news", "yahoo-finance", "investing.com", "exness", "binance", "forex-factory",
+                    "cnbc", "marketwatch", "kitco")
 HEADLINE_WINDOW_SEC = 12 * 3600.0
 HEADLINE_ROWS_MAX = 60
+
+# Ordinary newsroom feeds (calendar rows are handled separately).
+NEWS_HEADLINE_SOURCES = frozenset(("google-news", "yahoo-finance", "investing.com",
+                                   "exness", "binance", "cnbc", "marketwatch", "kitco"))
+# Whole words only: substring matching let "war" match "warns" and "oil"
+# match "turmoil".
+_RELEVANT_WORDS = frozenset((
+    "gold", "xau", "silver", "xag", "bullion", "dollar", "usd", "currency", "forex",
+    "euro", "eur", "ecb", "pound", "gbp", "boe", "yen", "jpy", "boj", "fed", "fomc",
+    "powell", "rate", "rates", "inflation", "cpi", "pce", "ppi", "jobs", "payroll",
+    "nfp", "unemployment", "jobless", "gdp", "treasury", "yield", "bond", "oil", "crude", "nasdaq", "stocks", "earnings", "equities",
+    "opec", "wti", "brent", "bitcoin", "btc", "crypto", "tariff", "tariffs", "sanction",
+    "sanctions", "war", "wars", "recession", "etf", "volatility",
+))
+_RELEVANT_STEMS = ("commodit", "geopolit", "inflation", "volatil")
+
+
+def _headline_relevant(title: str) -> bool:
+    t = str(title or "").lower()
+    tokens = set(re.findall(r"[a-z0-9]+", t))
+    if tokens & _RELEVANT_WORDS:
+        return True
+    if any(tok.startswith(stem) for tok in tokens for stem in _RELEVANT_STEMS):
+        return True
+    return "central bank" in t
 
 TRADINGVIEW_FEED_URL = "https://economic-calendar.tradingview.com/events"
 FEED_URLS = (
@@ -115,7 +180,26 @@ GOOGLE_NEWS_QUERIES = (
     "Federal Reserve OR inflation OR CPI",
     "oil price OR OPEC",
     "bitcoin OR crypto market",
+    "Nasdaq OR stock market OR earnings",
+    "silver price OR XAGUSD",
 )
+
+# Public newsrooms of the brokers, exchanges and wire desks the dashboard
+# follows. Every feed is an ordinary public RSS document read by the same
+# headline parser as Investing / Exness - no key, no account, no credentials.
+# Keys are the provider names the panel and the provenance merge use.
+EXTRA_NEWS_FEEDS: Dict[str, Tuple[str, ...]] = {
+    "fxstreet": ("https://www.fxstreet.com/rss/news",),
+    "forexlive": ("https://www.forexlive.com/feed/news",),
+    "actionforex": ("https://www.actionforex.com/feed/",),
+    "cnbc": ("https://www.cnbc.com/id/20910258/device/rss/rss.html",
+             "https://www.cnbc.com/id/100003114/device/rss/rss.html"),
+    "marketwatch": ("https://feeds.content.dowjones.io/public/rss/mw_topstories",
+                    "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines"),
+    "federal-reserve": ("https://www.federalreserve.gov/feeds/press_all.xml",),
+    "coindesk": ("https://www.coindesk.com/arc/outboundfeeds/rss/",),
+}
+
 # honored when the calendar host rate-limits us (HTTP 429)
 _FEED_PENALTY_SEC = 600.0
 
@@ -661,20 +745,13 @@ def compute_market_impacts(ev: Dict[str, Any]) -> List[Dict[str, Any]]:
     is_oil_inv = any(w in title_lower for w in ("crude oil inventories", "oil stocks", "api crude", "eia crude"))
 
     bias_val = 0
-    if f is not None and p is not None:
+    # Released data takes precedence over the pre-release forecast. A forecast
+    # above the previous value cannot keep calling SELL after an actual miss.
+    comparison = f if actual is not None and f is not None else p
+    value = actual if actual is not None else f
+    if value is not None and comparison is not None:
         try:
-            diff = float(f) - float(p)
-            if abs(diff) > 1e-9:
-                if is_inverse or is_oil_inv:
-                    bias_val = -1 if diff > 0 else 1
-                else:
-                    bias_val = 1 if diff > 0 else -1
-        except (ValueError, TypeError):
-            bias_val = 0
-
-    if bias_val == 0 and actual is not None and p is not None:
-        try:
-            diff = float(actual) - float(p)
+            diff = float(value) - float(comparison)
             if abs(diff) > 1e-9:
                 if is_inverse or is_oil_inv:
                     bias_val = -1 if diff > 0 else 1
@@ -684,16 +761,28 @@ def compute_market_impacts(ev: Dict[str, Any]) -> List[Dict[str, Any]]:
             bias_val = 0
 
     if bias_val == 0:
-        hawkish_kw = ("hike", "hawkish", "tightening", "growth", "rise", "jump", "surge", "gain", "high", "beat", "strong")
-        dovish_kw = ("cut", "dovish", "easing", "drop", "fall", "slump", "miss", "weak", "decline", "slowdown", "recession")
-        if any(w in title_lower for w in hawkish_kw):
+        # Only explicit policy wording may call a side when the calendar has
+        # no forecast-vs-previous number. Words like "high" or "growth" sit
+        # inside ordinary release names and used to mark every USD print as
+        # bullish, which forced gold to SELL on events that had not surprised.
+        hawkish_kw = ("rate hike", "hike rates", "hawkish", "tightening")
+        dovish_kw = ("rate cut", "cut rates", "dovish", "easing", "recession")
+        fed_cut = re.search(r"\bfed\b.{0,40}\b(?:signals?|plans?|announces?)\s+(?:a\s+)?cut\b", title_lower)
+        if c == "XAU" and re.search(r"\bgold\s+(?:jumps|rallies|rises|gains)\b", title_lower):
             bias_val = 1
-        elif any(w in title_lower for w in dovish_kw):
+        elif c == "XAU" and re.search(r"\bgold\s+(?:slips|drops|falls|declines)\b", title_lower):
             bias_val = -1
-        else:
-            bias_val = 1  # Standard baseline direction
+        elif any(w in title_lower for w in hawkish_kw):
+            bias_val = 1
+        elif any(w in title_lower for w in dovish_kw) or fed_cut:
+            bias_val = -1
 
     impacts: List[Dict[str, str]] = []
+
+    if bias_val == 0:
+        # No surprise and no policy wording: do not invent BUY / SELL.
+        _IMPACT_CACHE[cache_key] = []
+        return []
 
     if c == "USD":
         if bias_val > 0:  # USD Strong / Bullish
@@ -973,6 +1062,11 @@ class NewsFeed:
         self._interval_sec = 900.0
         self.penalty_until: float = 0.0
         self.source_counts: Dict[str, int] = {}
+        self.provider_status: Dict[str, Dict[str, Any]] = {}
+        self._fetch_lock = threading.Lock()
+        self._start_lock = threading.Lock()
+        self._wake = threading.Event()
+        self._last_scan_request = 0.0
         self._load_cache()
 
     # ------------------------------------------------------------- cache io
@@ -989,6 +1083,7 @@ class NewsFeed:
                     self.events = [e for e in rows if isinstance(e, dict) and e.get("ts")]
                     self.updated_at = float((data or {}).get("updated_at") or 0.0)
                     self.source = "cache"
+                    self.provider_status = (data or {}).get("provider_status") or {}
         except Exception:
             pass
 
@@ -998,10 +1093,9 @@ class NewsFeed:
         try:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
             with self.lock:
-                payload = {"updated_at": self.updated_at, "events": self.events}
-            tmp = self.cache_path.with_suffix(".json.tmp")
-            tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-            tmp.replace(self.cache_path)
+                payload = {"updated_at": self.updated_at, "events": self.events, "provider_status": self.provider_status}
+            from .cache_io import write_json
+            write_json(self.cache_path, payload)
         except Exception:
             pass
 
@@ -1027,7 +1121,17 @@ class NewsFeed:
             with urllib.request.urlopen(req, timeout=12) as r:
                 data = json.loads(r.read().decode("utf-8", "replace"))
 
-        res = data.get("result", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+        res = data.get("result") if isinstance(data, dict) else data
+        if not isinstance(res, list):
+            raise ValueError("Invalid TradingView economic calendar response")
+        from .news_sources import plain_text
+        country_currency = {"US":"USD", "GB":"GBP", "EU":"EUR", "EA":"EUR", "DE":"EUR", "FR":"EUR",
+                            "IT":"EUR", "ES":"EUR", "NL":"EUR", "BE":"EUR", "AT":"EUR", "PT":"EUR",
+                            "IE":"EUR", "FI":"EUR", "GR":"EUR", "JP":"JPY", "CN":"CNY", "AU":"AUD",
+                            "NZ":"NZD", "CA":"CAD", "CH":"CHF", "IN":"INR", "BR":"BRL", "ZA":"ZAR",
+                            "MX":"MXN", "RU":"RUB", "SG":"SGD", "HK":"HKD", "KR":"KRW", "TR":"TRY",
+                            "NO":"NOK", "SE":"SEK", "DK":"DKK", "PL":"PLN", "CZ":"CZK", "HU":"HUF",
+                            "CL":"CLP", "CO":"COP", "SA":"SAR", "PE":"PEN", "AR":"ARS"}
         parsed: List[Dict[str, Any]] = []
         for r in res:
             if not isinstance(r, dict):
@@ -1035,7 +1139,8 @@ class NewsFeed:
             title = str(r.get("title") or r.get("indicator") or "").strip()
             if not title:
                 continue
-            ccy = str(r.get("currency") or r.get("country") or "").upper().strip()
+            country_code = str(r.get("country") or "").upper().strip()
+            ccy = str(r.get("currency") or country_currency.get(country_code, country_code)).upper().strip()
             if not ccy:
                 continue
             dt_str = str(r.get("date") or "")
@@ -1050,7 +1155,7 @@ class NewsFeed:
             except Exception:
                 continue
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
+                continue  # A release time without an offset is not verifiable.
             ts = dt.timestamp()
 
             # TradingView importance: 0 low / 1 medium / 2 high - a string or
@@ -1081,12 +1186,20 @@ class NewsFeed:
             parsed.append({
                 "title": title,
                 "country": ccy,
+                "currency": ccy,
+                "country_code": country_code,
                 "ts": ts,
+                "kind": "calendar",
                 "impact": imp,
                 "forecast": _to_num(r.get("forecast")),
                 "previous": _to_num(r.get("previous")),
                 "actual": _to_num(r.get("actual")),
                 "source": "tradingview",
+                "tv_event_id": str(r.get("id") or ""),
+                "description": plain_text(r.get("comment") or ""),
+                "url": "https://www.tradingview.com/economic-calendar/",
+                "release_source": str(r.get("source") or ""),
+                "release_source_url": str(r.get("source_url") or ""),
             })
         return parsed
 
@@ -1119,9 +1232,12 @@ class NewsFeed:
 
     def _fetch_forexfactory(self) -> List[Dict[str, Any]]:
         out = []
+        errors = []
+        succeeded = False
         for url in FEED_URLS:
             try:
                 data = self._get_json(url)
+                succeeded = True
                 if isinstance(data, list):
                     for raw in data:
                         if isinstance(raw, dict):
@@ -1130,80 +1246,35 @@ class NewsFeed:
                                 ev["source"] = "forex-factory"
                                 out.append(ev)
             except _FeedHttpError as exc:
-                # honored: the calendar host is rate-limiting us
-                if exc.status == 429:
-                    self.penalty_until = time.time() + _FEED_PENALTY_SEC
-            except Exception:
+                errors.append(str(exc))
+            except Exception as exc:
+                errors.append(str(exc))
                 continue
+        if not succeeded and errors:
+            raise RuntimeError("; ".join(errors))
         return out
+
+    def _fetch_investing_calendar(self) -> List[Dict[str, Any]]:
+        from .news_sources import investing_calendar
+        return investing_calendar()
 
     def _fetch_investing_rss(self) -> List[Dict[str, Any]]:
-        import xml.etree.ElementTree as ET
-        from email.utils import parsedate_to_datetime
+        return self._fetch_rss(INVESTING_RSS_URLS, "investing.com")
 
-        out: List[Dict[str, Any]] = []
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        for url in INVESTING_RSS_URLS:
-            try:
-                if requests is not None:
-                    resp = requests.get(url, headers=headers, timeout=10)
-                    if resp.status_code != 200:
-                        continue
-                    xml_content = resp.content
-                else:
-                    import urllib.request
-                    req = urllib.request.Request(url, headers=headers)
-                    with urllib.request.urlopen(req, timeout=10) as r:
-                        xml_content = r.read()
-                root = ET.fromstring(xml_content)
-                channel = root.find("channel")
-                items = channel.findall("item") if channel is not None else []
-                for item in items:
-                    title = str(item.findtext("title") or "").strip()
-                    if not title:
-                        continue
-                    pub = item.findtext("pubDate")
-                    # an unparseable date must not become a phantom "now" event
-                    ts = 0.0
-                    if pub:
-                        try:
-                            ts = parsedate_to_datetime(pub).timestamp()
-                        except Exception:
-                            try:
-                                ts = datetime.fromisoformat(pub.replace("Z", "+00:00")).timestamp()
-                            except Exception:
-                                ts = 0.0
-                    if ts <= 0:
-                        continue
-                    t_up = title.upper()
-                    ccy = "USD"
-                    if "EUR" in t_up or "EURO" in t_up or "ECB" in t_up:
-                        ccy = "EUR"
-                    elif "GBP" in t_up or "POUND" in t_up or "STERLING" in t_up or "BOE" in t_up:
-                        ccy = "GBP"
-                    elif "JPY" in t_up or "YEN" in t_up or "BOJ" in t_up:
-                        ccy = "JPY"
-                    elif "OIL" in t_up or "CRUDE" in t_up or "OPEC" in t_up:
-                        ccy = "OIL"
-                    elif "CAD" in t_up:
-                        ccy = "CAD"
-                    elif "AUD" in t_up:
-                        ccy = "AUD"
+    def _fetch_exness_calendar(self) -> List[Dict[str, Any]]:
+        from .news_sources import exness_calendar
+        return exness_calendar()
 
-                    imp = "high" if any(w in t_up for w in ("FED", "POWELL", "RATE", "INFLATION", "CPI", "JOBS", "NFP", "ECB", "BOJ", "WAR")) else "medium"
-                    out.append({
-                        "title": title,
-                        "country": ccy,
-                        "ts": ts,
-                        "impact": imp,
-                        "forecast": None,
-                        "previous": None,
-                        "actual": None,
-                        "source": "investing.com",
-                    })
-            except Exception:
-                continue
-        return out
+    def _fetch_exness_rss(self) -> List[Dict[str, Any]]:
+        return self._fetch_rss(("https://insights.exness.com/feed/",), "exness")
+
+    def _fetch_binance_calendar(self) -> List[Dict[str, Any]]:
+        from .binance_news import fetch_binance
+        return fetch_binance("calendar")
+
+    def _fetch_binance_headlines(self) -> List[Dict[str, Any]]:
+        from .binance_news import fetch_binance
+        return fetch_binance("headline")
 
     def _fetch_yahoo_rss(self) -> List[Dict[str, Any]]:
         import xml.etree.ElementTree as ET
@@ -1276,9 +1347,11 @@ class NewsFeed:
         out: List[Dict[str, Any]] = []
         try:
             root = ET.fromstring(xml_content)
-        except Exception:
-            return out
+        except Exception as exc:
+            raise ValueError("News provider returned invalid RSS") from exc
         channel = root.find("channel")
+        if root.tag != "rss" or channel is None:
+            raise ValueError("News provider returned a page instead of an RSS feed")
         items = channel.findall("item") if channel is not None else []
         for item in items:
             title = str(item.findtext("title") or "").strip()
@@ -1302,28 +1375,39 @@ class NewsFeed:
             }
             if publisher:
                 ev["publisher"] = publisher
+            from .news_sources import plain_text
+            ev["description"] = plain_text(item.findtext("description"))
+            ev["url"] = str(item.findtext("link") or "").strip()
+            ev["kind"] = "headline"
             out.append(ev)
         return out
 
     def _fetch_rss(self, urls: Tuple[str, ...], source: str) -> List[Dict[str, Any]]:
-        """Read one or more RSS feeds and return their headline events."""
-        out: List[Dict[str, Any]] = []
+        """Fetch independent topic RSS feeds concurrently with bounded timeouts."""
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        for url in urls:
-            try:
-                if requests is not None:
-                    resp = requests.get(url, headers=headers, timeout=10)
-                    if resp.status_code != 200:
-                        continue
-                    xml_content = resp.content
-                else:
-                    import urllib.request
-                    req = urllib.request.Request(url, headers=headers)
-                    with urllib.request.urlopen(req, timeout=10) as r:
-                        xml_content = r.read()
-                out.extend(self._parse_headline_rss(xml_content, source))
-            except Exception:
-                continue
+        def read(url):
+            if requests is not None:
+                resp = requests.get(url, headers=headers, timeout=10)
+                if resp.status_code != 200:
+                    raise _FeedHttpError(resp.status_code)
+                content = resp.content
+            else:
+                import urllib.request
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    content = response.read()
+            return self._parse_headline_rss(content, source)
+        out, errors, succeeded = [], [], False
+        with ThreadPoolExecutor(max_workers=min(4, max(1, len(urls)))) as pool:
+            pending = [pool.submit(read,url) for url in urls]
+            for future in pending:
+                try:
+                    out.extend(future.result())
+                    succeeded = True
+                except Exception as exc:
+                    errors.append(str(exc))
+        if not succeeded and errors:
+            raise RuntimeError("; ".join(errors))
         return out
 
     def _fetch_google_news(self) -> List[Dict[str, Any]]:
@@ -1331,89 +1415,100 @@ class NewsFeed:
         urls = tuple(GOOGLE_NEWS_RSS.format(q=quote_plus(str(q))) for q in GOOGLE_NEWS_QUERIES)
         return self._fetch_rss(urls, "google-news")
 
+    # ---- broker / exchange / wire newsrooms (public RSS, no credentials) ----
+    def _fetch_fxstreet(self) -> List[Dict[str, Any]]:
+        return self._fetch_rss(EXTRA_NEWS_FEEDS["fxstreet"], "fxstreet")
+
+    def _fetch_forexlive(self) -> List[Dict[str, Any]]:
+        return self._fetch_rss(EXTRA_NEWS_FEEDS["forexlive"], "forexlive")
+
+    def _fetch_actionforex(self) -> List[Dict[str, Any]]:
+        return self._fetch_rss(EXTRA_NEWS_FEEDS["actionforex"], "actionforex")
+
+    def _fetch_cnbc(self) -> List[Dict[str, Any]]:
+        return self._fetch_rss(EXTRA_NEWS_FEEDS["cnbc"], "cnbc")
+
+    def _fetch_marketwatch(self) -> List[Dict[str, Any]]:
+        return self._fetch_rss(EXTRA_NEWS_FEEDS["marketwatch"], "marketwatch")
+
+    def _fetch_federal_reserve(self) -> List[Dict[str, Any]]:
+        return self._fetch_rss(EXTRA_NEWS_FEEDS["federal-reserve"], "federal-reserve")
+
+    def _fetch_coindesk(self) -> List[Dict[str, Any]]:
+        return self._fetch_rss(EXTRA_NEWS_FEEDS["coindesk"], "coindesk")
+
     def fetch_once(self) -> int:
-        """Pull events from every news site in the panel: TradingView, ForexFactory,
-        Investing.com, Yahoo Finance and Google News."""
-        rows: List[Dict[str, Any]] = []
-        sources: List[str] = []
-
-        # 1. TradingView economic calendar API (rich upcoming calendar)
+        """Refresh independent providers in parallel, retaining failed-provider cache."""
+        from .news_sources import event_kind, merge_sources
+        if not self._fetch_lock.acquire(blocking=False):
+            return len(self.events)
         try:
-            tv_rows = self._fetch_tradingview()
-            if tv_rows:
-                rows.extend(tv_rows)
-                sources.append("tradingview")
-        except Exception as exc:
-            pass
-
-        # 2. ForexFactory weekly feeds
-        try:
-            ff_rows = self._fetch_forexfactory()
-            if ff_rows:
-                rows.extend(ff_rows)
-                sources.append("forex-factory")
-        except Exception:
-            pass
-
-        # 3. Investing.com news feeds
-        try:
-            inv_rows = self._fetch_investing_rss()
-            if inv_rows:
-                rows.extend(inv_rows)
-                sources.append("investing.com")
-        except Exception:
-            pass
-
-        # 4. Yahoo Finance news feed
-        try:
-            y_rows = self._fetch_yahoo_rss()
-            if y_rows:
-                rows.extend(y_rows)
-                sources.append("yahoo-finance")
-        except Exception:
-            pass
-
-        # 5. Google News search feeds ("google theke data niye")
-        try:
-            g_rows = self._fetch_google_news()
-            if g_rows:
-                rows.extend(g_rows)
-                sources.append("google-news")
-        except Exception:
-            pass
-
-        if not rows:
+            jobs = [
+                ("tradingview", "calendar", self._fetch_tradingview),
+                ("forex-factory", "calendar", self._fetch_forexfactory),
+                ("investing.com", "calendar", self._fetch_investing_calendar),
+                ("investing.com", "headline", self._fetch_investing_rss),
+                ("exness", "calendar", self._fetch_exness_calendar),
+                ("exness", "headline", self._fetch_exness_rss),
+                ("binance", "calendar", self._fetch_binance_calendar),
+                ("binance", "headline", self._fetch_binance_headlines),
+                ("fxstreet", "headline", self._fetch_fxstreet),
+                ("forexlive", "headline", self._fetch_forexlive),
+                ("actionforex", "headline", self._fetch_actionforex),
+                ("cnbc", "headline", self._fetch_cnbc),
+                ("marketwatch", "headline", self._fetch_marketwatch),
+                ("federal-reserve", "headline", self._fetch_federal_reserve),
+                ("coindesk", "headline", self._fetch_coindesk),
+                ("google-news", "headline", self._fetch_google_news),
+                ("yahoo-finance", "headline", self._fetch_yahoo_rss),
+            ]
+            now = time.time()
             with self.lock:
-                if self.events:
-                    return len(self.events)
-            rows = self._generate_fallback_events()
-            sources = ["fallback"]
-
-        parsed: List[Dict[str, Any]] = []
-        seen = set()
-        for ev in rows:
-            norm_title = "".join(ch for ch in ev.get("title", "").lower() if ch.isalnum())[:24]
-            key = (str(ev.get("country") or ""), norm_title, round(float(ev.get("ts") or 0) / 900))
-            if key in seen:
-                continue
-            seen.add(key)
-            parsed.append(ev)
-        parsed.sort(key=lambda e: e["ts"])
-
-        # per-site counts so the dashboard can show where every news item came from
-        counts: Dict[str, int] = {}
-        for ev in parsed:
-            name = str(ev.get("source") or "calendar")
-            counts[name] = counts.get(name, 0) + 1
-
-        with self.lock:
-            self.events = parsed
-            self.updated_at = time.time()
-            self.source = "+".join(sources) if sources else "calendar"
-            self.source_counts = counts
-        self.error = ""
-        self._save_cache()
-        return len(parsed)
+                previous = [dict(r) for r in self.events if not r.get("fallback")]
+                old_status = {k: dict(v) for k, v in self.provider_status.items()}
+            rows, statuses, errors = [], {}, []
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                pending = [(name, kind, pool.submit(fn)) for name, kind, fn in jobs]
+                for name, kind, future in pending:
+                    status = statuses.setdefault(name, {"parts": {}, "updated": now})
+                    try:
+                        fetched = future.result()
+                        rows.extend({**r, "kind": kind} for r in fetched)
+                        state = getattr(fetched,"provider_state","ok")
+                        note = getattr(fetched,"provider_error","")
+                        status["parts"][kind] = {"state": state, "count": len(fetched),
+                            "updated": getattr(fetched,"provider_updated",0) or now}
+                        if note:
+                            status["parts"][kind]["error"] = note[:180]
+                            errors.append(name+" "+kind+": "+note[:180])
+                    except Exception as exc:
+                        cached = [r for r in previous if name in (r.get("sources") or [r.get("source")]) and event_kind(r) == kind
+                                  and now - 86400 < float(r.get("ts") or 0)]
+                        # Keep only this failed provider's provenance on its cache.
+                        rows.extend({**r, "sources": [name]} for r in cached)
+                        last = old_status.get(name, {}).get("parts", {}).get(kind, {}).get("updated", self.updated_at)
+                        status["parts"][kind] = {"state": "cached" if cached else "unavailable",
+                            "count": len(cached), "updated": last, "error": str(exc)[:180]}
+                        errors.append(name + " " + kind + ": " + str(exc)[:180])
+            parsed = merge_sources(rows)
+            counts = {}
+            for row in parsed:
+                for name in row["sources"]:
+                    counts[name] = counts.get(name, 0) + 1
+            for name, status in statuses.items():
+                parts = list(status["parts"].values())
+                status["state"] = "ok" if all(p["state"] == "ok" for p in parts) else "partial" if any(p["state"] in ("ok","partial") for p in parts) else "cached" if any(p["state"] == "cached" for p in parts) else "unavailable"
+                status["count"] = counts.get(name, 0)
+            with self.lock:
+                self.events = parsed
+                self.updated_at = time.time()
+                self.source = "+".join(name for name in statuses if counts.get(name)) or "unavailable"
+                self.source_counts, self.provider_status = counts, statuses
+                self.error = "; ".join(errors)
+            self._save_cache()
+            return len(parsed)
+        finally:
+            self._fetch_lock.release()
 
     @staticmethod
     def _get_json(url: str) -> Any:
@@ -1434,14 +1529,27 @@ class NewsFeed:
 
     # --------------------------------------------------------------- thread
     def ensure_started(self) -> None:
-        if self._thread and self._thread.is_alive():
-            return
-        self._stop.clear()
-        self._thread = threading.Thread(target=self._loop, name="news-feed", daemon=True)
-        self._thread.start()
+        with self._start_lock:
+            if self._thread and self._thread.is_alive():
+                return
+            self._stop.clear()
+            self._thread = threading.Thread(target=self._loop, name="news-feed", daemon=True)
+            self._thread.start()
+
+    def request_scan(self) -> bool:
+        """Wake the shared scanner on page load, without duplicate provider fetches."""
+        self.ensure_started()
+        now = time.time()
+        with self.lock:
+            if self._fetch_lock.locked() or now - max(self.updated_at, self._last_scan_request) < 30:
+                return False
+            self._last_scan_request = now
+            self._wake.set()
+        return True
 
     def stop(self) -> None:
         self._stop.set()
+        self._wake.set()
 
     def _loop(self) -> None:
         while not self._stop.is_set():
@@ -1450,10 +1558,15 @@ class NewsFeed:
                     self.fetch_once()
                 except Exception as exc:  # pragma: no cover
                     self.error = str(exc)
-            wait = max(60.0, self._interval_sec)
+            now = time.time()
+            with self.lock:
+                release_near = any(event_kind(e) == "calendar"
+                                   and now - 3600 <= float(e.get("ts") or 0) <= now + 900 for e in self.events)
+            wait = 60.0 if release_near else max(60.0, min(300.0, self._interval_sec))
             if self.penalty_until > time.time():
                 wait = max(wait, self.penalty_until - time.time())
-            self._stop.wait(wait)
+            self._wake.wait(wait)
+            self._wake.clear()
 
 
 class NewsBot:
@@ -1492,6 +1605,10 @@ class NewsBot:
         self._exit_event: str = ""
         self._symbols_cache: List[str] = []   # All-Market chip list (platform markets)
         self._symbols_ts: float = 0.0
+        self._public_ai_lock = threading.Lock()
+        self._public_ai_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+        self._public_ai_loading = False
+        self._public_ai_thread: Optional[threading.Thread] = None
 
     # ------------------------------------------------------------------ log
     def _log(self, kind: str, message: str) -> None:
@@ -1539,7 +1656,7 @@ class NewsBot:
         if not epoch:
             return False
         try:
-            return datetime.utcfromtimestamp(epoch).weekday() >= 5  # Sat/Sun
+            return datetime.fromtimestamp(epoch, timezone.utc).weekday() >= 5  # Sat/Sun
         except Exception:
             return False
 
@@ -1654,18 +1771,26 @@ class NewsBot:
         return 2  # ORDER_FILLING_RETURN
 
     def money_per_price(self, lot: float = 0.01, symbol: str = "") -> float:
-        """Account money gained per 1.0 of price movement."""
+        """Account money gained per 1.0 of price movement.
+
+        The terminal's own tick value is used whenever it is available; without
+        a terminal (the hosted dashboard) a standard contract-size estimate
+        keeps the dollar forecast readable instead of $0.00.
+        """
         info = self._info(symbol)
         if not info:
-            return 0.0
+            return _fallback_money_per_price(lot, symbol)
+        per = 0.0
         try:
             tick_value = float(getattr(info, "trade_tick_value", 0.0) or 0.0)
             tick_size = float(getattr(info, "trade_tick_size", 0.0) or 0.0) or self._point(symbol)
             if tick_value > 0 and tick_size > 0:
-                return (tick_value / tick_size) * float(lot)
-            return float(getattr(info, "trade_contract_size", 0.0) or 0.0) * float(lot)
+                per = (tick_value / tick_size) * float(lot)
+            else:
+                per = float(getattr(info, "trade_contract_size", 0.0) or 0.0) * float(lot)
         except Exception:
-            return 0.0
+            per = 0.0
+        return per if per > 0 else _fallback_money_per_price(lot, symbol)
 
     def _price_for_money(self, money: float, lot: float, symbol: str = "") -> float:
         per = self.money_per_price(lot, symbol)
@@ -2295,16 +2420,25 @@ class NewsBot:
         if score == 0:
             score = pressure[0] or momentum[0] or 0
         if score == 0:
-            # Fall back to dial buyer/seller dominance
-            if buyer > seller:
+            # A real dial lead can break a tie. A flat tape must stay WAIT:
+            # inventing "trend follow" BUY made every quiet release look bullish.
+            if buyer >= 58.0 and buyer > seller:
                 score = 1
                 bits.append("buyer dial lead")
-            elif seller > buyer:
+            elif seller >= 58.0 and seller > buyer:
                 score = -1
                 bits.append("seller dial lead")
             else:
-                score = 1  # default bullish momentum
-                bits.append("trend follow")
+                bits.append(p_txt)
+                return {
+                    "side": "",
+                    "score": 0,
+                    "confident": False,
+                    "reason": "no forecast surprise yet — " + ", ".join(bits),
+                    "headline": "WAIT ahead of %s" % (ev.get("title") or "the release"),
+                    "buyer_pct": buyer, "seller_pct": seller, "dominant": dom,
+                    "predicted_move": self.predict_move(ev, side=""),
+                }
         side = "buy" if score > 0 else "sell"
         bits.append(p_txt)
         need = int(self.cfg.get("bias_min_score") or 1)
@@ -2559,12 +2693,15 @@ class NewsBot:
                 entry = board.setdefault(market, {"market": market, "buy": 0, "sell": 0,
                                                   "buy_pts": 0, "sell_pts": 0,
                                                   "top": "", "top_ts": 0})
-                if str(m.get("side") or "").upper() == "BUY":
+                side_up = str(m.get("side") or "").upper()
+                if side_up == "BUY":
                     entry["buy"] += 1
                     entry["buy_pts"] += weight
-                else:
+                elif side_up == "SELL":
                     entry["sell"] += 1
                     entry["sell_pts"] += weight
+                else:
+                    continue
                 ev_ts = float(ev.get("ts") or 0)
                 if not entry["top_ts"] or ev_ts < entry["top_ts"]:
                     entry["top_ts"] = ev_ts
@@ -2742,10 +2879,12 @@ class NewsBot:
 
     def _read_session_stats(self, symbol: str, days: int, now: float) -> Dict[str, Any]:
         """Average the last `days` of M15 bars per session window. MT5 only."""
-        if mt5 is None or not symbol:
+        if not symbol:
             return {}
-        if not self._ensure_terminal_conn():
-            return self._fallback_session_stats(symbol)
+        if mt5 is None or not self._ensure_terminal_conn():
+            # No MetaTrader session: read real public M15 history from the
+            # same market, so the session clock/forecast still works.
+            return self._read_public_session_stats(symbol, days, now)
         rates = None
         if mt5 is not None:
             sym_candidates = [symbol]
@@ -2765,7 +2904,30 @@ class NewsBot:
             st = sess_mod.session_stats(sess_mod.collect(rates, now))
             if st:
                 return st
-        return self._fallback_session_stats(symbol)
+        return self._read_public_session_stats(symbol, days, now)
+
+    def _read_public_session_stats(self, symbol: str, days: int, now: float) -> Dict[str, Any]:
+        """Real M15 bars from the public feed when MT5 has no terminal.
+
+        The session board is a measurement, not a simulated fallback: if the
+        public feed cannot answer, an empty dict is returned and the UI says
+        no history instead of showing invented dollar moves.
+        """
+        try:
+            count = int(max(800, min(2000, int(max(2, days)) * 96 + 96)))
+            rows = public_feed.candles(symbol, "15m", count)
+        except Exception:
+            return {}
+        bars = []
+        for row in rows or []:
+            try:
+                bars.append((float(row[0]) / 1000.0, float(row[1]), float(row[2]),
+                             float(row[3]), float(row[4])))
+            except (TypeError, ValueError, IndexError):
+                continue
+        if not bars:
+            return {}
+        return sess_mod.session_stats(sess_mod.collect(bars, now))
 
     def _read_all_markets_session_stats(self, now: float, days: int, force: bool = False) -> Dict[str, Dict[str, Any]]:
         """Compute session stats & dollar values for the major platform markets."""
@@ -2780,7 +2942,12 @@ class NewsBot:
             if s not in symbols and len(symbols) < 8:
                 symbols.append(s)
         if not symbols:
-            symbols = [self.symbol] if self.symbol else list(candidates)
+            # Logged out: keep the session radar populated from the same
+            # public M15 feed instead of collapsing to the clock only.
+            symbols = [self.symbol] if self.symbol else []
+            for cand in candidates:
+                if cand not in symbols and len(symbols) < 6:
+                    symbols.append(cand)
 
         lot = _f(self.cfg.get("lot"), 0.01)
         all_stats: Dict[str, Dict[str, Any]] = {}
@@ -2825,11 +2992,12 @@ class NewsBot:
         days = int(max(2.0, _f(self.cfg.get("session_range_days"), 20.0) or 20.0))
         cache = getattr(self, "_session_cache", None)
         key = (symbol, days)
-        if not force and cache and cache[0] == key and (now - cache[1]) < 600.0:
+        if not force and cache and cache[0] == key and (now - cache[1]) < (600.0 if any((cache[2] or {}).values()) else 30.0):
             stats, source = cache[2], cache[3]
         else:
             stats = self._read_session_stats(symbol, days, now)
-            source = "mt5" if stats else "clock"
+            stats = stats if any((stats or {}).values()) else {}
+            source = "mt5" if stats and self._ensure_terminal_conn() else ("tradingview+public" if stats else "clock")
             self._session_cache = (key, now, stats, source)
         digits = self._digits(symbol) if symbol else 2
         lot = _f(self.cfg.get("lot"), 0.01)
@@ -2843,6 +3011,7 @@ class NewsBot:
                                          markets=self.available_symbols(), range_days=days,
                                          source=source,
                                          all_markets_stats=all_m_stats)
+        payload["history_updated"] = int(self._session_cache[1])
         # the live watch dials ride along as a second opinion on the same market
         buyer, seller, dom = self._pressure_pair_for(symbol)
         for row in payload.get("sessions") or []:
@@ -2867,9 +3036,18 @@ class NewsBot:
         return ai_mod.timeframe(str(self.cfg.get("ai_timeframe") or ""))["key"]
 
     def _read_ai_bars(self, symbol: str, key: str) -> List[Any]:
-        """Raw candles of one timeframe. MT5 only; closed bars are filtered later."""
-        if mt5 is None or not symbol:
+        """Public OHLC bars in seconds; closed candles are filtered later."""
+        if not symbol:
             return []
+        if mt5 is None:
+            interval = {"M1": "1m", "M5": "5m", "M15": "15m", "H1": "1h", "H4": "4h", "D1": "1d"}.get(key)
+            if not interval:
+                return []
+            try:
+                rows = public_feed.candles(symbol, interval, ai_mod.BARS_WANTED)
+                return [(float(r[0]) / 1000.0, float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in rows or []]
+            except Exception:
+                return []
         tf_const = getattr(mt5, f"TIMEFRAME_{key}", None)
         if tf_const is None:
             return []
@@ -2881,6 +3059,33 @@ class NewsBot:
 
     def _ai_cache_get(self, symbol: str, now: float, force: bool = False) -> Dict[str, Any]:
         """Candles + symbol metadata, memoised for _AI_CACHE_SEC."""
+        if mt5 is None:
+            # Public HTTP fetches must not freeze the engine's price/news
+            # snapshots. Cache by symbol so a late market response cannot
+            # overwrite another market's analysis.
+            from .chart_feed import CATALOG
+            spec = next((s for s in CATALOG if s["symbol"] == public_feed.canonical(symbol)), {})
+            empty = {"frames": {}, "digits": int(spec.get("digits", 2)), "lot": _f(self.cfg.get("lot"), 0.01), "money_per_price": 0.0}
+            with self._public_ai_lock:
+                cached = self._public_ai_cache.get(symbol)
+                if symbol and not self._public_ai_loading and (force or not cached or now - cached[0] >= self._AI_CACHE_SEC):
+                    self._public_ai_loading = True
+                    def fetch_frames() -> None:
+                        try:
+                            with ThreadPoolExecutor(max_workers=6, thread_name_prefix="public-ai") as pool:
+                                frames = dict(zip(ai_mod.TIMEFRAME_KEYS, pool.map(lambda key: self._read_ai_bars(symbol, key), ai_mod.TIMEFRAME_KEYS)))
+                            meta = {**empty, "frames": frames}
+                            with self._public_ai_lock:
+                                self._public_ai_cache[symbol] = (time.time(), meta)
+                                # Keep this process cache bounded after market switches.
+                                while len(self._public_ai_cache) > 20:
+                                    del self._public_ai_cache[next(iter(self._public_ai_cache))]
+                        finally:
+                            with self._public_ai_lock:
+                                self._public_ai_loading = False
+                    self._public_ai_thread = threading.Thread(target=fetch_frames, name="public-ai-loader", daemon=True)
+                    self._public_ai_thread.start()
+                return cached[1] if cached else empty
         cached = getattr(self, "_ai_board_cache", None)
         if not force and cached and cached[0] == symbol and (now - cached[1]) < self._AI_CACHE_SEC:
             return cached[2]
@@ -2907,9 +3112,14 @@ class NewsBot:
         return {}
 
     def _ai_live_price(self, symbol: str) -> float:
-        """Last / bid of the analysed market (0.0 = no terminal attached)."""
-        if mt5 is None or not symbol:
+        """Last public price (0.0 when the API has no price)."""
+        if not symbol:
             return 0.0
+        if mt5 is None:
+            try:
+                return _f(public_feed.tick(symbol).get("bid"), 0.0)
+            except Exception:
+                return 0.0
         try:
             tick = mt5.symbol_info_tick(symbol)
         except Exception:
@@ -2929,7 +3139,7 @@ class NewsBot:
         meta = self._ai_cache_get(symbol, now, force=force)
         frames = meta.get("frames") or {}
         buyer, seller, dom = self._pressure_pair_for(symbol)
-        source = "mt5" if any(frames.values()) else "no terminal"
+        source = "public" if mt5 is None else "mt5"
         return ai_mod.build_payload(
             now, symbol=symbol, price=self._ai_live_price(symbol),
             digits=int(meta.get("digits") or 2), lot=_f(meta.get("lot"), 0.01),
@@ -2952,14 +3162,13 @@ class NewsBot:
         # impact. The trading filters (min_impact / currencies) only decide
         # which events the bot may actually trade, and each row expires on its
         # own the moment its time passes (client removes it live).
-        # Recently published headlines (Google News / Yahoo / Investing) are
-        # kept for a 12h reading window so every news site is visible in the list.
+        # Published headlines remain only inside their own monitoring window.
         all_events = self._snapshot_events(now - HEADLINE_WINDOW_SEC, include_active_post=False,
                                            all_markets=True, unfiltered=True)
-        upcoming = [e for e in all_events if float(e.get("ts") or 0) >= now]
+        upcoming = [e for e in all_events if float(e.get("ts") or 0) > now and event_kind(e) == "calendar"]
         published = [e for e in all_events
-                     if float(e.get("ts") or 0) < now
-                     and str(e.get("source") or "") in HEADLINE_SOURCES]
+                     if float(e.get("ts") or 0) <= now < float(e.get("ts") or 0) + impact_window(e)
+                     and event_kind(e) == "headline"]
         published.sort(key=lambda e: float(e.get("ts") or 0), reverse=True)
         # round-robin the recent headlines so EVERY headline site is visible
         # (newest first per site, Google cannot crowd out Yahoo / Investing)
@@ -2976,17 +3185,18 @@ class NewsBot:
                     break
         published = mix
         news_total = len(upcoming)
-        # The [:400] cap must never crowd HIGH / MEDIUM news out of the list:
-        # the continuous low-impact stream (auctions, NZD PCI...) would fill
-        # every slot by ts. High/medium rows are kept whole; only the low
-        # stream is truncated to the remaining budget.
+        # Never truncate the next 24 hours. Keep distant HIGH / MEDIUM rows
+        # too, and limit only the distant low-impact stream.
         hilo = {"high", "medium"}
         hi_med = [e for e in upcoming if str(e.get("impact") or "low").lower() in hilo]
         lo = [e for e in upcoming if str(e.get("impact") or "low").lower() not in hilo]
         if len(upcoming) > 400:
-            upcoming = hi_med + lo[:max(0, 400 - len(hi_med))]
+            near = [e for e in upcoming if float(e["ts"]) <= now + 24 * 3600]
+            distant_hi = [e for e in hi_med if float(e["ts"]) > now + 24 * 3600]
+            distant_lo = [e for e in lo if float(e["ts"]) > now + 24 * 3600]
+            upcoming = near + distant_hi + distant_lo[:max(0, 400 - len(near) - len(distant_hi))]
             upcoming.sort(key=lambda e: e["ts"])
-        for ev in upcoming[:400]:
+        for ev in upcoming:
             ts = float(ev["ts"])
             # "qualified" = the event passes this bot's own trade filters
             # (min_impact + the selected market's currencies). Watch-only rows
@@ -3003,6 +3213,8 @@ class NewsBot:
                 "minutes_to": round((ts - now) / 60.0, 1),
                 "qualified": qualified,
                 "source": ev.get("source") or "calendar",
+                "kind": "calendar",
+                "impact_window_sec": impact_window(ev),
             }
             if ev.get("publisher"):
                 row["publisher"] = ev.get("publisher")
@@ -3038,7 +3250,9 @@ class NewsBot:
                 "currency": ev.get("country"),
                 "impact": ev.get("impact") or "low",
                 "ts": int(ts),
-                "expire_ts": int(ts + HEADLINE_WINDOW_SEC),
+                "kind": "headline",
+                "impact_window_sec": impact_window(ev),
+                "expire_ts": ts + impact_window(ev),
                 "past": True,
                 "minutes_to": round((ts - now) / 60.0, 1),
                 "qualified": False,
@@ -3055,6 +3269,50 @@ class NewsBot:
                 row["predicted_move"] = self.predict_move(ev, side=bias["side"])
             else:
                 row["predicted_move"] = self.predict_move(ev, side="")
+            news.append(row)
+
+        # ---- all calendar releases whose estimated impact is still active --
+        # A fresh page must recover every running event, including simultaneous
+        # releases. Expired releases do not remain as COMPLETE rows.
+        active_events = [e for e in all_events
+                       if float(e.get("ts") or 0) <= now
+                       and event_kind(e) == "calendar"
+                       and now - float(e.get("ts") or 0) < impact_window(e)]
+        for ev in sorted(active_events, key=lambda e: float(e["ts"])):
+            ts = float(ev["ts"])
+            level = str(ev.get("impact") or "low").lower()
+            window_sec = impact_window(ev)
+            row = {
+                "title": ev.get("title"),
+                "currency": ev.get("country"),
+                "impact": ev.get("impact") or "low",
+                "ts": int(ts),
+                "past": True,
+                "complete": False,
+                "active": True,
+                "kind": "calendar",
+                "impact_window_sec": window_sec,
+                "minutes_to": round((ts - now) / 60.0, 1),
+                "qualified": False,
+                "source": ev.get("source") or "calendar",
+            }
+            if ev.get("publisher"):
+                row["publisher"] = ev.get("publisher")
+            impacts = compute_market_impacts(ev)
+            row["impacted_markets"] = impacts
+            row["impacted_total"] = len(impacts)
+            bias = self.decide_bias(ev)
+            side = bias.get("side") or (impacts[0].get("side", "").lower() if impacts else "")
+            if side:
+                row["side"] = side
+                row["reason"] = bias.get("reason") or (impacts[0].get("reason", "") if impacts else "")
+                row["confident"] = bool(bias.get("confident"))
+                row["predicted_move"] = self.predict_move(ev, side=side)
+            else:
+                row["predicted_move"] = self.predict_move(ev, side="")
+            for field in ("actual", "forecast", "previous"):
+                if ev.get(field) is not None:
+                    row[field] = ev[field]
             news.append(row)
 
         # Dashboard next event display: strictly upcoming (ts >= now)

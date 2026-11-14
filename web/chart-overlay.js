@@ -47,6 +47,7 @@
 
   var newsRows = [];
   var newsSig = '';
+  var newsBusy = false;
 
   /* ----------------------------------------------------------- helpers -- */
   function esc(v) {
@@ -223,6 +224,7 @@
     var out = [];
     for (var i = 0; i < all.length; i++) {
       var e = all[i];
+      if (window.DashboardPanels && window.DashboardPanels.newsPhase(e, nowSec) !== 'upcoming') continue;
       var ts = Number(e.ts);
       if (!(ts > nowSec - 120) || ts > nowSec + HORIZON_SEC) continue;
       out.push(e);
@@ -282,33 +284,43 @@
   }
 
   function refreshNewsSource() {
+    var access = window.SoftradeXStateAccess;
+    if (!access || !access.ready) return;
     var overlay = window.ChartNewsOverlay;
     if (overlay && typeof overlay.getEvents === 'function') {
       var rows = overlay.getEvents();
       if (rows && rows.length) { renderNews(); return; }
     }
+    if (newsBusy) return;
+    newsBusy = true;
+    var revision = access.revision;
     fetch('/api/state' + (newsSig ? '?have=' + encodeURIComponent(newsSig) : ''),
       { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (st) {
+        if (!access.ready || access.revision !== revision) return;
         // "news_omitted" means the feed left the calendar out because this
         // browser already has it - keep the last list rather than clearing it.
         if (!(st && st.bot5 && Array.isArray(st.bot5.news))) { renderNews(); return; }
         var rows = st.bot5.news;
         if (st.bot5.news_sig) newsSig = st.bot5.news_sig;
         newsRows = rows.map(function (r) {
-          return {
+          return Object.assign({}, r, {
             ts: Number(r.ts) || 0,
             title: r.title || r.event || '—',
             currency: r.currency || '',
             impact: String(r.impact || 'low').toLowerCase(),
             side: r.side || '',
             impacted: Array.isArray(r.impacted_markets) ? r.impacted_markets : []
-          };
+          });
         }).filter(function (r) { return r.ts > 0; });
         renderNews();
       })
-      .catch(function () { renderNews(); });
+      .catch(function () { if (access.ready && access.revision === revision) renderNews(); })
+      .finally(function () {
+        newsBusy = false;
+        if (access.ready && access.revision !== revision) refreshNewsSource();
+      });
   }
 
   /* -------------------------------------------------------------- mount -- */
@@ -515,4 +527,13 @@
     current: function () { return { symbol: symbol, prints: prints.length }; },
     refresh: function () { fetchTape(); refreshNewsSource(); }
   };
+  window.addEventListener('softradex:state-access', function () {
+    if (window.SoftradeXStateAccess && window.SoftradeXStateAccess.ready) {
+      refreshNewsSource();
+    } else {
+      newsRows = [];
+      newsSig = '';
+      renderNews();
+    }
+  });
 })();

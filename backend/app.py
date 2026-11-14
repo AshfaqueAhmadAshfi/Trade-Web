@@ -27,9 +27,11 @@ if __package__ in (None, ""):
     from backend.store import Store
     from backend.market_watch import get_all_market_watches
     from backend.chart_feed import ChartUnavailable, TF_SEC as CHART_TFS, get_feed
-    from backend import bd_feed
     from backend import order_flow_feed as order_flow
+    from backend.whale_positions import feed as whale_positions
     from backend import webauth
+    from backend import tv_feed
+    from backend.news_sources import reading_payload
 else:
     from . import config as cfg
     from .engine import Engine
@@ -37,9 +39,11 @@ else:
     from .store import Store
     from .market_watch import get_all_market_watches
     from .chart_feed import ChartUnavailable, TF_SEC as CHART_TFS, get_feed
-    from . import bd_feed
     from . import order_flow_feed as order_flow
+    from .whale_positions import feed as whale_positions
     from . import webauth
+    from . import tv_feed
+    from .news_sources import reading_payload
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
@@ -261,7 +265,15 @@ async def require_dashboard_session(request: Request, call_next):
     bound to loopback).
     """
     path = request.url.path
-    if path.startswith("/api") and webauth.is_mutating(request.method, path) \
+    if path.startswith("/api") and request.method in ("POST", "PUT", "PATCH", "DELETE") \
+            and not webauth.origin_allowed(request.headers, request.url.scheme, request.headers.get("host", "")):
+        return JSONResponse({"ok": False, "detail": "Same-origin request required."}, status_code=403)
+    if cfg.PUBLIC_ONLY:
+        if path in ("/api/connect", "/api/disconnect", "/api/ea-token") or path.startswith("/api/ea/"):
+            return JSONResponse({"ok": False, "detail": "Broker connections are disabled in this API-only dashboard."}, status_code=410)
+        if path.startswith("/api/bot") and path not in ("/api/bot5/config", "/api/bot5/refresh") and webauth.is_mutating(request.method, path):
+            return JSONResponse({"ok": False, "detail": "Order execution is disabled in this API-only dashboard."}, status_code=403)
+    if path.startswith("/api") and webauth.requires_session(request.method, path) \
             and webauth.auth_required(cfg.CONFIG.get):
         token = webauth.token_from_cookie(request.headers.get("cookie", ""))
         if not webauth.session_valid(token):
@@ -280,10 +292,12 @@ async def add_no_cache_headers(request: Request, call_next):
         # saves cPanel a full re-download of app.js (390 KB) on every view.
         response.headers["Cache-Control"] = "public, max-age=300"
         response.headers["Expires"] = ""
-    elif request.url.path in ("/", "/bd", "/bd.html"):
+    elif request.url.path in ("/", "/access", "/dashboard", "/dashboard/"):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
+    elif request.url.path.startswith("/api"):
+        response.headers["Cache-Control"] = "private, no-store"
     return response
 
 
@@ -303,7 +317,7 @@ async def api_config(request: Request = None) -> Dict[str, Any]:
     return {
         "app": cfg.APP_NAME,
         "version": cfg.VERSION,
-        "terminal_path": cfg.CONFIG.get("terminal_path", ""),
+        "terminal_path": "",
         "terminals": terminals,
         "exness_terminals": exness_terminals,
         "mt5_ready": bool(terminals),
@@ -311,21 +325,23 @@ async def api_config(request: Request = None) -> Dict[str, Any]:
         "mt5_exness_branded": bool(exness_terminals),
         "mt5_package": package_available(),
         "hosted": cfg.HOSTED,
+        "public_only": cfg.PUBLIC_ONLY,
+        "broker_connections": False,
+        "order_execution": False,
+        "data_source": "public",
         # WSGI hosting (cPanel) cannot hold a WebSocket - the browser then polls
         # /api/state and the chart REST endpoints instead of streaming.
         "live_stream": not cfg.HOSTED,
-        "exness_download": "https://www.exness.com/metatrader-5/",
-        "mt5_download": "https://www.metatrader5.com/en/download",
-        "remember_login": cfg.CONFIG.get("remember_login", True),
+        "remember_login": False,
         "bots_enabled": BOT_TRADING_ENABLED,
-        "saved_login": cfg.CONFIG.get("saved_login", ""),
-        "saved_server": cfg.CONFIG.get("saved_server", ""),
+        "saved_login": "",
+        "saved_server": "",
         "poll_interval_ms": cfg.CONFIG.get("poll_interval_ms", 400),
         "history_days": cfg.CONFIG.get("history_days", 60),
         "port": cfg.CONFIG.get("port", 8777),
-        "servers": cfg.EXNESS_SERVERS,
-        "common_servers": cfg.server_list(),
-        "known_servers": cfg.known_servers(),
+        "servers": {},
+        "common_servers": [],
+        "known_servers": [],
         # C1: the dashboard needs to know whether its password gate is enforced
         # server-side now, so the unlock dialog can call POST /api/login.
         **_auth_state(request),
@@ -342,6 +358,8 @@ async def api_ea_token(request: Request) -> Dict[str, Any]:
     token is also printed (masked) at startup and stored in config/config.json,
     which is where an operator setting up the EA should read it from.
     """
+    if cfg.PUBLIC_ONLY:
+        raise HTTPException(410, "EA bridge is disabled in this API-only dashboard.")
     if webauth.auth_required(cfg.CONFIG.get) and not webauth.session_valid(
             webauth.token_from_cookie(request.headers.get("cookie", ""))):
         raise HTTPException(401, "Dashboard login required")
@@ -365,9 +383,8 @@ async def api_auth(request: Request) -> Dict[str, Any]:
 async def api_login(request: Request, payload: Dict[str, Any] = Body(default={})) -> Dict[str, Any]:
     """Turns the dashboard password into an HttpOnly session cookie.
 
-    The password itself lives in config/config.json (``dashboard_password``,
-    default "0186"); the EA bridge token is accepted as an equivalent
-    credential because an operator who can configure the EA can configure this.
+    Configure SOFTRADEX_DASHBOARD_PASSWORD or dashboard_password in the local
+    configuration. An unset password denies login.
     """
     ip = webauth.client_ip(request.headers, request.client.host if request.client else "")
     if webauth.too_many_failures(ip):
@@ -409,11 +426,12 @@ def _news_sig(bot5: Any) -> str:
     news = bot5.get("news") if isinstance(bot5, dict) else None
     if not isinstance(news, list) or not news:
         return "-"
-    # A calendar sorted by time changes whenever a row is added or expires, so
-    # the count plus the timestamp sequence is enough to notice that - and it
-    # costs ~0.1 ms instead of re-hashing a megabyte of headlines.
-    seq = ",".join(str(r.get("ts", "")) for r in news)
-    return hashlib.md5((str(len(news)) + ":" + seq).encode("utf-8")).hexdigest()[:16]
+    # A release's actual/forecast/direction can change at the same timestamp.
+    # Include its content so a cached upcoming row receives the release result.
+    # Exclude the ticking countdown; the browser derives it from ts itself.
+    content = [{k: v for k, v in row.items() if k != "minutes_to"} for row in news]
+    raw = json.dumps(content, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.md5(raw.encode("utf-8")).hexdigest()[:16]
 
 
 @app.get("/api/state")
@@ -459,29 +477,6 @@ async def api_terminals(refresh: bool = False) -> Dict[str, Any]:
 
 
 # ------------------------------------------------------------------ market watch
-BD_PAGE = cfg.WEB_DIR / "bd.html"
-
-
-@app.get("/bd")
-@app.get("/bd.html")
-async def bd_page() -> FileResponse:
-    """BD Stock Market dashboard - shares the codebase of the Exness
-    dashboard but never touches the Exness page or its data sources."""
-    return FileResponse(str(BD_PAGE), media_type="text/html; charset=utf-8")
-
-
-@app.get("/api/bd/watch")
-async def api_bd_watch() -> Dict[str, Any]:
-    """Buyer vs seller pressure rows for every BD market (light 1 Hz frame)."""
-    return await asyncio.to_thread(bd_feed.watch_payload)
-
-
-@app.get("/api/bd/state")
-async def api_bd_state(symbol: str = Query("DSEX")) -> Dict[str, Any]:
-    """Hero + AI board + outlook + setups + sessions + next event + curve."""
-    return await asyncio.to_thread(bd_feed.state, symbol)
-
-
 @app.get("/api/market-watch")
 async def api_market_watch(force: bool = False) -> Dict[str, Any]:
     """Buyer vs seller pressure for all active markets.
@@ -498,6 +493,8 @@ async def api_market_watch(force: bool = False) -> Dict[str, Any]:
 @app.post("/api/connect")
 async def api_connect(payload: Dict[str, Any] = Body(default={})) -> Dict[str, Any]:
     """Log in to an Exness MT5 account (real or demo). Nothing else gets you in."""
+    if cfg.PUBLIC_ONLY:
+        raise HTTPException(410, "Broker connections are disabled. The dashboard uses public market APIs.")
     login = str(payload.get("login") or "").strip()
     server = str(payload.get("server") or "").strip()
     if not login:
@@ -518,13 +515,15 @@ async def api_connect(payload: Dict[str, Any] = Body(default={})) -> Dict[str, A
 @app.post("/api/disconnect")
 async def api_disconnect() -> Dict[str, Any]:
     """Full logout: MT5 session closed, live state wiped, UI returns to login."""
+    if cfg.PUBLIC_ONLY:
+        raise HTTPException(410, "No broker session exists in this API-only dashboard.")
     return await asyncio.to_thread(engine.submit, "disconnect", {}, 20.0)
 
 
 @app.post("/api/settings")
 async def api_settings(payload: Dict[str, Any] = Body(default={})) -> Dict[str, Any]:
     allowed = {k: v for k, v in payload.items()
-               if k in ("poll_interval_ms", "history_interval_ms", "history_days", "terminal_path",
+               if k in ("poll_interval_ms", "history_interval_ms", "history_days",
                         "watch_tick_ms")}
     return await asyncio.to_thread(engine.submit, "settings", allowed, 20.0)
 
@@ -544,7 +543,7 @@ async def api_history(
 ) -> Dict[str, Any]:
     """Closed trades of the account that is currently logged in."""
     acc = current_account_key()
-    if not acc and not all_accounts:
+    if cfg.PUBLIC_ONLY or (not acc and not all_accounts):
         return {"trades": [], "count": 0, "total_ever": 0, "symbols": [], "account": None}
     since_ts = since
     if since_ts is None and days:
@@ -589,13 +588,13 @@ async def api_events(limit: int = 60) -> Dict[str, Any]:
 
 
 # ------------------------------------------------------------- auto trading
-BOT_TRADING_ENABLED = bool(cfg.CONFIG.get("bots_enabled", False)) and not cfg.HOSTED
+BOT_TRADING_ENABLED = False
 
 
 def bot_disabled_response() -> JSONResponse:
     return JSONResponse(
         status_code=403,
-        content={"ok": False, "error": "Automated bots are disabled."},
+        content={"ok": False, "error": "Order execution is disabled in this API-only dashboard."},
     )
 
 
@@ -693,6 +692,53 @@ async def api_bot2_check_trend() -> Dict[str, Any]:
 async def api_bot2_close() -> Dict[str, Any]:
     """Panic button: close all bot 2 positions at market."""
     return await asyncio.to_thread(engine.submit, "bot2_close", {}, 30.0)
+
+
+# --------------------------------------------------------------- TradingView
+@app.get("/api/tv/setups")
+async def api_tv_setups(symbol: str = Query("XAUUSDm")) -> Any:
+    """Live extreme levels for the sidebar, read from TradingView (no MT5)."""
+    try:
+        data = await asyncio.to_thread(tv_feed.setups, symbol)
+        return data
+    except Exception as exc:
+        return JSONResponse(status_code=503, content={
+            "ok": False,
+            "symbol": symbol,
+            "source": "TradingView",
+            "error": str(exc) or "TradingView feed unavailable",
+        })
+
+
+@app.get("/api/chart/tvquote")
+async def api_chart_tvquote(symbol: str = Query("XAUUSDm"), tv_symbol: Optional[str] = Query(None, max_length=64)) -> Any:
+    """The quote of the instrument the TradingView chart is drawing.
+
+    The chart is TradingView's own feed (XAUUSDm -> OANDA:XAUUSD). The broker's
+    MT5 tick can sit a few tenths of a percent away from it, which made the
+    price ribbon disagree with the candles. While TradingView is the chart on
+    screen the ribbon shows this number, so both move together.
+    """
+    try:
+        q = await asyncio.to_thread(tv_feed.quote, symbol, target=tv_symbol)
+    except Exception as exc:
+        return JSONResponse(status_code=503, content={
+            "ok": False,
+            "symbol": symbol,
+            "source": "TradingView",
+            "error": str(exc) or "TradingView quote unavailable",
+        })
+    return {
+        "ok": True,
+        "symbol": q.get("symbol") or symbol,
+        "tv_symbol": q.get("tv_symbol"),
+        "price": q.get("price"),
+        "change": q.get("change"),
+        "high": q.get("high"),
+        "low": q.get("low"),
+        "updated": q.get("updated"),
+        "source": "TradingView",
+    }
 
 
 # ----------------------------------------------------------------- bot 3
@@ -801,6 +847,16 @@ BOT5_KEYS = ("lot", "symbol", "magic", "mode", "min_impact", "currencies",
              # full AI market analysis: which market the 5m/10m/15m/1h panel
              # reads, and which timeframe shows its target prices first
              "ai_market", "ai_timeframe")
+
+
+@app.get("/api/news/market")
+async def api_market_news(symbol: str = Query("XAUUSDm", min_length=1, max_length=40), scan: bool = Query(False)) -> Any:
+    """Untruncated rolling calendar and published research for the chart market."""
+    engine.bot5.feed.ensure_started()
+    if scan:
+        engine.bot5.feed.request_scan()
+    data = await asyncio.to_thread(reading_payload, engine.bot5.feed, symbol)
+    return JSONResponse(content=data, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/bot5")
@@ -978,6 +1034,8 @@ def _check_secret(request: Request, payload: Optional[Dict[str, Any]] = None) ->
 
 @app.post("/api/ea/event")
 async def api_ea_event(request: Request, payload: Dict[str, Any] = Body(default={})) -> Dict[str, Any]:
+    if cfg.PUBLIC_ONLY:
+        raise HTTPException(410, "EA bridge is disabled in this API-only dashboard.")
     if not _check_secret(request, payload):
         raise HTTPException(401, "invalid EA token")
     return await asyncio.to_thread(engine.submit, "ea_event", payload, 15.0)
@@ -986,6 +1044,8 @@ async def api_ea_event(request: Request, payload: Dict[str, Any] = Body(default=
 @app.get("/api/ea/event")
 async def api_ea_event_get(request: Request) -> Dict[str, Any]:
     """Query-string variant - handy for a minimal MQL5 WebRequest."""
+    if cfg.PUBLIC_ONLY:
+        raise HTTPException(410, "EA bridge is disabled in this API-only dashboard.")
     if not _check_secret(request):
         raise HTTPException(401, "invalid EA token")
     q = dict(request.query_params)
@@ -1020,6 +1080,8 @@ async def api_ea_event_get(request: Request) -> Dict[str, Any]:
 async def api_ea_ping(request: Request) -> Dict[str, Any]:
     # when the caller presents a token, validate it right here - the EA status
     # line then shows OFFLINE for a wrong token instead of pushing blind 401s
+    if cfg.PUBLIC_ONLY:
+        raise HTTPException(410, "EA bridge is disabled in this API-only dashboard.")
     supplied = request.headers.get("x-ea-token") or request.headers.get("x-ea-secret")
     secret = cfg.CONFIG.get("ea_secret", "")
     if secret and supplied and supplied != secret:
@@ -1035,12 +1097,21 @@ chart_feed = get_feed()
 
 
 @app.get("/api/chart/symbols")
-async def api_chart_symbols(market: str = Query("")) -> Dict[str, Any]:
-    """Instrument catalogue. ``market=bd`` serves the BD (DSE) feed for the BD
-    Stock Market dashboard; without it the exact Exness listing is returned."""
-    if str(market).strip().lower() == "bd":
-        return await asyncio.to_thread(bd_feed.symbols)
+async def api_chart_symbols() -> Dict[str, Any]:
+    """Instrument catalogue for the main trading dashboard."""
     return await asyncio.to_thread(chart_feed.symbols)
+
+
+@app.get("/api/chart/tvcandles")
+async def api_chart_tvcandles(symbol: str = Query(...), tf: str = Query("5m"),
+                              count: int = Query(500, ge=50, le=2000),
+                              tv_symbol: Optional[str] = Query(None, max_length=64)) -> Any:
+    try:
+        data = await asyncio.to_thread(tv_feed.candles, symbol, tf, count, target=tv_symbol)
+    except tv_feed.TradingViewError as exc:
+        return JSONResponse(status_code=503, content={"ok": False, "symbol": symbol,
+                            "source": "TradingView", "error": str(exc)})
+    return JSONResponse(content=data, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/chart/candles")
@@ -1091,8 +1162,16 @@ async def api_orderflow_trades(venue: str = Query(...), market: str = Query("BTC
         raise HTTPException(503, str(exc))
 
 
+@app.get("/api/whales/positions")
+async def api_whale_positions(market: str = Query("XAUUSDm", min_length=1, max_length=48)):
+    # Returns immediately; bounded public-wallet scans run in background threads.
+    return JSONResponse(content=whale_positions.snapshot(market), headers={"Cache-Control": "no-store"})
+
+
 @app.websocket("/ws/chart")
 async def ws_chart(ws: WebSocket) -> None:
+    if not await authorize_websocket(ws):
+        return
     await ws.accept()
     loop = asyncio.get_running_loop()
     cid, queue = chart_feed.add_client(loop)
@@ -1212,6 +1291,7 @@ async def api_health() -> Dict[str, Any]:
     return {
         "ok": True,
         "hosted": cfg.HOSTED,
+        "public_only": cfg.PUBLIC_ONLY,
         "connected": bool(snap.get("connected")),
         "source": snap.get("source"),
         "clients": len(hub.clients),
@@ -1220,8 +1300,21 @@ async def api_health() -> Dict[str, Any]:
 
 
 # -------------------------------------------------------------- websocket
+async def authorize_websocket(ws: WebSocket) -> bool:
+    if not webauth.origin_allowed(ws.headers, ws.url.scheme, ws.headers.get("host", "")):
+        await ws.close(code=1008)
+        return False
+    token = webauth.token_from_cookie(ws.headers.get("cookie", ""))
+    if webauth.auth_required(cfg.CONFIG.get) and not webauth.session_valid(token):
+        await ws.close(code=1008)
+        return False
+    return True
+
+
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
+    if not await authorize_websocket(ws):
+        return
     await hub.register(ws)
     try:
         while True:
@@ -1246,11 +1339,19 @@ async def ws_endpoint(ws: WebSocket) -> None:
 
 # ----------------------------------------------------------------- static
 INDEX = cfg.WEB_DIR / "index.html"
+ACCESS = cfg.WEB_DIR / "access.html"
 app.mount("/static", StaticFiles(directory=str(cfg.WEB_DIR)), name="static")
 
 
 @app.get("/")
+@app.get("/access")
 async def index() -> FileResponse:
+    return FileResponse(str(ACCESS), media_type="text/html; charset=utf-8")
+
+
+@app.get("/dashboard")
+@app.get("/dashboard/")
+async def dashboard() -> FileResponse:
     return FileResponse(str(INDEX), media_type="text/html; charset=utf-8")
 
 
@@ -1271,20 +1372,17 @@ def main() -> None:
 
     # Hosting platforms inject PORT (and expect the app on 0.0.0.0); the desktop
     # launcher keeps the loopback default from config.json.
-    env_port = os.environ.get("PORT", "").strip()
-    host = (os.environ.get("HOST", "").strip()
-            or ("0.0.0.0" if env_port else "")
-            or str(cfg.CONFIG.get("host", "127.0.0.1")))
-    port = int(env_port or cfg.CONFIG.get("port", 8777))
+    host = webauth.effective_host(cfg.CONFIG.get)
+    port = webauth.effective_port(cfg.CONFIG.get)
     shown = "127.0.0.1" if host in ("0.0.0.0", "::") else host
     print(f"\n  {cfg.APP_NAME} v{cfg.VERSION}")
-    print(f"  Dashboard : http://{shown}:{port}/")
+    print(f"  Access    : http://{shown}:{port}/access")
+    print(f"  Dashboard : http://{shown}:{port}/dashboard")
     print(f"  API docs  : http://{shown}:{port}/api/docs")
-    print(f"  EA bridge : http://{shown}:{port}/api/ea/event")
-    secret = str(cfg.CONFIG.get("ea_secret", ""))
-    print(f"  EA token  : {(secret[:4] + '...' + secret[-4:]) if len(secret) > 10 else '(see config/config.json)'}\n", flush=True)
+    print("  Data      : public market APIs (no broker connection)\n", flush=True)
     uvicorn.run(app, host=host, port=port, log_level="warning", ws_ping_interval=None,
-                ws_ping_timeout=None, proxy_headers=True, forwarded_allow_ips="*")
+                ws_ping_timeout=None, proxy_headers=True,
+                forwarded_allow_ips=os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1"))
 
 
 if __name__ == "__main__":

@@ -11,10 +11,7 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 
-try:
-    import MetaTrader5 as mt5
-except ImportError:
-    mt5 = None
+from .mt5_client import mt5
 
 # every MetaTrader5 IPC call on ANY thread takes this lock - the terminal's
 # single pipe must never see two concurrent callers
@@ -100,7 +97,7 @@ def _public_quotes_enabled() -> bool:
     """
     if str(os.environ.get("SOFTRADEX_WATCH_PUBLIC_FEED", "1")).strip() == "0":
         return False
-    return "unittest" not in sys.modules
+    return True
 
 
 def _prefetch_public_quotes(symbols: List[str], priority: Optional[List[str]] = None) -> None:
@@ -142,12 +139,13 @@ def _prefetch_public_quotes(symbols: List[str], priority: Optional[List[str]] = 
                 continue
             row = public_feed.ticker(sym)
             price = float(row.get("price") or 0.0)
-            if price <= 0:
+            if price <= 0 or row.get("stale"):
                 continue
         except Exception:
             continue
         _PUBLIC_QUOTES[sym] = {
-            "until": now + _PUBLIC_QUOTE_TTL,
+            "until": time.time() + _PUBLIC_QUOTE_TTL,
+            "updated_at": float(row.get("updated_at", time.time() * 1000)) / 1000,
             "price": price,
             "change_pct": float(row.get("change") or 0.0),
             "source": public_feed.source_of(sym) or "public",
@@ -181,6 +179,7 @@ def _prefetch_public_quotes(symbols: List[str], priority: Optional[List[str]] = 
         try:
             if not public_feed.supports(sym):
                 continue
+            budget -= 1
             bars = public_feed.candles(sym, _PUBLIC_BARS_TF, _PUBLIC_BARS_COUNT)
         except Exception:
             continue
@@ -203,7 +202,6 @@ def _prefetch_public_quotes(symbols: List[str], priority: Optional[List[str]] = 
         fetched[canon] = rows
         _PUBLIC_BARS_CANON[canon] = {"until": until, "rows": rows}
         _PUBLIC_BARS[sym] = {"until": until, "rows": rows}
-        budget -= 1
 
 
 def _public_bars_cached(sym: str) -> Optional[List[Dict[str, float]]]:
@@ -579,7 +577,6 @@ def _calculate_symbol_watch_locked(symbol: str, max_ref_time: Optional[float] = 
 def _fallback_symbol_watch(sym: str) -> Dict[str, Any]:
     """Generates realistic fallback data if MT5 is offline/uninitialized."""
     now = time.time()
-    seed = sum(ord(c) for c in sym) + int(now // 5)
 
     # Neutral until a real candle read exists: a dial that has no order flow to
     # show must say 50/50, never invent a direction.
@@ -590,61 +587,27 @@ def _fallback_symbol_watch(sym: str) -> Dict[str, Any]:
     strength = "BALANCED"
     needle_deg = 0.0
 
-    up = sym.upper()
-    if "BTC" in up:
-        digits = 2
-        base_price = 83650.0
-        spread = 10.0
-    elif "DXY" in up or "USDX" in up:
-        digits = 2
-        base_price = 104.50
-        spread = 0.05
-    elif any(k in up for k in ("USOIL", "XTIUSD", "CRUDE", "CL")):
-        digits = 2
-        base_price = 71.20
-        spread = 0.04
-    elif "XAUGBP" in up:
-        digits = 2
-        base_price = 2045.0
-        spread = 0.40
-    elif "USDJPY" in up or "JPY" in up:
-        digits = 3
-        base_price = 152.350
-        spread = 0.015
-    elif "EURUSD" in up:
-        digits = 5
-        base_price = 1.08550
-        spread = 0.00015
-    elif any(k in up for k in ("USTEC", "NAS100", "US100")):
-        digits = 2
-        base_price = 19850.0
-        spread = 1.50
-    elif "XAU" in up or "GOLD" in up:
-        digits = 2
-        base_price = 4087.50
-        spread = 0.25
-    else:
-        digits = 2
-        base_price = 100.0
-        spread = 0.10
+    from .chart_feed import CATALOG, _meta_from_spec_default
+    spec = next((item for item in CATALOG if sym in item["alts"]), {"symbol": sym, "kind": "forex"})
+    digits = _meta_from_spec_default(spec, sym)["digits"]
+    spread = 0.0
 
-    # Prefer the public feed when its cache has this market: the price shown
-    # here must match the public chart. Only when no provider answered do we
-    # fall back to the simulated walk.
+    # Without a verified provider quote, the market is unavailable.
     public = _public_quote_cached(sym)
     if public:
         price = float(public.get("price") or 0.0)
         bid = round(price, digits)
-        ask = round(bid + spread, digits)
+        ask = bid
+        spread = 0.0
         change_pct = float(public.get("change_pct") or 0.0)
         direction = "UP" if change_pct > 0.02 else ("DOWN" if change_pct < -0.02 else "FLAT")
         price_source = "public"
     else:
-        bid = round(base_price + math.cos(seed) * (base_price * 0.0008), digits)
-        ask = round(bid + spread, digits)
+        bid = ask = 0.0
+        spread = 0.0
         change_pct = 0.0
         direction = "FLAT"
-        price_source = "sim"
+        price_source = "unavailable"
 
     # ---- real buyer / seller pressure from the public 1m candles ----------
     # Same body/wick/volume-delta weighting the MT5 path uses, so the dial
@@ -669,6 +632,9 @@ def _fallback_symbol_watch(sym: str) -> Dict[str, Any]:
         pressure_source = "public"
 
     m_stat = check_symbol_market_status(sym, info=None, tick=None)
+    if price_source == "unavailable":
+        m_stat = {"open": False, "status": "UNAVAILABLE", "reason": "NO_QUOTE",
+                  "message": "Public price is not available yet"}
     if mt5 is not None:
         try:
             term = mt5.terminal_info()
@@ -696,7 +662,7 @@ def _fallback_symbol_watch(sym: str) -> Dict[str, Any]:
         "pressure_source": pressure_source,
         "details": details or (
             f"Buyer: {buyer_pct}% · Seller: {seller_pct}% (no candle feed)"),
-        "updated_at": now,
+        "updated_at": public.get("updated_at", now) if public else now,
         "live": False,
         "market_open": m_stat["open"],
         "market_status": m_stat["status"],

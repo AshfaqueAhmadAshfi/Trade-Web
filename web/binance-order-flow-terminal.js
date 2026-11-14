@@ -23,14 +23,24 @@
   let reconnectAttempt = 0;
   let paused = false;
   let filter = 'ALL';
+  let marketGeneration = 0, pollBusy = false, paintTimer = null;
+  let pendingPrints = [];
+  const numberFormats = new Map();
+  const timeFormat = new Intl.DateTimeFormat(undefined, {hour: 'numeric', minute: '2-digit', second: '2-digit'});
 
   function $(id) { return document.getElementById(id); }
 
   function stateFor(pair) {
     if (!states.has(pair)) {
-      states.set(pair, { buy: 0, sell: 0, buyCount: 0, sellCount: 0, trades: [] });
+      states.set(pair, { buy: 0, sell: 0, buyCount: 0, sellCount: 0, trades: [], seen: new Set(), lastPollAt: 0, lastDataAt: 0, error: '' });
     }
-    return states.get(pair);
+    const state = states.get(pair);
+    state.trades = state.trades.filter(t => t.ts >= Date.now() - 45000);
+    state.buy = state.trades.reduce((n,t) => n + (t.side === 'BUY' ? t.notional : 0), 0);
+    state.sell = state.trades.reduce((n,t) => n + (t.side === 'SELL' ? t.notional : 0), 0);
+    state.buyCount = state.trades.filter(t => t.side === 'BUY').length;
+    state.sellCount = state.trades.length - state.buyCount;
+    return state;
   }
 
   function compact(value) {
@@ -42,10 +52,10 @@
   }
 
   function number(value, decimals) {
-    return (Number(value) || 0).toLocaleString('en-US', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    });
+    if (!numberFormats.has(decimals)) numberFormats.set(decimals, new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: decimals, maximumFractionDigits: decimals
+    }));
+    return numberFormats.get(decimals).format(Number(value) || 0);
   }
 
   function pairForSymbol(symbol) {
@@ -115,8 +125,7 @@
   function sourceLines(totals, side) {
     const lines = [
       `12 VENUES ${side.toUpperCase()}: ${compact(totals['venue' + side])}`,
-      `BINANCE ${side.toUpperCase()}: ${compact(totals['binance' + side])}`,
-      `TRADERS POSITIONS ${side.toUpperCase()}: ${compact(totals['traders' + side])}`
+      `BINANCE ${side.toUpperCase()}: ${compact(totals['binance' + side])}`
     ];
     const key = side === 'Buy' ? 'buy' : 'sell';
     const venues = (totals.breakdown || []).filter(entry => !entry.extra);
@@ -125,11 +134,12 @@
         .map(entry => `${entry.name} ${compact(entry[key])}`)
         .join(' + '));
     }
-    lines.push(`TOTAL ${side.toUpperCase()} OPEN: ${compact(totals[side === 'Buy' ? 'buy' : 'sell'])}`);
+    lines.push(`TOTAL ${side.toUpperCase()} EXECUTED FLOW: ${compact(totals[side === 'Buy' ? 'buy' : 'sell'])}`);
     return lines.join('\n');
   }
 
   function updateTopChips() {
+    if (document.hidden) return;
     const totals = combinedTotals();
     const buy = compact(totals.buy);
     const sell = compact(totals.sell);
@@ -138,37 +148,41 @@
     const buyChip = $('b-open-buy-chip');
     const sellChip = $('b-open-sell-chip');
     if (sellChip) {
-      sellChip.title = `COMBINED ${selectedPair.toUpperCase()} SELL OPEN (12 venues + Binance + positions): ${sell}\n` +
+      sellChip.title = `COMBINED ${selectedPair.toUpperCase()} SELL FLOW (12 venues + Binance, rolling 45s): ${sell}\n` +
         sourceLines(totals, 'Sell');
     }
     if (buyChip) {
-      buyChip.title = `COMBINED ${selectedPair.toUpperCase()} BUY OPEN (12 venues + Binance + positions): ${buy}\n` +
+      buyChip.title = `COMBINED ${selectedPair.toUpperCase()} BUY FLOW (12 venues + Binance, rolling 45s): ${buy}\n` +
         sourceLines(totals, 'Buy');
     }
   }
 
   function render() {
+    if (document.hidden) return;
     const state = stateFor(selectedPair);
     const total = state.buy + state.sell;
     const buyPct = total ? Math.round((state.buy / total) * 100) : 0;
     const sellPct = total ? 100 - buyPct : 0;
     setText('bof-market', selectedPair ? selectedPair.toUpperCase() : '—');
-    setText('bof-status', selectedPair ? (socket && socket.readyState === WebSocket.OPEN ? 'CONNECTED' : 'CONNECTING') : 'NO BINANCE PAIR');
+    setText('bof-status', paused ? 'DISPLAY PAUSED' : feedStatus(state));
     setText('bof-buy-total', compact(state.buy));
     setText('bof-sell-total', compact(state.sell));
     setText('bof-buy-pct', `${buyPct}%`);
     setText('bof-sell-pct', `${sellPct}%`);
     const body = $('bof-tape');
-    if (!body) return;
+    if (!body || paused) return;
     const rows = state.trades.filter(tr => filter === 'ALL' || tr.side === filter).slice(0, 80);
-    body.innerHTML = rows.map(tr => `
+    const rowHtml = tr => `
       <div class="bof-row ${tr.side === 'BUY' ? 'buy' : 'sell'}">
-        <span>${new Date(tr.ts).toLocaleTimeString()}</span>
+        <span>${timeFormat.format(tr.ts)}</span>
         <b>${tr.side}</b>
         <span>${number(tr.price, tr.price >= 100 ? 2 : 5)}</span>
         <span>${number(tr.qty, 6)}</span>
         <strong>${compact(tr.notional)}</strong>
-      </div>`).join('');
+      </div>`;
+    if (window.LiveTapeRenderer) window.LiveTapeRenderer.render(body, rows,
+      tr => selectedPair + '|' + tr.id, rowHtml, '');
+    else body.innerHTML = rows.map(rowHtml).join('');
   }
 
   function setConnection(kind, text) {
@@ -183,9 +197,15 @@
       reconnectTimer = null;
     }
     if (socket) {
-      socket.onclose = null;
-      try { socket.close(); } catch (e) {}
+      const old = socket;
       socket = null;
+      old.onmessage = old.onerror = old.onclose = null;
+      old.onopen = null;
+      if (old.readyState === 0) {
+        old.onopen = () => { old.onopen = null; old.close(); };
+      } else if (old.readyState === 1) {
+        old.close();
+      }
     }
   }
 
@@ -214,24 +234,10 @@
         render();
       };
       socket.onmessage = event => {
-        if (paused) return;
         try {
           const msg = JSON.parse(event.data);
-          // A frame from a socket replaced by a market switch must never
-          // be booked into the newly selected market.
           if (msg.s && String(msg.s).toLowerCase() !== selectedPair) return;
-          const price = Number(msg.p);
-          const qty = Number(msg.q);
-          if (!(price > 0) || !(qty > 0)) return;
-          const side = msg.m ? 'SELL' : 'BUY';
-          const state = stateFor(selectedPair);
-          const notional = price * qty;
-          state[side === 'BUY' ? 'buy' : 'sell'] += notional;
-          state[side === 'BUY' ? 'buyCount' : 'sellCount'] += 1;
-          state.trades.unshift({ ts: Number(msg.T) || Date.now(), side, price, qty, notional });
-          if (state.trades.length > 500) state.trades.length = 500;
-          updateTopChips();
-          render();
+          ingest([{id:msg.a, side:msg.m ? 'SELL' : 'BUY', price:msg.p, qty:msg.q, ts:msg.T}]);
         } catch (e) {
           setConnection('error', 'INVALID BINANCE DATA');
         }
@@ -261,12 +267,56 @@
       return;
     }
     selectedSymbol = nextSymbol;
-    selectedPair = nextPair;
+    selectedPair = nextPair; marketGeneration++; pollBusy = false; pendingPrints = [];
     closeSocket();
     reconnectAttempt = 0;
     updateTopChips();
     render();
-    connect();
+    connect(); pollFallback();
+  }
+
+  function feedStatus(state) {
+    if (!selectedPair) return 'NO PAIR';
+    const live = (socket && socket.readyState === 1) || Date.now() - Math.max(state.lastPollAt,state.lastDataAt) < 15000;
+    return live ? (state.trades.length ? 'LIVE' : 'QUIET') : state.error ? 'UNAVAILABLE' : 'CONNECTING';
+  }
+  function ingest(rows) {
+    const state = stateFor(selectedPair);
+    for (const t of rows) {
+      const price = Number(t.price), qty = Number(t.qty), ts = Number(t.ts);
+      if (!(price > 0) || !(qty > 0) || !(ts > 0) || ts > Date.now()+5000 || !['BUY','SELL'].includes(t.side)) continue;
+      const id = String(t.id == null ? [ts,t.side,price,qty].join('|') : t.id);
+      if (state.seen.has(id)) continue;
+      state.seen.add(id); if (state.seen.size > 30000) state.seen.delete(state.seen.values().next().value);
+      const trade = {id,ts,side:t.side,price,qty,notional:price*qty};
+      state.trades.push(trade); pendingPrints.push(trade); state.lastDataAt = Date.now();
+    }
+    state.trades.sort((a,b) => b.ts-a.ts);
+    if (!paintTimer) paintTimer = setTimeout(() => {
+      paintTimer = null;
+      const batch = pendingPrints; pendingPrints = [];
+      if (batch.length) window.dispatchEvent(new CustomEvent('orderflow:prints', {
+        detail: {symbol:selectedSymbol,venue:'binance',pair:selectedPair.toUpperCase(),trades:batch}
+      }));
+      updateTopChips(); render();
+    }, 100);
+  }
+  async function pollFallback() {
+    if (document.hidden) return;
+    if (pollBusy || !selectedPair) return;
+    const generation = marketGeneration, pair = selectedPair, symbol = selectedSymbol;
+    pollBusy = true;
+    try {
+      const response = await fetch('/api/orderflow/trades?venue=binance&market=' + encodeURIComponent(symbol) + '&limit=200',
+        {cache:'no-store',signal:AbortSignal.timeout(12000)});
+      if (generation !== marketGeneration) return;
+      if (!response.ok) { stateFor(pair).error = 'HTTP ' + response.status; return; }
+      const data = await response.json();
+      if (generation !== marketGeneration || String(data.pair).toLowerCase() !== pair) return;
+      const state = stateFor(pair); state.lastPollAt = Date.now(); state.error = '';
+      ingest(data.trades || []);
+    } catch(e) { if (generation === marketGeneration) stateFor(pair).error = 'Feed unavailable'; }
+    finally { if (generation === marketGeneration) pollBusy = false; }
   }
 
   function bind() {
@@ -291,12 +341,13 @@
       active: true,
       getTotals: () => {
         const state = stateFor(selectedPair);
-        return { buy: state.buy, sell: state.sell, symbol: selectedSymbol };
+        return { buy: state.buy, sell: state.sell, symbol: selectedSymbol, pair: selectedPair.toUpperCase(), status: feedStatus(state), count: state.trades.length, updatedAt: Math.max(state.lastPollAt,state.lastDataAt) };
       },
       refresh: updateTopChips
     };
     updateTopChips();
-    window.setInterval(updateTopChips, 500);
+    window.setInterval(() => { updateTopChips(); render(); }, 1000);
+    window.setInterval(pollFallback, 3000);
     const initial = $('tt-sidebar-connected-symbol') || $('tt-connected-symbol');
     switchMarket(initial ? initial.textContent : '');
   }

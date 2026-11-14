@@ -1,9 +1,8 @@
-# Exness Trading Dashboard - production image
+# SoftradeX public market dashboard - production image
 #
 # The app is one FastAPI process that serves the REST API, the WebSocket stream
 # and the dashboard itself, so a single container is all a host needs.
-# MetaTrader5 is Windows-only and is skipped by requirements.txt on Linux: the
-# dashboard then runs on its public market feed (see DEPLOY.md).
+# All platforms use public market APIs without a native trading terminal.
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

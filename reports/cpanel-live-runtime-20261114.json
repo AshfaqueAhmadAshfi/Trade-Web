@@ -1,0 +1,773 @@
+{
+  "base_url": "http://127.0.0.1:8799",
+  "checks": {
+    "signed_out_state_401": true,
+    "foreign_origin_403": true,
+    "login_accepted": true,
+    "http_only_cookie": true,
+    "unchanged_calendar_omitted": true,
+    "private_no_store": true,
+    "logout_accepted": true,
+    "revoked_state_401": true
+  },
+  "routes": [
+    {
+      "path": "/",
+      "status": 200,
+      "seconds": 0.05,
+      "type": "text/html; charset=utf-8",
+      "decoded_bytes": 13877,
+      "encoding": "gzip"
+    },
+    {
+      "path": "/access",
+      "status": 200,
+      "seconds": 0.05,
+      "type": "text/html; charset=utf-8",
+      "decoded_bytes": 13877,
+      "encoding": "gzip"
+    },
+    {
+      "path": "/dashboard",
+      "status": 200,
+      "seconds": 0.03,
+      "type": "text/html; charset=utf-8",
+      "decoded_bytes": 138343,
+      "encoding": "gzip"
+    },
+    {
+      "path": "/dashboard/",
+      "status": 200,
+      "seconds": 0.03,
+      "type": "text/html; charset=utf-8",
+      "decoded_bytes": 138343,
+      "encoding": "gzip"
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 200,
+      "seconds": 0.08,
+      "type": "image/jpeg",
+      "decoded_bytes": 145506,
+      "encoding": null
+    },
+    {
+      "path": "/logo.jpg",
+      "status": 200,
+      "seconds": 0.08,
+      "type": "image/jpeg",
+      "decoded_bytes": 145506,
+      "encoding": null
+    },
+    {
+      "path": "/api/health",
+      "status": 200,
+      "seconds": 0.03,
+      "type": "application/json",
+      "decoded_bytes": 112,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "hosted",
+        "public_only",
+        "connected",
+        "source",
+        "clients",
+        "uptime_engine"
+      ]
+    },
+    {
+      "path": "/api/config",
+      "status": 200,
+      "seconds": 0.03,
+      "type": "application/json",
+      "decoded_bytes": 546,
+      "encoding": "gzip",
+      "keys": [
+        "app",
+        "version",
+        "terminal_path",
+        "terminals",
+        "exness_terminals",
+        "mt5_ready",
+        "mt5_any_terminal",
+        "mt5_exness_branded",
+        "mt5_package",
+        "hosted",
+        "public_only",
+        "broker_connections",
+        "order_execution",
+        "data_source",
+        "live_stream",
+        "remember_login",
+        "bots_enabled",
+        "saved_login",
+        "saved_server",
+        "poll_interval_ms"
+      ]
+    },
+    {
+      "path": "/api/auth",
+      "status": 200,
+      "seconds": 0.05,
+      "type": "application/json",
+      "decoded_bytes": 62,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "auth_required",
+        "authed",
+        "ttl_sec"
+      ]
+    },
+    {
+      "path": "/api/state",
+      "status": 200,
+      "seconds": 0.06,
+      "type": "application/json",
+      "decoded_bytes": 407561,
+      "encoding": "gzip",
+      "keys": [
+        "connected",
+        "locked",
+        "hosted",
+        "public_only",
+        "status",
+        "mode",
+        "source",
+        "connecting",
+        "error",
+        "account",
+        "account_kind",
+        "positions",
+        "orders",
+        "bot",
+        "bot2",
+        "bot3",
+        "bot4",
+        "bot5",
+        "bot6",
+        "bot7"
+      ],
+      "events": 1
+    },
+    {
+      "path": "/api/market-watch",
+      "status": 200,
+      "seconds": 0.02,
+      "type": "application/json",
+      "decoded_bytes": 7008,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "updated_at",
+        "interval_sec",
+        "live_stream",
+        "count",
+        "watches",
+        "market_statuses"
+      ]
+    },
+    {
+      "path": "/api/history",
+      "status": 200,
+      "seconds": 0.02,
+      "type": "application/json",
+      "decoded_bytes": 66,
+      "encoding": "gzip",
+      "keys": [
+        "trades",
+        "count",
+        "total_ever",
+        "symbols",
+        "account"
+      ]
+    },
+    {
+      "path": "/api/export.csv",
+      "status": 200,
+      "seconds": 0.02,
+      "type": "text/csv; charset=utf-8",
+      "decoded_bytes": 125,
+      "encoding": "gzip"
+    },
+    {
+      "path": "/api/events",
+      "status": 200,
+      "seconds": 0.03,
+      "type": "application/json",
+      "decoded_bytes": 101,
+      "encoding": "gzip",
+      "keys": [
+        "events"
+      ],
+      "events": 1
+    },
+    {
+      "path": "/api/bot",
+      "status": 200,
+      "seconds": 0.06,
+      "type": "application/json",
+      "decoded_bytes": 705,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "connected",
+        "bot"
+      ]
+    },
+    {
+      "path": "/api/bot2",
+      "status": 200,
+      "seconds": 0.06,
+      "type": "application/json",
+      "decoded_bytes": 1260,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "connected",
+        "bot2"
+      ]
+    },
+    {
+      "path": "/api/bot3",
+      "status": 200,
+      "seconds": 0.05,
+      "type": "application/json",
+      "decoded_bytes": 3490,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "connected",
+        "bot3"
+      ]
+    },
+    {
+      "path": "/api/bot4",
+      "status": 200,
+      "seconds": 0.03,
+      "type": "application/json",
+      "decoded_bytes": 831,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "connected",
+        "bot4"
+      ]
+    },
+    {
+      "path": "/api/bot5",
+      "status": 200,
+      "seconds": 0.11,
+      "type": "application/json",
+      "decoded_bytes": 389387,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "connected",
+        "bot5"
+      ]
+    },
+    {
+      "path": "/api/bot6",
+      "status": 200,
+      "seconds": 0.03,
+      "type": "application/json",
+      "decoded_bytes": 1118,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "connected",
+        "bot6"
+      ]
+    },
+    {
+      "path": "/api/bot7",
+      "status": 200,
+      "seconds": 0.03,
+      "type": "application/json",
+      "decoded_bytes": 1237,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "connected",
+        "bot7"
+      ]
+    },
+    {
+      "path": "/api/chart/symbols",
+      "status": 200,
+      "seconds": 0.03,
+      "type": "application/json",
+      "decoded_bytes": 27105,
+      "encoding": "gzip",
+      "keys": [
+        "available",
+        "connected",
+        "source",
+        "message",
+        "symbols",
+        "count",
+        "account",
+        "server_time"
+      ]
+    },
+    {
+      "path": "/api/terminals",
+      "status": 200,
+      "seconds": 0.09,
+      "type": "application/json",
+      "decoded_bytes": 16,
+      "encoding": "gzip",
+      "keys": [
+        "terminals"
+      ]
+    },
+    {
+      "path": "/api/docs",
+      "status": 200,
+      "seconds": 0.09,
+      "type": "text/html; charset=utf-8",
+      "decoded_bytes": 1025,
+      "encoding": "gzip"
+    },
+    {
+      "path": "/openapi.json",
+      "status": 200,
+      "seconds": 0.09,
+      "type": "application/json",
+      "decoded_bytes": 37088,
+      "encoding": "gzip",
+      "keys": [
+        "openapi",
+        "info",
+        "paths",
+        "components"
+      ]
+    },
+    {
+      "path": "/api/orderflow/venues",
+      "status": 200,
+      "seconds": 0.22,
+      "type": "application/json",
+      "decoded_bytes": 877,
+      "encoding": "gzip",
+      "keys": [
+        "venues"
+      ]
+    },
+    {
+      "path": "/api/orderflow/trades?venue=binance&market=BTC&limit=10",
+      "status": 200,
+      "seconds": 0.72,
+      "type": "application/json",
+      "decoded_bytes": 1148,
+      "encoding": "gzip",
+      "keys": [
+        "venue",
+        "name",
+        "market",
+        "pair",
+        "trades",
+        "updated_at"
+      ]
+    },
+    {
+      "path": "/api/news/market?symbol=XAUUSDm",
+      "status": 200,
+      "seconds": 0.25,
+      "type": "application/json",
+      "decoded_bytes": 435691,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "symbol",
+        "now",
+        "window_end",
+        "updated",
+        "events",
+        "scan",
+        "sources",
+        "method"
+      ],
+      "events": 359,
+      "providers": [
+        {
+          "name": "tradingview",
+          "state": "ok",
+          "count": 432
+        },
+        {
+          "name": "forex-factory",
+          "state": "ok",
+          "count": 103
+        },
+        {
+          "name": "investing.com",
+          "state": "partial",
+          "count": 20
+        },
+        {
+          "name": "exness",
+          "state": "unavailable",
+          "count": 0
+        },
+        {
+          "name": "binance",
+          "state": "ok",
+          "count": 1
+        },
+        {
+          "name": "fxstreet",
+          "state": "ok",
+          "count": 30
+        },
+        {
+          "name": "forexlive",
+          "state": "ok",
+          "count": 25
+        },
+        {
+          "name": "actionforex",
+          "state": "ok",
+          "count": 20
+        },
+        {
+          "name": "cnbc",
+          "state": "ok",
+          "count": 33
+        },
+        {
+          "name": "marketwatch",
+          "state": "ok",
+          "count": 10
+        },
+        {
+          "name": "federal-reserve",
+          "state": "ok",
+          "count": 4
+        },
+        {
+          "name": "coindesk",
+          "state": "ok",
+          "count": 25
+        },
+        {
+          "name": "google-news",
+          "state": "ok",
+          "count": 550
+        }
+      ]
+    },
+    {
+      "path": "/api/news/market?symbol=BTCUSDTm",
+      "status": 200,
+      "seconds": 0.27,
+      "type": "application/json",
+      "decoded_bytes": 435104,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "symbol",
+        "now",
+        "window_end",
+        "updated",
+        "events",
+        "scan",
+        "sources",
+        "method"
+      ],
+      "events": 359,
+      "providers": [
+        {
+          "name": "tradingview",
+          "state": "ok",
+          "count": 432
+        },
+        {
+          "name": "forex-factory",
+          "state": "ok",
+          "count": 103
+        },
+        {
+          "name": "investing.com",
+          "state": "partial",
+          "count": 20
+        },
+        {
+          "name": "exness",
+          "state": "unavailable",
+          "count": 0
+        },
+        {
+          "name": "binance",
+          "state": "ok",
+          "count": 1
+        },
+        {
+          "name": "fxstreet",
+          "state": "ok",
+          "count": 30
+        },
+        {
+          "name": "forexlive",
+          "state": "ok",
+          "count": 25
+        },
+        {
+          "name": "actionforex",
+          "state": "ok",
+          "count": 20
+        },
+        {
+          "name": "cnbc",
+          "state": "ok",
+          "count": 33
+        },
+        {
+          "name": "marketwatch",
+          "state": "ok",
+          "count": 10
+        },
+        {
+          "name": "federal-reserve",
+          "state": "ok",
+          "count": 4
+        },
+        {
+          "name": "coindesk",
+          "state": "ok",
+          "count": 25
+        },
+        {
+          "name": "google-news",
+          "state": "ok",
+          "count": 550
+        }
+      ]
+    },
+    {
+      "path": "/api/tv/setups?symbol=XAUUSDm",
+      "status": 200,
+      "seconds": 0.34,
+      "type": "application/json",
+      "decoded_bytes": 1381,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "symbol",
+        "tv_symbol",
+        "price",
+        "change",
+        "change_abs",
+        "source",
+        "updated",
+        "levels"
+      ]
+    },
+    {
+      "path": "/api/tv/setups?symbol=BTCUSDTm",
+      "status": 200,
+      "seconds": 0.11,
+      "type": "application/json",
+      "decoded_bytes": 1374,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "symbol",
+        "tv_symbol",
+        "price",
+        "change",
+        "change_abs",
+        "source",
+        "updated",
+        "levels"
+      ]
+    },
+    {
+      "path": "/api/whales/positions?market=XAUUSDm",
+      "status": 200,
+      "seconds": 0.09,
+      "type": "application/json",
+      "decoded_bytes": 616,
+      "encoding": "gzip",
+      "keys": [
+        "market",
+        "provider",
+        "scanner_version",
+        "threshold_usd",
+        "scan_seconds",
+        "max_tracked",
+        "coverage",
+        "discovery_sources",
+        "identity",
+        "status",
+        "message",
+        "contract",
+        "contract_label",
+        "positions",
+        "buy_count",
+        "sell_count",
+        "scanning",
+        "updated_at",
+        "wallets_checked",
+        "candidates_total"
+      ]
+    },
+    {
+      "path": "/api/whales/positions?market=BTCUSDTm",
+      "status": 200,
+      "seconds": 0.02,
+      "type": "application/json",
+      "decoded_bytes": 611,
+      "encoding": "gzip",
+      "keys": [
+        "market",
+        "provider",
+        "scanner_version",
+        "threshold_usd",
+        "scan_seconds",
+        "max_tracked",
+        "coverage",
+        "discovery_sources",
+        "identity",
+        "status",
+        "message",
+        "contract",
+        "contract_label",
+        "positions",
+        "buy_count",
+        "sell_count",
+        "scanning",
+        "updated_at",
+        "wallets_checked",
+        "candidates_total"
+      ]
+    },
+    {
+      "path": "/api/chart/candles?symbol=BTCUSDTm&tf=5m&count=50",
+      "status": 200,
+      "seconds": 0.41,
+      "type": "application/json",
+      "decoded_bytes": 3185,
+      "encoding": "gzip",
+      "keys": [
+        "symbol",
+        "tf",
+        "meta",
+        "bars"
+      ]
+    },
+    {
+      "path": "/api/chart/ticker?symbol=BTCUSDTm",
+      "status": 200,
+      "seconds": 0.0,
+      "type": "application/json",
+      "decoded_bytes": 216,
+      "encoding": "gzip",
+      "keys": [
+        "symbol",
+        "price",
+        "open24",
+        "change",
+        "high",
+        "low",
+        "vol",
+        "digits",
+        "unit",
+        "currency",
+        "updated_at",
+        "stale",
+        "source"
+      ]
+    },
+    {
+      "path": "/api/chart/tape?symbol=BTCUSDTm&limit=10",
+      "status": 200,
+      "seconds": 0.39,
+      "type": "application/json",
+      "decoded_bytes": 1777,
+      "encoding": "gzip",
+      "keys": [
+        "symbol",
+        "meta",
+        "prints",
+        "recent"
+      ]
+    },
+    {
+      "path": "/api/chart/tvquote?symbol=AAPLm",
+      "status": 200,
+      "seconds": 0.44,
+      "type": "application/json",
+      "decoded_bytes": 168,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "symbol",
+        "tv_symbol",
+        "price",
+        "change",
+        "high",
+        "low",
+        "updated",
+        "source"
+      ]
+    },
+    {
+      "path": "/api/chart/tvquote?symbol=USDTRYm",
+      "status": 200,
+      "seconds": 0.31,
+      "type": "application/json",
+      "decoded_bytes": 174,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "symbol",
+        "tv_symbol",
+        "price",
+        "change",
+        "high",
+        "low",
+        "updated",
+        "source"
+      ]
+    },
+    {
+      "path": "/api/chart/tvquote?symbol=ADAUSDm",
+      "status": 200,
+      "seconds": 0.33,
+      "type": "application/json",
+      "decoded_bytes": 173,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "symbol",
+        "tv_symbol",
+        "price",
+        "change",
+        "high",
+        "low",
+        "updated",
+        "source"
+      ]
+    },
+    {
+      "path": "/api/chart/tvcandles?symbol=XAUUSDm&tf=5m&count=50&tv_symbol=OANDA%3AXAUUSD",
+      "status": 200,
+      "seconds": 0.69,
+      "type": "application/json",
+      "decoded_bytes": 2955,
+      "encoding": "gzip",
+      "keys": [
+        "ok",
+        "symbol",
+        "tv_symbol",
+        "tf",
+        "source",
+        "updated",
+        "bars"
+      ]
+    }
+  ]
+}

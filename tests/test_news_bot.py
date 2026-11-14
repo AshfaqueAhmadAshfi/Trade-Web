@@ -68,6 +68,13 @@ class TestNewsBot(unittest.TestCase):
         self.sent = []
         self.ticket = 9000
 
+    def tearDown(self):
+        # Finish this test's public-candle worker while network mocks still
+        # apply, instead of leaving it to create futures during process exit.
+        worker = getattr(self.bot, "_public_ai_thread", None)
+        if worker is not None:
+            worker.join(timeout=5)
+
     # ------------------------------------------------------------- helpers
     def _mt5(self, m, positions=None, orders=None, rates_data=None, retcode=10009):
         m.TRADE_ACTION_DEAL = 1
@@ -261,7 +268,8 @@ class TestNewsBot(unittest.TestCase):
         bot.symbol = "XAUUSDm"
         now = time.time()
         bot.update_config({"min_impact": "high", "manual_events": [
-            {"title": "EU Low Watch", "currency": "EUR", "ts": now + 700, "impact": "low"},
+            {"title": "EU Low Watch", "currency": "EUR", "ts": now + 700, "impact": "low",
+             "forecast": 2.0, "previous": 1.0},
         ]})
         st = bot.status()
         row = next(n for n in st["news"] if n["title"] == "EU Low Watch")
@@ -286,7 +294,7 @@ class TestNewsBot(unittest.TestCase):
         self.assertEqual(st["news_total"], 452)
         self.assertIn("US CPI Flash", titles)
         self.assertIn("EU PMI Revision", titles)
-        self.assertEqual(len(st["news"]), 400)             # cap still holds
+        self.assertEqual(len(st["news"]), 452)             # next 24h rows are never truncated
         self.assertEqual(titles[0], "50-Year Bond Auction 0")  # chronological order kept
 
     def test_status_exposes_market_price_and_symbol_options(self):
@@ -653,11 +661,25 @@ class TestNewsBot(unittest.TestCase):
               "forecast": None, "previous": None, "actual": None, "source": "google-news"}]
         with patch.object(feed, "_fetch_tradingview", return_value=tv), \
                 patch.object(feed, "_fetch_forexfactory", return_value=[]), \
+                patch.object(feed, "_fetch_investing_calendar", return_value=[]), \
                 patch.object(feed, "_fetch_investing_rss", return_value=[]), \
+                patch.object(feed, "_fetch_exness_calendar", return_value=[]), \
+                patch.object(feed, "_fetch_exness_rss", return_value=[]), \
+                patch.object(feed, "_fetch_binance_calendar", return_value=[]), \
+                patch.object(feed, "_fetch_binance_headlines", return_value=[{
+                    "title":"Binance BTC notice", "ts":now-60, "country":"CRYPTO", "impact":"medium", "source":"binance"}]), \
                 patch.object(feed, "_fetch_yahoo_rss", return_value=[]), \
+                patch.object(feed, "_fetch_fxstreet", return_value=[]), \
+                patch.object(feed, "_fetch_forexlive", return_value=[]), \
+                patch.object(feed, "_fetch_actionforex", return_value=[]), \
+                patch.object(feed, "_fetch_cnbc", return_value=[]), \
+                patch.object(feed, "_fetch_marketwatch", return_value=[]), \
+                patch.object(feed, "_fetch_federal_reserve", return_value=[]), \
+                patch.object(feed, "_fetch_coindesk", return_value=[]), \
                 patch.object(feed, "_fetch_google_news", return_value=g):
             n = feed.fetch_once()
-        self.assertEqual(n, 2)
+        self.assertEqual(n, 3)
+        self.assertEqual(feed.source_counts.get("binance"), 1)
         self.assertEqual(feed.source_counts.get("google-news"), 1)
         self.assertEqual(feed.source_counts.get("tradingview"), 1)
         self.assertIn("google-news", feed.source)
@@ -693,7 +715,7 @@ class TestNewsBot(unittest.TestCase):
         bot.symbol = "XAUUSDm"
         now = time.time()
         bot.feed.events = [
-            {"title": "Gold jumps as Fed signals a cut", "country": "XAU", "ts": now - 2 * 3600,
+            {"title": "Gold jumps as Fed signals a cut", "country": "XAU", "ts": now - 60,
              "impact": "high", "forecast": None, "previous": None, "actual": None,
              "source": "google-news", "publisher": "Reuters"},
             {"title": "Old headline outside the window", "country": "XAU", "ts": now - 40 * 3600,
@@ -705,7 +727,7 @@ class TestNewsBot(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["source"], "google-news")
         self.assertEqual(rows[0]["publisher"], "Reuters")
-        self.assertGreater(rows[0]["expire_ts"], now)      # still inside the 12h window
+        self.assertGreater(rows[0]["expire_ts"], now)      # still inside its monitoring window
         self.assertTrue(rows[0]["impacted_markets"])       # direction is shown for it
         titles = [r["title"] for r in st["news"]]
         self.assertNotIn("Old headline outside the window", titles)

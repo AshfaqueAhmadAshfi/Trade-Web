@@ -34,10 +34,15 @@
   const totals = {};
   const LIVE_WINDOW_MS = 45000;
   let selectedSymbol = '';
+  let selectedMarket = '';
+  let marketGeneration = 0;
   let sockets = {};
   let pollTimer = null;
 
   const $ = id => document.getElementById(id);
+  const priceFormat = new Intl.NumberFormat('en-US', {maximumFractionDigits: 5});
+  const qtyFormat = new Intl.NumberFormat('en-US', {maximumFractionDigits: 6});
+  const timeFormat = new Intl.DateTimeFormat(undefined, {hour: 'numeric', minute: '2-digit', second: '2-digit'});
   const compact = n => {
     n = Number(n) || 0;
     if (n >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
@@ -62,9 +67,13 @@
   function venueBreakdown() {
     return EXCHANGES.reduce((out, ex) => {
       const s = state(ex.id);
+      pruneLiveTrades(s);
       recalculate(s);
-      out.push({ id: ex.id, name: ex.name, buy: s.buy, sell: s.sell,
-                 pair: s.pair || '' });
+      const live = (sockets[ex.id] && sockets[ex.id].readyState === 1) ||
+        Date.now() - (s.lastPollAt || 0) < 15000 || Date.now() - (s.lastDataAt || 0) < 15000;
+      out.push({ id: ex.id, name: ex.name, buy: s.buy, sell: s.sell, pair: s.pair || '',
+        count: s.trades.length, price: s.lastPrice || 0, updatedAt: s.lastPollAt || s.lastDataAt || 0,
+        status: !s.pair ? 'NO PAIR' : live ? (s.trades.length ? 'LIVE' : 'QUIET') : s.lastError ? 'UNAVAILABLE' : 'CONNECTING' });
       return out;
     }, []);
   }
@@ -84,10 +93,13 @@
     }
     try {
       const volume = bridge.getTotals() || {};
+      if (symbolKey(volume.symbol) !== selectedSymbol) return {buy:0,sell:0,pair:"",status:"CONNECTING"};
       return {
         buy: Number(volume.buy) || 0,
         sell: Number(volume.sell) || 0,
-        pair: String(volume.symbol || '')
+        pair: symbolKey(volume.symbol) === selectedSymbol ? String(volume.pair || '') : '',
+        status: symbolKey(volume.symbol) === selectedSymbol ? volume.status || 'CONNECTING' : 'CONNECTING',
+        count: volume.count || 0, updatedAt: volume.updatedAt || 0
       };
     } catch (e) {
       return { buy: 0, sell: 0, pair: '' };
@@ -118,7 +130,7 @@
     const binance = binanceVolumes();
     rows.push({
       id: 'binance', name: 'BINANCE', buy: binance.buy, sell: binance.sell,
-      pair: binance.pair, extra: true
+      pair: binance.pair, status: binance.status, count: binance.count, updatedAt: binance.updatedAt, extra: true
     });
     const traders = traderVolumes();
     rows.push({
@@ -130,7 +142,7 @@
 
   function openTotals() {
     const breakdown = sourceBreakdown();
-    const totals = breakdown.reduce((out, source) => {
+    const totals = breakdown.filter(source => source.id !== 'traders').reduce((out, source) => {
       out.buy += source.buy;
       out.sell += source.sell;
       return out;
@@ -199,6 +211,7 @@
   }
 
   function updateBoard() {
+    if (document.hidden) return;
     const ui = boardUi();
     if (!ui) return;
     const totals = openTotals();
@@ -230,7 +243,7 @@
       if (row.pct) {
         if (entry.id === 'traders') row.pct.textContent = entry.count ? entry.count + ' POS' : 'NO POS';
         else if (!live) row.pct.textContent = entry.id === 'binance' ? 'WAITING' : 'NO PAIR';
-        else row.pct.textContent = pct + '% BUY';
+        else row.pct.textContent = ['UNAVAILABLE','CONNECTING','QUIET'].includes(entry.status) ? entry.status : pct + '% BUY';
       }
       if (row.buy) row.buy.textContent = compact(entry.buy);
       if (row.sell) row.sell.textContent = compact(entry.sell);
@@ -240,12 +253,18 @@
     if (ui.updated) ui.updated.textContent = 'UPDATED ' + new Date().toLocaleTimeString();
     // Public aggregate for chart-workspace.js. This identifies pressure, not
     // the owner of anonymous exchange prints; never label it as a company.
+    // `breakdown` carries every venue's own BUY / SELL dollars so the
+    // 12-venue terminal beside the sessions board can draw its table.
     window.dispatchEvent(new CustomEvent('orderflow:update', {
-      detail: { symbol: selectedSymbol, buy: totals.buy, sell: totals.sell, buyPct, sellPct }
+      detail: {
+        symbol: selectedMarket, buy: totals.buy, sell: totals.sell, buyPct, sellPct,
+        breakdown: totals.breakdown
+      }
     }));
   }
 
   function render(id, withTape) {
+    if (document.hidden) return;
     if (withTape === undefined) withTape = true;
     const s = state(id);
     pruneLiveTrades(s);
@@ -254,14 +273,8 @@
     set(`mof-${id}-sell`, compact(s.sell));
     // A single exchange WebSocket can stay down while its REST poll keeps
     // answering; the badge follows the data, not the socket only.
-    const live = s.connected
-      || (Date.now() - (s.lastDataAt || 0) < 10000)
-      || (Date.now() - (s.lastPollAt || 0) < 10000);
-    // A venue can be perfectly healthy and still have no print in the last
-    // 45 seconds (Gemini on a quiet Saturday, for example). Say QUIET instead
-    // of pretending the socket is still connecting.
-    set(`mof-${id}-status`, !s.pair ? 'NO PAIR'
-      : (live ? (s.trades.length ? 'CONNECTED' : 'QUIET') : 'CONNECTING'));
+    const live = (sockets[id] && sockets[id].readyState === 1) || Date.now() - (s.lastPollAt || 0) < 15000;
+    set(`mof-${id}-status`, !s.pair ? 'NO PAIR' : live ? (s.trades.length ? 'CONNECTED' : 'QUIET') : s.lastError ? 'UNAVAILABLE' : 'CONNECTING');
     const total = s.buy + s.sell;
     set(`mof-${id}-buy-pct`, total ? Math.round(s.buy / total * 100) + '%' : '0%');
     set(`mof-${id}-sell-pct`, total ? Math.round(s.sell / total * 100) + '%' : '0%');
@@ -276,14 +289,18 @@
         '|' + (last ? last.ts : '');
       if (key !== s.tapeKey) {
         s.tapeKey = key;
-        tape.innerHTML = s.trades.slice(0, 60).map(tr => `
+        const rows = s.trades.slice(0, 60);
+        const rowHtml = tr => `
           <div class="mof-row ${tr.side === 'BUY' ? 'buy' : 'sell'}">
-            <span>${new Date(tr.ts).toLocaleTimeString()}</span>
+            <span>${timeFormat.format(tr.ts)}</span>
             <b>${tr.side}</b>
-            <span>${Number(tr.price).toLocaleString('en-US', { maximumFractionDigits: 5 })}</span>
-            <span>${Number(tr.qty).toLocaleString('en-US', { maximumFractionDigits: 6 })}</span>
-            <strong>${compact(tr.value)} <small>OPEN</small></strong>
-          </div>`).join('');
+            <span>${priceFormat.format(Number(tr.price))}</span>
+            <span>${qtyFormat.format(Number(tr.qty))}</span>
+            <strong>${compact(tr.value)} <small>EXECUTED</small></strong>
+          </div>`;
+        if (window.LiveTapeRenderer) window.LiveTapeRenderer.render(tape, rows,
+          tr => s.pair + '|' + tr.id, rowHtml, '');
+        else tape.innerHTML = rows.map(rowHtml).join('');
       }
     }
   }
@@ -297,6 +314,11 @@
     renderTimers[id] = setTimeout(() => {
       delete renderTimers[id];
       render(id);
+      const current = state(id), batch = current.pendingTrades || [];
+      current.pendingTrades = [];
+      if (batch.length) window.dispatchEvent(new CustomEvent('orderflow:prints', {
+        detail: { symbol: selectedMarket, venue: id, pair: current.pair, trades: batch }
+      }));
       const bridge = window.BinanceOrderFlowBridge;
       if (bridge && typeof bridge.refresh === 'function') bridge.refresh();
     }, 40);
@@ -314,9 +336,17 @@
 
   function close(id) {
     if (sockets[id]) {
-      sockets[id].onclose = null;
-      try { sockets[id].close(); } catch (e) {}
+      const old = sockets[id];
       delete sockets[id];
+      old.onmessage = old.onerror = old.onclose = null;
+      // Let a pending handshake finish before closing it. Closing CONNECTING
+      // sockets causes Chrome's "closed before ... established" warning.
+      old.onopen = null;
+      if (old.readyState === 0) {
+        old.onopen = () => { old.onopen = null; old.close(); };
+      } else if (old.readyState === 1) {
+        old.close();
+      }
     }
   }
 
@@ -327,86 +357,43 @@
     if (tradeId && s.seen.has(String(tradeId))) return;
     if (tradeId) {
       s.seen.add(String(tradeId));
-      if (s.seen.size > 1200) s.seen.delete(s.seen.values().next().value);
+      if (s.seen.size > 30000) s.seen.delete(s.seen.values().next().value);
     }
     // Kraken's REST feed encodes the taker side as 'b'/'s' while the other
     // exchanges send 'buy'/'sell' or 'Buy'/'Sell'. Classify by the first
     // letter, or every Kraken buy was booked as a sell and its BUY total
     // stayed empty while the tape showed a BUY row.
-    const isBuy = String(side).toUpperCase().charAt(0) === 'B';
-    s[isBuy ? 'buy' : 'sell'] += value;
-    s.connected = true;
-    s.lastDataAt = Date.now();
-    // Use the exchange's own print time so a first poll of old history can
-    // never masquerade as 45 seconds of fresh order flow.
+    const direction = String(side).toUpperCase();
     const when = Number(ts);
-    s.trades.unshift({
-      side: isBuy ? 'BUY' : 'SELL',
-      price: Number(price),
-      qty: Number(qty),
-      value,
-      ts: Number.isFinite(when) && when > 0 ? when : Date.now()
-    });
-    if (s.trades.length > 500) s.trades.length = 500;
+    if (!['BUY','SELL','B','S'].includes(direction) || !Number.isFinite(when) || when <= 0 || when > Date.now() + 5000) return;
+    const isBuy = direction.charAt(0) === 'B';
+    s.lastDataAt = Date.now();
+    const trade = { id: tradeId || [when,direction,price,qty].join('|'), side: isBuy ? 'BUY' : 'SELL',
+      price: Number(price), qty: Number(qty), value, ts: when };
+    s.trades.unshift(trade);
+    (s.pendingTrades || (s.pendingTrades = [])).push(trade);
+    if (when >= (s.lastTradeAt || 0)) { s.lastTradeAt = when; s.lastPrice = trade.price; }
+    if (s.trades.length > 20000) s.trades.length = 20000;
     scheduleRender(id);
   }
 
   async function pollTrades(ex, pair) {
-    const s = state(ex.id);
-    if (ex.proxy) {
-      try {
-        const market = selectedSymbol || 'BTC';
-        const url = `/api/orderflow/trades?venue=${encodeURIComponent(ex.id)}` +
-          `&market=${encodeURIComponent(market)}&limit=80`;
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) return;
-        const data = await response.json();
-        s.lastPollAt = Date.now();
-        (Array.isArray(data.trades) ? data.trades : []).forEach(tr =>
-          addTrade(ex.id, tr.side, tr.price, tr.qty, tr.id, tr.ts));
-        render(ex.id);
-      } catch (e) {}
-      return;
-    }
-    const urls = {
-      coinbase: `https://api.exchange.coinbase.com/products/${encodeURIComponent(pair)}/trades`,
-      kraken: `https://api.kraken.com/0/public/Trades?pair=${encodeURIComponent(pair.replace('/', ''))}`,
-      okx: `https://www.okx.com/api/v5/market/trades?instId=${encodeURIComponent(pair)}&limit=100`,
-      bitget: `https://api.bitget.com/api/v2/spot/market/fills?symbol=${encodeURIComponent(pair)}&limit=100`,
-      gate: `https://api.gateio.ws/api/v4/spot/trades?currency_pair=${encodeURIComponent(pair)}&limit=100`,
-      bybit: `https://api.bybit.com/v5/market/recent-trade?category=spot&symbol=${encodeURIComponent(pair)}&limit=60`
-    };
+    if (document.hidden) return;
+    const s = state(ex.id), generation = marketGeneration, market = selectedMarket;
+    if (s.pollBusy) return;
+    s.pollBusy = true;
     try {
-      const response = await fetch(urls[ex.id], { cache: 'no-store' });
-      if (!response.ok) return;
-      // A quiet market can answer with no new prints; the poll itself still
-      // proves the terminal is alive.
-      s.lastPollAt = Date.now();
+      const response = await fetch(`/api/orderflow/trades?venue=${encodeURIComponent(ex.id)}&market=${encodeURIComponent(market)}&limit=100`,
+        { cache:'no-store', signal:AbortSignal.timeout(12000) });
+      if (generation !== marketGeneration || pair !== s.pair) return;
+      if (!response.ok) { s.lastError = 'HTTP ' + response.status; return; }
       const data = await response.json();
-      if (ex.id === 'coinbase') {
-        (Array.isArray(data) ? data : []).slice().reverse().forEach(tr =>
-          addTrade(ex.id, String(tr.side).toUpperCase(), tr.price, tr.size, tr.trade_id, Date.parse(tr.time)));
-      } else if (ex.id === 'kraken') {
-        const result = data && data.result ? data.result : {};
-        Object.keys(result).filter(key => key !== 'last').forEach(key =>
-          (result[key] || []).forEach(tr =>
-            addTrade(ex.id, String(tr[3]).toUpperCase(), tr[0], tr[1], tr[6], Number(tr[2]) * 1000)));
-      } else if (ex.id === 'okx') {
-        (data.data || []).slice().reverse().forEach(tr =>
-          addTrade(ex.id, String(tr.side).toUpperCase(), tr.px, tr.sz, tr.tradeId, Number(tr.ts)));
-      } else if (ex.id === 'bitget') {
-        (data.data || []).slice().reverse().forEach(tr =>
-          addTrade(ex.id, String(tr.side).toUpperCase(), tr.price, tr.size, tr.tradeId, Number(tr.ts)));
-      } else if (ex.id === 'gate') {
-        (Array.isArray(data) ? data : []).slice().reverse().forEach(tr =>
-          addTrade(ex.id, String(tr.side).toUpperCase(), tr.price, tr.amount, tr.id, Number(tr.create_time_ms)));
-      } else if (ex.id === 'bybit') {
-        const rows = (data && data.result && Array.isArray(data.result.list)) ? data.result.list : [];
-        rows.slice().reverse().forEach(tr =>
-          addTrade(ex.id, String(tr.side).toUpperCase() === 'SELL' ? 'SELL' : 'BUY', tr.price, tr.size,
-                   tr.execId, Number(tr.time)));
-      }
-    } catch (e) {}
+      if (generation !== marketGeneration || pair !== s.pair || data.pair !== pair) return;
+      s.lastPollAt = Date.now(); s.lastError = '';
+      (Array.isArray(data.trades) ? data.trades : []).forEach(t => addTrade(ex.id,t.side,t.price,t.qty,t.id,t.ts));
+      render(ex.id);
+    } catch (e) { if (generation === marketGeneration) s.lastError = 'Feed unavailable'; }
+    finally { if (generation === marketGeneration) s.pollBusy = false; }
   }
 
   function startPolling() {
@@ -443,11 +430,13 @@
       ws.send(JSON.stringify({ type: 'subscribe', channel: 'market_trades', product_ids: [pair] }));
       state(id).connected = true; render(id);
     };
+    const generation = marketGeneration;
     ws.onmessage = event => {
+      if (generation !== marketGeneration) return;
       try {
         const msg = JSON.parse(event.data);
         (msg.events || []).forEach(ev => (ev.trades || []).forEach(tr => {
-          addTrade(id, String(tr.side).toUpperCase() === 'SELL' ? 'SELL' : 'BUY', tr.price, tr.size,
+          addTrade(id, String(tr.side).toUpperCase() === 'SELL' ? 'BUY' : 'SELL', tr.price, tr.size,
                    tr.trade_id, Date.parse(tr.time));
         }));
       } catch (e) {}
@@ -461,7 +450,9 @@
       ws.send(JSON.stringify({ method: 'subscribe', params: { channel: 'trade', symbol: [pair] } }));
       state(id).connected = true; render(id);
     };
+    const generation = marketGeneration;
     ws.onmessage = event => {
+      if (generation !== marketGeneration) return;
       try {
         const msg = JSON.parse(event.data);
         // Keep the exchange trade id: the REST poll returns the same trades,
@@ -479,7 +470,9 @@
       ws.send(JSON.stringify({ op: 'subscribe', args: [{ channel: 'trades', instId: pair }] }));
       state(id).connected = true; render(id);
     };
+    const generation = marketGeneration;
     ws.onmessage = event => {
+      if (generation !== marketGeneration) return;
       try {
         const msg = JSON.parse(event.data);
         (msg.data || []).forEach(tr => addTrade(id, tr.side === 'sell' ? 'SELL' : 'BUY', tr.px, tr.sz,
@@ -493,8 +486,12 @@
     const nextKey = symbolKey(symbol);
     // The chart fires chart:market for the same market more than once while
     // it boots; reconnecting every exchange each time only churns sockets.
-    if (nextKey === selectedSymbol && Object.keys(sockets).length) return;
-    selectedSymbol = nextKey;
+    if (nextKey === selectedSymbol && (nextKey || selectedMarket === String(symbol || ''))) {
+      selectedMarket = String(symbol || '');
+      updateBoard();
+      return;
+    }
+    selectedSymbol = nextKey; selectedMarket = String(symbol || ''); marketGeneration++;
     EXCHANGES.forEach(ex => {
       close(ex.id);
       const s = state(ex.id);
@@ -506,9 +503,10 @@
       s.pair = ex.pairs[selectedSymbol] || '';
       s.connected = false;
       s.lastDataAt = 0;
-      s.lastPollAt = 0;
+      s.lastPollAt = 0; s.lastError = ''; s.pollBusy = false; s.pendingTrades = []; s.lastTradeAt = 0; s.lastPrice = 0;
       render(ex.id);
       if (!s.pair) return;
+      pollTrades(ex, s.pair);
       if (ex.id === 'coinbase') connectCoinbase(s.pair, ex.id);
       if (ex.id === 'kraken') connectKraken(s.pair, ex.id);
       if (ex.id === 'okx') connectOkx(s.pair, ex.id);

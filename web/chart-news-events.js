@@ -101,6 +101,7 @@
     const out = [];
     for (let i = 0; i < events.length; i++) {
       const e = events[i];
+      if (window.DashboardPanels.newsPhase(e, nowSec) !== 'upcoming') continue;
       if (e.ts < nowSec - 300 || e.ts > nowSec + LIST_HORIZON_SEC) continue;
       out.push(e);
     }
@@ -115,6 +116,7 @@
     const out = [];
     for (let i = 0; i < events.length; i++) {
       const e = events[i];
+      if (window.DashboardPanels.newsPhase(e, nowSec) !== 'running') continue;
       if (e.ts > nowSec || e.ts < nowSec - PAST_WINDOW_SEC) continue;
       if (firstCandleTs && e.ts < firstCandleTs) continue;
       if (e.impact === 'low') continue;
@@ -137,13 +139,16 @@
   }
 
   async function refreshNews() {
-    if (fetching) return;
+    const access = window.SoftradeXStateAccess;
+    if (!access || !access.ready || fetching) return;
+    const revision = access.revision;
     fetching = true;
     try {
       const res = await fetch('/api/state' + (haveSig ? '?have=' + encodeURIComponent(haveSig) : ''),
         { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const st = await res.json();
+      if (!access.ready || access.revision !== revision) return;
       const rows = (st && st.bot5 && Array.isArray(st.bot5.news)) ? st.bot5.news : null;
       // A poll that answers "news_omitted" (the cPanel-safe state feed leaves
       // out the 1 MB calendar when the browser already holds it) must not be
@@ -159,10 +164,13 @@
         const ts = Number(r && r.ts);
         if (!(ts > 0)) continue;
         next.push({
+          ...r,
           ts: ts,
           title: String(r.title || r.event || '—'),
           currency: String(r.currency || ''),
           impact: String(r.impact || 'low').toLowerCase(),
+          kind: window.DashboardPanels.newsKind(r),
+          impact_window_sec: window.DashboardPanels.impactSeconds(r),
           side: r.side || '',
           impacted: Array.isArray(r.impacted_markets) ? r.impacted_markets : [],
           forecast: r.forecast || '',
@@ -177,6 +185,7 @@
       // Keep the last good calendar; the chart simply redraws it.
     } finally {
       fetching = false;
+      if (access.ready && access.revision !== revision) void refreshNews();
     }
   }
 
@@ -237,6 +246,7 @@
     let n = 0;
     for (let i = 0; i < events.length && n < 2; i++) {
       const e = events[i];
+      if (window.DashboardPanels.newsPhase(e, nowSec) === 'expired' || e.kind === 'headline') continue;
       if (e.ts < nowSec - 60 || e.ts > nowSec + HORIZON_SEC || e.impact === 'low') continue;
       const imp = impactFor(e, args.symbol);
       const dist = moveAbs(imp);
@@ -446,6 +456,7 @@
     const markSources = [];
     for (let i = 0; i < events.length && markSources.length < 6; i++) {
       const e = events[i];
+      if (window.DashboardPanels.newsPhase(e, nowSec) === 'expired' || e.kind === 'headline') continue;
       if (e.ts < nowSec - 60 || e.ts > nowSec + HORIZON_SEC || e.impact === 'low') continue;
       if (!impactFor(e, v.symbol)) continue;
       markSources.push(e);
@@ -545,6 +556,17 @@
   window.ChartNewsOverlay = {
     laneWidth, draw, priceBounds, refresh: refreshNews, getEvents: () => events.slice(),
   };
+
+  window.addEventListener('softradex:state-access', () => {
+    if (window.SoftradeXStateAccess && window.SoftradeXStateAccess.ready) {
+      void refreshNews();
+    } else {
+      events = [];
+      haveSig = '';
+      upcomingCount = 0;
+      repaint();
+    }
+  });
 
   refreshNews();
   setInterval(refreshNews, REFRESH_MS);

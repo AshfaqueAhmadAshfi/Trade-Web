@@ -1,0 +1,580 @@
+{
+  "summary": {
+    "python-syntax": 68,
+    "javascript-syntax": 44,
+    "html-assets-ids-inline-syntax": 2
+  },
+  "failures": 0,
+  "files": [
+    {
+      "file": "backend/__init__.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/app.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/binance_news.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/cache_io.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/chart_feed.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/config.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/engine.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/entry_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/extreme_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/market_ai.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/market_watch.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/mt5_client.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/news_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/news_sources.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/order_flow_feed.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/pretrade_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/public_feed.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/reversal_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/session_store.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/sessions.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/stats.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/store.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/trend_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/tv_feed.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/webauth.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "backend/whale_positions.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "diagnose.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "passenger_wsgi.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "serve_cpanel_local.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "test_api.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "test_wsgi.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/conftest.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/cpanel-feeds.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/dashboard-panels.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/dashboard-runtime.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/indicator-price-feed.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/news-drawer.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/news-swing.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/private-calendar.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/public-whale-feed.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/run_tests.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/running-news-alert.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/site-performance.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/swing-directions.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_api_only.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_binance_news.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_chart_feed.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_cpanel_package.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_cpanel_wsgi.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_entry_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_extreme_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_market_ai.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_market_watch.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_mt5_heal.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_news_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_news_lifecycle.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_news_sources.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_order_flow_feed.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_passenger_sessions.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_pretrade_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_public_feed.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_reversal_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_runtime_regressions.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_sessions.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_store_stats.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_trend_bot.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_webauth.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/test_whale_positions.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/traders-market-sync.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tests/whale-positions.test.cjs",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/_dedupe_css.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/_inspect.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/_inspect_exposure.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/audit_project.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/build_cpanel.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/check_cpanel_live.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/check_news.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/check_runtime.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/check_wiring.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "tools/patch_exposure_unknown.py",
+      "check": "python-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/about-me.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/access.html",
+      "check": "html-assets-ids-inline-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/access.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/app.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/binance-order-flow-terminal.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/binance-terminal.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/candle-bg.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/chart-indicators.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/chart-news-events.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/chart-overlay.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/chart-workspace.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/contact.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/dashboard-navigation.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/dashboard-panels.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/extreme-levels.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/index.html",
+      "check": "html-assets-ids-inline-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/live-tape-renderer.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/market-outlook-data.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/multi-exchange-order-flow.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/news-direction.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/news-list-renderer.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/public-whale-feed.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/running-news-alert.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/setups-strip.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/softradex-terminal.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/stop-liquidity.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/swing-ai.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/traders-terminal.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/tv-chart.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/tv-setups.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/venues-flow-terminal.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/whale-flow.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/whale-positions.js",
+      "check": "javascript-syntax",
+      "ok": true
+    }
+  ]
+}

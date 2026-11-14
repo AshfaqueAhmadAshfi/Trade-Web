@@ -21,7 +21,7 @@
    Why a port: the hosted TradingView embed refuses custom Pine ("It is not
    possible to add pine scripts to widgets at this time"), and a cross-origin
    iframe cannot be painted into. The panes therefore read the same
-   /api/chart/candles series the chart uses and share its bar geometry
+   TradingView instrument's /api/chart/tvcandles series and share its bar geometry
    (chart:geometry), so every study lines up with the candles.
 
    Nothing here invents prices: with no bars the panes stay empty.
@@ -29,10 +29,23 @@
 (function () {
   'use strict';
 
-  var STORE_KEY = 'softradex.chart.ind';
+  var STORE_KEY = 'softradex.chart.ind2';   // v2: the study bar now opens with MSB · OB on
   var TF_SECONDS = { '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '4h': 14400, '1d': 86400 };
   var CANDLE_COUNT = 500;
-  var REFRESH_MS = 60000;
+  var REFRESH_MS = 15000;
+  var paneSizes = new WeakMap();
+  var paneObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(function (entries) {
+    var changed = false;
+    entries.forEach(function (entry) {
+      var width = Math.round(entry.contentRect.width), height = Math.round(entry.contentRect.height);
+      var previous = paneSizes.get(entry.target);
+      if (!previous || previous.width !== width || previous.height !== height) {
+        paneSizes.set(entry.target, {width: width, height: height});
+        changed = true;
+      }
+    });
+    if (changed) schedule();
+  }) : null;
 
   var INDICATORS = [
     {
@@ -56,6 +69,7 @@
   ];
 
   var COLORS = {
+    background: '#ffffff',
     up: '#089981',
     upFill: 'rgba(8, 153, 129, 0.16)',
     upLine: 'rgba(8, 153, 129, 0.75)',
@@ -71,15 +85,34 @@
   /* ------------------------------------------------------------ state ---- */
   var enabled = {};
   (function restore() {
+    var saved = null;
+    try { saved = localStorage.getItem(STORE_KEY); } catch (e) { /* private mode */ }
+    // First visit: the chart opens with the market-structure study already on,
+    // so the site lands on candles + MSB / OB instead of a bare chart. A saved
+    // choice (including "everything off") is always respected - with no study
+    // on, the TradingView chart is what shows.
+    if (saved === null) {
+      enabled.msb = true;
+      savePrefs();
+      return;
+    }
     try {
-      var raw = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+      var raw = JSON.parse(saved || '[]');
       if (Array.isArray(raw)) raw.forEach(function (id) { enabled[String(id)] = true; });
-    } catch (e) { /* a broken preference simply starts clean */ }
+    } catch (e) {
+      enabled.msb = true;
+    }
   })();
 
   var bars = [];              // [{ t, o, h, l, c, v }] oldest -> newest
   var dataSymbol = '';
   var dataTf = '';
+  var dataInstrument = '';
+  var dataError = '';
+  var barsRequest = null;
+  var barsRequestKey = '';
+  var livePrice = 0;
+  var livePriceAt = 0;
   var dataToken = 0;
   var loading = false;
   var refreshTimer = null;
@@ -88,7 +121,9 @@
   var stack = null;           // #chart-indicator-stack
   // shared viewport for every pane: how many bars are in view and how far
   // back the reader panned (TradingView style wheel zoom + drag pan)
-  var view = { bars: 140, offset: 0 };
+  // 78 bars fills the pane like a TradingView chart; 140 made every candle a
+  // hairline. offset 0 = the newest bar sits on the right edge.
+  var view = { bars: 78, offset: 0 };
   var MIN_BARS = 24;
   var MAX_BARS = 420;
   var rafPending = false;
@@ -133,6 +168,33 @@
   }
 
   /* ------------------------------------------------------------- data ---- */
+  function mappedInstrument(symbol) {
+    var host = window.TvChartHost;
+    var terminal = window.SoftradeXTerminal || window.BinanceTerminal;
+    var meta = terminal && terminal.MARKETS && terminal.MARKETS[symbol];
+    return host && typeof host.symbolFor === 'function' ? host.symbolFor(symbol, meta || {}) : '';
+  }
+
+  function acceptQuote(q) {
+    if (!dataInstrument || !q || q.symbol !== dataSymbol || q.tv_symbol !== dataInstrument ||
+        currentSymbol() !== dataSymbol || currentTf() !== dataTf) return false;
+    var price = Number(q.price), at = Number(q.at), now = Date.now();
+    if (!(price > 0) || !isFinite(price) || !at || at < livePriceAt ||
+        now - at > 25000 || at > now + 2000) return false;
+    livePrice = price;
+    livePriceAt = at;
+    // Scanner timestamps are fetch times, not exchange tick times. Update only
+    // an existing open candle; never manufacture a weekend or gap candle.
+    var last = bars[bars.length - 1];
+    if (last && Math.floor(at / (tfSeconds() * 1000)) * tfSeconds() * 1000 === last.t) {
+      bars = bars.slice();
+      bars[bars.length - 1] = { t: last.t, o: last.o, h: Math.max(last.h, price),
+        l: Math.min(last.l, price), c: price, v: last.v };
+    }
+    schedule();
+    return true;
+  }
+
   function normalise(rows) {
     if (!Array.isArray(rows)) return [];
     var out = [];
@@ -153,24 +215,53 @@
     var symbol = currentSymbol();
     var tf = currentTf();
     if (!symbol) return;
+    var instrument = mappedInstrument(symbol);
+    var key = symbol + '|' + tf + '|' + instrument;
+    if (barsRequest && barsRequestKey === key) return;
+    if (barsRequest) barsRequest.abort();
     var token = ++dataToken;
+    var controller = new AbortController();
+    barsRequest = controller;
+    barsRequestKey = key;
+    if (dataSymbol !== symbol || dataTf !== tf || dataInstrument !== instrument) {
+      bars = [];
+      livePrice = livePriceAt = 0;
+    }
+    dataSymbol = symbol;
+    dataTf = tf;
+    dataInstrument = instrument;
+    dataError = '';
     loading = true;
-    fetch('/api/chart/candles?symbol=' + encodeURIComponent(symbol) +
-      '&tf=' + encodeURIComponent(tf) + '&count=' + CANDLE_COUNT, { cache: 'no-store' })
+    syncButtons();
+    schedule();
+    var timeout = setTimeout(function () { controller.abort(); }, 25000);
+    var url = (instrument ? '/api/chart/tvcandles' : '/api/chart/candles') +
+      '?symbol=' + encodeURIComponent(symbol) + '&tf=' + encodeURIComponent(tf) + '&count=' + CANDLE_COUNT;
+    if (instrument) url += '&tv_symbol=' + encodeURIComponent(instrument);
+    fetch(url, { cache: 'no-store', signal: controller.signal })
       .then(function (response) { return response.ok ? response.json() : null; })
       .then(function (data) {
-        if (token !== dataToken) return;
-        loading = false;
+        if (token !== dataToken || symbol !== currentSymbol() || tf !== currentTf()) return;
+        if (instrument && (!data || !data.ok || data.symbol !== symbol ||
+            data.tf !== tf || data.tv_symbol !== instrument)) throw new Error('TradingView candles unavailable');
         var next = normalise(data && data.bars);
-        if (!next.length) return;
+        if (!next.length) throw new Error('Candles unavailable');
         bars = next;
-        dataSymbol = symbol;
-        dataTf = tf;
+        acceptQuote(window.SOFT_TV_QUOTE);
         schedule();
       })
       .catch(function () {
-        if (token === dataToken) loading = false;
-        // keep the last good series: the chart itself shows the outage
+        if (token !== dataToken) return;
+        dataError = instrument ? 'TradingView candles unavailable' : 'Market candles unavailable';
+        // Keep only this instrument's cached bars. No proxy-feed fallback.
+      })
+      .finally(function () {
+        clearTimeout(timeout);
+        if (token !== dataToken) return;
+        barsRequest = null;
+        loading = false;
+        syncButtons();
+        schedule();
       });
   }
 
@@ -553,7 +644,7 @@
     var wantBack = isFinite(view.offset) ? Math.max(0, view.offset) : 0;
     var visible = Math.max(8, Math.min(wantBars, total));
     var slot = chartW / Math.max(8, visible);
-    var rightEdgeX = chartW - 2 * slot;
+    var rightEdgeX = chartW - slot;
     var end = Math.max(visible, Math.min(total, total - wantBack));
     var start = Math.max(0, Math.min(end, total) - visible);
 
@@ -567,12 +658,16 @@
       if (bars[i].l < min) min = bars[i].l;
       if (bars[i].h > max) max = bars[i].h;
     }
+    if (end === total && livePrice > 0) {
+      min = Math.min(min, livePrice);
+      max = Math.max(max, livePrice);
+    }
     if (!isFinite(min) || !isFinite(max) || max <= min) {
       min = isFinite(min) ? min * 0.999 : 0;
       max = isFinite(max) ? max * 1.001 : 1;
       if (max <= min) max = min + 1;
     }
-    var pad = (max - min) * 0.10;
+    var pad = (max - min) * 0.04;   // tighter price band = bigger candles
     var plotMin = min - pad;
     var plotMax = max + pad;
     var plotH = Math.max(20, h - padT - padB);
@@ -651,6 +746,79 @@
       c.fillStyle = up ? 'rgba(8, 153, 129, 0.9)' : 'rgba(242, 54, 69, 0.9)';
       c.fillRect(x - barW / 2, top, barW, height);
     }
+  }
+
+  function drawLivePrice(c, v, digits) {
+    if (!livePrice || v.end !== bars.length) return;
+    var y = v.yOf(livePrice);
+    var last = bars[bars.length - 1];
+    var color = last && livePrice < last.o ? COLORS.down : COLORS.up;
+    line(c, 0, y, v.chartW, y, color, 1, [3, 3]);
+    c.save();
+    c.fillStyle = color;
+    c.fillRect(v.chartW, y - 8, v.axisW, 16);
+    c.font = '600 9px "JetBrains Mono", monospace';
+    c.textAlign = 'left';
+    c.textBaseline = 'middle';
+    c.fillStyle = '#ffffff';
+    c.fillText(livePrice.toFixed(digits), v.chartW + 3, y);
+    c.restore();
+  }
+
+  function liquidityLevels() {
+    var engine = window.StopLiquidity;
+    if (!engine || typeof engine.state !== 'function') return [];
+    var state = engine.state();
+    if (!state || state.symbol !== dataSymbol || state.tvSymbol !== dataInstrument || !dataInstrument ||
+        currentSymbol() !== dataSymbol || currentTf() !== dataTf) return [];
+    // Exactly the top four BUY and SELL levels shown by the side panel.
+    return (state.visibleZones || []).filter(function (z) {
+      return (z.side === 'buy' || z.side === 'sell') && isFinite(Number(z.price)) && Number(z.price) > 0;
+    }).map(function (z) {
+      return {id:z.id, side:z.side, price:Number(z.price), touches:z.touches, fresh:state.fresh};
+    });
+  }
+
+  function drawLiquidityZones(c, v, digits) {
+    var levels = liquidityLevels();
+    if (!levels.length) return;
+    var top = v.padT + 9, bottom = v.padT + v.plotH - 9;
+    var rows = levels.map(function (z) {
+      var y = v.yOf(z.price);
+      return {zone:z, y:y, target:Math.max(top, Math.min(bottom, y)), labelY:0};
+    }).sort(function (a,b) {return a.target-b.target || b.zone.price-a.zone.price;});
+    var gap = Math.min(18, (bottom-top) / Math.max(1, rows.length-1));
+    rows.forEach(function (r,i) { r.labelY = Math.max(r.target, i ? rows[i-1].labelY+gap : top); });
+    rows[rows.length-1].labelY = Math.min(bottom, rows[rows.length-1].labelY);
+    for (var i=rows.length-2; i>=0; i--) rows[i].labelY = Math.min(rows[i].labelY, rows[i+1].labelY-gap);
+    rows.forEach(function (r) {
+      var z = r.zone, color = z.side === 'buy' ? COLORS.up : COLORS.down;
+      var inRange = r.y >= v.padT && r.y <= v.padT+v.plotH;
+      var price = z.price.toLocaleString('en-US', {minimumFractionDigits:digits, maximumFractionDigits:digits});
+      var text = (inRange ? '' : (r.y < top ? '↑ ' : '↓ ')) +
+        z.side.toUpperCase() + ' SL · ' + price + ' · EST';
+      c.save();
+      if (!z.fresh) c.globalAlpha = 0.5;
+      c.font = '600 9px "JetBrains Mono", monospace';
+      var labelW = c.measureText(text).width + 10;
+      var labelX = Math.max(2, v.chartW-labelW-4);
+      if (inRange) {
+        c.fillStyle = hexAlpha(color, 0.09);
+        c.fillRect(0, r.y-3, v.chartW, 6);
+        line(c, 0, r.y, v.chartW, r.y, color, 1, [5,3]);
+        if (Math.abs(r.y-r.labelY) > 3) line(c, labelX-4, r.y, labelX, r.labelY, color, 1);
+      }
+      c.fillStyle = z.side === 'buy' ? '#e6f5ef' : '#fdebef';
+      c.fillRect(labelX, r.labelY-7, labelW, 14);
+      c.strokeStyle = color;
+      c.lineWidth = 1;
+      c.strokeRect(labelX, r.labelY-7, labelW, 14);
+      c.fillStyle = color;
+      c.textAlign = 'left';
+      c.textBaseline = 'middle';
+      c.fillText(text, labelX+5, r.labelY);
+      c.restore();
+    });
   }
 
   function drawGrid(c, v, digits) {
@@ -841,7 +1009,13 @@
           '<div class="chart-ind-pane-canvas"><canvas></canvas></div>';
         el.appendChild(pane);
       });
-      el.querySelectorAll('.chart-ind-pane-canvas').forEach(bindPaneInput);
+      el.querySelectorAll('.chart-ind-pane-canvas').forEach(function (holder) {
+        bindPaneInput(holder);
+        if (paneObserver) {
+          paneSizes.set(holder, {width: 0, height: 0});
+          paneObserver.observe(holder);
+        }
+      });
       var anchor = wrap.querySelector('.binance-canvas-box');
       if (anchor && anchor.nextSibling) wrap.insertBefore(el, anchor.nextSibling);
       else wrap.appendChild(el);
@@ -944,6 +1118,9 @@
   }
 
   function digitsFor(price) {
+    var terminal = window.SoftradeXTerminal || window.BinanceTerminal;
+    var meta = terminal && terminal.MARKETS && terminal.MARKETS[dataSymbol];
+    if (meta && Number.isInteger(meta.decimals) && meta.decimals >= 0 && meta.decimals <= 8) return meta.decimals;
     if (price >= 1000) return 2;
     if (price >= 10) return 3;
     return 5;
@@ -951,8 +1128,11 @@
 
   function paintPane(canvas, id) {
     var holder = canvas.parentNode;
-    var w = holder.clientWidth;
-    var h = holder.clientHeight;
+    // ResizeObserver measures after layout. Reading dimensions on every quote
+    // forced pending live-tape changes to lay out the entire dashboard here.
+    var size = paneSizes.get(holder);
+    var w = size ? size.width : holder.clientWidth;
+    var h = size ? size.height : holder.clientHeight;
     if (!w || !h) return;
     var dpr = window.devicePixelRatio || 1;
     if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
@@ -964,8 +1144,16 @@
     var c = canvas.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, w, h);
-    c.fillStyle = '#ffffff';
+    c.fillStyle = COLORS.background;
     c.fillRect(0, 0, w, h);
+
+    if (!bars.length) {
+      c.fillStyle = COLORS.muted;
+      c.font = '12px sans-serif';
+      c.textAlign = 'center';
+      c.fillText(dataError || (loading ? 'Loading candles…' : 'Waiting for market data…'), w / 2, h / 2);
+      return;
+    }
 
     if (id === 'wavetrend') {
       var vOsc = candleView(w, h);
@@ -980,9 +1168,12 @@
     drawCandles(c, v);
     if (id === 'msb') drawMSB(c, v);
     else if (id === 'killzones') drawKillzones(c, v);
+    drawLiquidityZones(c, v, digits);
+    drawLivePrice(c, v, digits);
   }
 
   function render() {
+    if (document.hidden) return;
     var el = stack || ensureStack();
     var wrap = document.querySelector('.binance-chart-wrapper');
     if (!el || !wrap || !wrap.classList.contains('ind-stack-on')) return;
@@ -991,7 +1182,6 @@
       if (!loading) loadBars();
       return;
     }
-    if (!bars.length) return;
     INDICATORS.forEach(function (ind) {
       if (!enabled[ind.id]) return;
       var pane = el.querySelector('[data-pane="' + ind.id + '"]');
@@ -1031,13 +1221,19 @@
     });
     var hint = bar.querySelector('.chart-indicator-hint');
     if (hint) {
-      hint.textContent = anyEnabled() ? 'separate pane · own study' : 'Pine port · separate panes';
+      hint.textContent = anyEnabled() && dataInstrument
+        ? 'TradingView · ' + dataInstrument + (dataError ? ' · unavailable' : '')
+        : (anyEnabled() ? 'separate pane · own study' : 'Pine port · separate panes');
     }
   }
 
   function toggle(id) {
     if (enabled[id]) delete enabled[id];
     else enabled[id] = true;
+    // Opening a study always starts on the latest candles - it used to keep
+    // whatever pan/zoom the pane had and opened far back in the history.
+    view.offset = 0;
+    if (!isFinite(view.bars) || view.bars > MAX_BARS) view.bars = 78;
     savePrefs();
     syncButtons();
     applyStack();
@@ -1066,6 +1262,9 @@
     if (anyEnabled()) schedule();
   });
 
+  window.addEventListener('chart:tv-quote', function (ev) { acceptQuote(ev.detail); });
+  window.addEventListener('chart:liquidity-zones', function () { if (anyEnabled()) schedule(); });
+
   window.addEventListener('chart:price-range', function (ev) {
     if (!geometry) return;
     var d = ev.detail || {};
@@ -1079,7 +1278,12 @@
   window.addEventListener('chart:market', function (ev) {
     var symbol = (ev.detail && ev.detail.symbol) || '';
     if (symbol && symbol !== dataSymbol) {
+      ++dataToken;
+      if (barsRequest) barsRequest.abort();
+      barsRequest = null;
+      loading = false;
       bars = [];
+      livePrice = livePriceAt = 0;
       view.offset = 0;
       if (anyEnabled()) loadBars();
     }
@@ -1089,7 +1293,12 @@
   window.addEventListener('chart:interval', function (ev) {
     var tf = (ev.detail && ev.detail.tf) || '';
     if (tf && tf !== dataTf) {
+      ++dataToken;
+      if (barsRequest) barsRequest.abort();
+      barsRequest = null;
+      loading = false;
       bars = [];
+      livePrice = livePriceAt = 0;
       view.offset = 0;
       if (anyEnabled()) loadBars();
     }
@@ -1097,6 +1306,7 @@
   });
 
   window.addEventListener('resize', function () { schedule(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) schedule(); });
 
   document.addEventListener('DOMContentLoaded', function () {
     bindButtons();
@@ -1114,6 +1324,8 @@
     setEnabled: function (id, on) {
       if (on) enabled[id] = true;
       else delete enabled[id];
+      view.offset = 0;
+      if (!isFinite(view.bars) || view.bars > MAX_BARS) view.bars = 78;
       savePrefs();
       syncButtons();
       applyStack();
@@ -1121,6 +1333,7 @@
       schedule();
     },
     toggle: toggle,
+    liquidity: liquidityLevels,
     debug: function () {
       var pane = document.querySelector('[data-pane="msb"] canvas');
       if (!pane) return null;
@@ -1161,6 +1374,11 @@
         bars: bars.length,
         symbol: dataSymbol,
         tf: dataTf,
+        tvSymbol: dataInstrument,
+        price: livePrice,
+        priceAt: livePriceAt,
+        loading: loading,
+        error: dataError,
         geometry: geometry,
         stack: !!stack && stack.classList.contains('on'),
         panes: INDICATORS.filter(function (ind) {

@@ -21,10 +21,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-try:
-    import MetaTrader5 as mt5  # type: ignore
-except Exception:  # pragma: no cover - only if package missing
-    mt5 = None  # type: ignore
+# Disabled compatibility adapter: never load the native terminal package.
+mt5 = None
 
 # The MT5 IPC bridge is a single pipe into the terminal and is not thread safe.
 # The engine owns one thread, but the watch stream thread and FastAPI handlers
@@ -58,6 +56,10 @@ DEAL_TYPE_SELL = 1
 POSITION_TYPE_BUY = 0
 
 TERMINAL_EXE = "terminal64.exe"
+_ERROR_HINTS = {
+    -6: "Authorization failed. Check the account number, password and server.",
+    -10005: "Connection timed out. Check the data provider and try again.",
+}
 
 _SEARCH_ROOTS = [
     r"C:\Program Files",
@@ -77,21 +79,8 @@ def _mt5(fn, *args, **kwargs):
 
 
 def _launch_terminal(path: str) -> bool:
-    """Start a stopped terminal without creating a second instance when it is live."""
-    exe = Path(path or "")
-    if not exe.is_file():
-        return False
-    try:
-        subprocess.Popen(
-            [str(exe)],
-            cwd=str(exe.parent),
-            close_fds=True,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-        time.sleep(2.0)
-        return True
-    except OSError:
-        return False
+    """Terminal launching is unavailable in the public API dashboard."""
+    return False
 
 
 def package_available() -> bool:
@@ -204,96 +193,8 @@ def has_exness_terminal(terminals: Optional[List[str]] = None) -> bool:
 
 
 def find_terminals(force: bool = False) -> List[str]:
-    """Locate every MT5 terminal on the machine.
-
-    The roaming-folder lookup is cheap and runs whenever the 60 s cache is
-    stale. The brute-force scan of the whole drive only runs when the roaming
-    folder knows nothing AND the last full scan is older than 10 minutes - a
-    single-terminal machine must not pay a multi-second C:\\ scan every minute.
-    """
-    global _terminal_cache, _terminal_cache_ts, _full_scan_ts
-    if not force and _terminal_cache and (time.time() - _terminal_cache_ts) < 60:
-        return list(_terminal_cache)
-
-    found: List[str] = []
-
-    # 1) terminals registered in the MetaQuotes roaming folder (has install path)
-    try:
-        roaming = Path(os.environ.get("APPDATA", "")) / "MetaQuotes" / "Terminal"
-        if roaming.exists():
-            for d in roaming.iterdir():
-                origin = d / "origin.txt"
-                if not origin.exists():
-                    continue
-                try:
-                    raw = origin.read_text(encoding="utf-8", errors="ignore").strip().strip("\x00")
-                except OSError:
-                    continue
-                if not raw:
-                    continue
-                exe = Path(raw) / TERMINAL_EXE
-                if exe.exists():
-                    found.append(str(exe))
-    except OSError:
-        pass
-
-    # 2) brute-force shallow scan of the usual install roots - rare and throttled
-    if not found:
-        if force or (time.time() - _full_scan_ts) >= _FULL_SCAN_INTERVAL:
-            _full_scan_ts = time.time()
-            found.extend(_scan_for_terminals(_SEARCH_ROOTS, max_depth=3))
-        elif _terminal_cache:
-            # the scan is rate-limited and this machine's terminal is only
-            # discoverable through it - keep serving the previous list instead
-            # of letting an empty roaming result blank the cache out
-            _terminal_cache_ts = time.time()
-            return list(_terminal_cache)
-
-    # de-dupe, keep order, prefer Exness-branded terminals first
-    uniq: List[str] = []
-    seen: set[str] = set()
-    for p in found:
-        key = p.lower()
-        if key not in seen:
-            seen.add(key)
-            uniq.append(p)
-
-    def rank(p: str) -> int:
-        low = p.lower()
-        if "exness" in low:
-            return 0
-        if "metatrader" in low or "mt5" in low:
-            return 1
-        return 2
-
-    uniq.sort(key=rank)
-    _terminal_cache = uniq
-    _terminal_cache_ts = time.time()
-    return list(uniq)
-
-
-# ------------------------------------------------------------- error mapping
-_ERROR_HINTS = {
-    -6: "Authorization failed - wrong login/password, or the server name does not belong to this terminal.",
-    -10000: "Terminal could not be initialised (wrong path to terminal64.exe?).",
-    -10001: "Failed to add the terminal to the IPC queue.",
-    -10002: "Terminal is not responding (the MT5 window may be blocked by a dialog).",
-    -10003: "Invalid parameters.",
-    -10004: "Trade timeout.",
-    -10005: "IPC timeout - the terminal is busy or still starting. Try again.",
-    -10006: "Terminal is not authorised.",
-    -10007: "Account is not authorised on this server.",
-    -10009: "Invalid terminal path.",
-    -10010: "The terminal is not connected to the trade server.",
-    -10011: "Market is closed.",
-    -10012: "Account is disabled / read-only.",
-    -10013: "Account is not authorised for trading.",
-    -10014: "Invalid account.",
-    -10015: "Invalid server name.",
-    -10016: "Connection to the trade server was closed.",
-    -10017: "Terminal is already initialised.",
-    -10018: "Terminal path does not point to terminal64.exe.",
-}
+    """Terminal discovery is disabled in the public API dashboard."""
+    return []
 
 
 def describe_error(err: Any) -> Dict[str, Any]:
@@ -329,9 +230,10 @@ class MT5Client:
     # ------------------------------------------------------------- lifecycle
     def connect(self, login: int, password: str, server: str, path: str = "",
                 timeout_ms: int = 60000) -> Dict[str, Any]:
-        if mt5 is None:
-            return {"ok": False, "error": {"code": -1, "message": "MetaTrader5 python package is not installed",
-                                           "hint": "pip install MetaTrader5"}}
+        from . import config as cfg
+        if cfg.PUBLIC_ONLY or mt5 is None:
+            return {"ok": False, "error": {"code": "public_only", "message": "Broker connections are disabled.",
+                                           "hint": "The dashboard uses public market APIs."}}
         self.shutdown()
 
         candidates: List[str] = []

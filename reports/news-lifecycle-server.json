@@ -1,0 +1,8 @@
+{
+  "ExecSessionId": 11090,
+  "Url": "http://127.0.0.1:8777/",
+  "ListenerPid": 4880,
+  "Command": "python -m uvicorn backend.app:app --host 0.0.0.0 --port 8777 --log-level warning",
+  "Mode": "managed foreground preview",
+  "LauncherPid": 18072
+}

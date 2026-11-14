@@ -317,6 +317,9 @@ class TestNewsBotSessions(unittest.TestCase):
     def setUp(self):
         self.bot = NewsBot()
         self.now = ts(2026, 10, 15, 23, 0)
+        stub = patch.object(self.bot, "_read_public_session_stats", return_value={})
+        stub.start()
+        self.addCleanup(stub.stop)
 
     def _mt5(self, m, bars):
         m.TIMEFRAME_M15 = 15

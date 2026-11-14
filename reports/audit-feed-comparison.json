@@ -1,0 +1,29 @@
+[
+  {
+    "path": "/api/chart/candles?symbol=XAUUSDm&tf=1d&count=400",
+    "meta_source": "public",
+    "last_close": 3886.95,
+    "day_high": 3918.05,
+    "day_low": 3880.97
+  },
+  {
+    "path": "/api/chart/tvquote?symbol=XAUUSDm",
+    "source": "TradingView",
+    "price": 3895.19,
+    "high": 3923.09,
+    "low": 3875.23,
+    "tv_symbol": "OANDA:XAUUSD",
+    "updated": 1794563288,
+    "updated_at": null
+  },
+  {
+    "path": "/api/chart/ticker?symbol=XAUUSDm",
+    "source": "public",
+    "price": 3886.11,
+    "high": 3950.23,
+    "low": 3853.56,
+    "tv_symbol": null,
+    "updated": null,
+    "updated_at": 1794563288413
+  }
+]

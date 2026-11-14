@@ -1,0 +1,116 @@
+{
+  "checks": [],
+  "samples": [
+    {
+      "page": "settled desktop dashboard",
+      "visibility": "visible",
+      "frames": 131,
+      "frameP95Ms": 99.89999999999964,
+      "longTasks": 15,
+      "longestTaskMs": 139,
+      "longTaskTotalMs": 1096
+    },
+    {
+      "page": "diagnostic: all blur removed",
+      "visibility": "visible",
+      "frames": 182,
+      "frameP95Ms": 66.60000000000036,
+      "longTasks": 8,
+      "longestTaskMs": 90,
+      "longTaskTotalMs": 533
+    },
+    {
+      "page": "dashboard after chart scroll",
+      "visibility": "visible",
+      "frames": 164,
+      "frameP95Ms": 66.70000000000073,
+      "longTasks": 13,
+      "longestTaskMs": 155,
+      "longTaskTotalMs": 889
+    }
+  ],
+  "script_errors": [],
+  "invalid_requests": [],
+  "clicks": [],
+  "dashboard_state": {
+    "ready": "interactive",
+    "visibility": "visible",
+    "nodes": 4840,
+    "indicators": {
+      "active": [
+        "msb"
+      ],
+      "bars": 0,
+      "symbol": "XAUUSDm",
+      "tf": "5m",
+      "tvSymbol": "OANDA:XAUUSD",
+      "price": 0,
+      "priceAt": 0,
+      "loading": true,
+      "error": "",
+      "geometry": null,
+      "stack": false,
+      "panes": [
+        "msb"
+      ]
+    },
+    "animations": [
+      {
+        "el": "tk-price-BTCUSDT-a"
+      },
+      {
+        "el": "tk-price-BTCUSDT-a"
+      },
+      {
+        "el": "tk-price-BTCUSDT-b"
+      },
+      {
+        "el": "tk-price-BTCUSDT-b"
+      },
+      {
+        "name": "tickerLedPulse",
+        "el": "ticker-pulse-led"
+      },
+      {
+        "name": "tickerTapeScroll",
+        "el": "market-ticker-track"
+      },
+      {
+        "name": "flowBlink",
+        "el": ""
+      },
+      {
+        "name": "flowBlink",
+        "el": ""
+      },
+      {
+        "name": "ttPulse",
+        "el": "tt-pulse-dot"
+      },
+      {
+        "name": "ttRowIn",
+        "el": "tt-row buy"
+      },
+      {
+        "name": "ttRowIn",
+        "el": "tt-row sell"
+      },
+      {
+        "name": "ttRowIn",
+        "el": "tt-row buy"
+      },
+      {
+        "name": "ttRowIn",
+        "el": "tt-row sell"
+      },
+      {
+        "name": "flowBlink",
+        "el": ""
+      },
+      {
+        "name": "flowBlink",
+        "el": ""
+      }
+    ]
+  }
+}

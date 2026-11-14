@@ -12,12 +12,13 @@ Policy:
 * Anything reachable from outside is gated automatically: a non-loopback
   ``HOST`` env or ``host`` config (docker sets 0.0.0.0, a cPanel vhost is
   public) turns it on.
-* Only mutating requests need a session. The read-only snapshot endpoints stay
-  open; the two GET routes that mutate anyway are treated as mutating.
+* Private state/history/bot reads and mutations require a session. Public market
+  data and the login/configuration endpoints remain readable.
 * The EA bridge keeps its own token - MQL5 cannot hold a browser session, so
   ``/api/ea/*`` still authenticates with ``X-EA-Token``.
 * Fail closed: an empty password denies, comparison is constant-time, and
-  sessions are random, expiring and memory-only.
+  sessions are random and expiring. Passenger workers share hashed sessions and
+  login limits through a private SQLite file; desktop sessions remain in memory.
 """
 from __future__ import annotations
 
@@ -28,6 +29,8 @@ import secrets
 import threading
 import time
 from typing import Any, Dict, Optional, Tuple
+from pathlib import Path
+from urllib.parse import urlsplit
 
 COOKIE_NAME = "sx_session"
 SESSION_TTL_SEC = 12 * 3600          # a working day, then the password again
@@ -36,12 +39,29 @@ _LOCK = threading.Lock()
 _SESSIONS: Dict[str, float] = {}     # token -> expiry epoch
 
 # credential stuffing guard: per client-ip failures -> (count, blocked_until)
-_FAILURES: Dict[str, Tuple[int, float]] = {}
+_FAILURES: Dict[str, Tuple[int, float, float]] = {}
+_MAX_FAILURE_CLIENTS = 2048
 _FAIL_LIMIT = 8
 _FAIL_WINDOW_SEC = 300.0
 _FAIL_BLOCK_SEC = 300.0
+_SHARED_STORES = {}
 
-DEFAULT_PASSWORD = "0186"            # the value the dashboard has always used
+
+def _shared_store():
+    if os.environ.get("SOFTRADEX_PASSENGER") != "1":
+        return None
+    from . import config
+    from .session_store import SessionStore
+    path = Path(os.environ.get("SOFTRADEX_AUTH_DB") or config.DATA_DIR / "auth.sqlite3").resolve()
+    with _LOCK:
+        if path not in _SHARED_STORES:
+            _SHARED_STORES[path] = SessionStore(path)
+        return _SHARED_STORES[path]
+
+
+def _session_proof(token, cfg_get):
+    return hmac.new(expected_password(cfg_get).encode("utf-8"),
+                    token.encode("utf-8"), hashlib.sha256).hexdigest()
 
 # Paths that change something. POST covers everything except the two routes
 # below, which the frontend calls with GET and which still mutate.
@@ -73,14 +93,32 @@ def auth_required(cfg_get) -> bool:
     """
     flag = cfg_get("require_login", None)
     if flag is not None and str(flag) not in ("", "None"):
-        return bool(flag)
-    env_host = str(os.environ.get("HOST", "")).strip()
-    return not _loopback(env_host or cfg_get("host", "127.0.0.1"))
+        return str(flag).strip().lower() not in ("0", "false", "no", "off")
+    return os.environ.get("SOFTRADEX_PASSENGER") == "1" or not _loopback(effective_host(cfg_get))
+
+
+def effective_host(cfg_get) -> str:
+    """The same bind address used by the application launcher."""
+    return (str(os.environ.get("HOST", "")).strip()
+            or ("0.0.0.0" if str(os.environ.get("PORT", "")).strip() else "")
+            or str(cfg_get("host", "127.0.0.1")))
+
+
+def effective_port(cfg_get) -> int:
+    """Choose a usable configured port instead of an accidental random bind."""
+    for value in (os.environ.get("PORT", ""), cfg_get("port", 8777), 8777):
+        try:
+            port = int(str(value).strip())
+        except (ValueError, TypeError):
+            continue
+        if 1 <= port <= 65535:
+            return port
+    return 8777
 
 
 def expected_password(cfg_get) -> str:
-    pw = str(cfg_get("dashboard_password", "") or "").strip()
-    return pw or DEFAULT_PASSWORD
+    return str(os.environ.get("SOFTRADEX_DASHBOARD_PASSWORD")
+               or cfg_get("dashboard_password", "") or "")
 
 
 def _hash(password: str) -> bytes:
@@ -88,37 +126,53 @@ def _hash(password: str) -> bytes:
 
 
 def password_ok(candidate: str, cfg_get) -> bool:
-    """Constant-time check against the dashboard password or the EA bridge
-    token (so an operator who knows the bridge token can also drive the UI)."""
+    """Constant-time check; an unset dashboard password always denies."""
     supplied = str(candidate or "")
-    if not supplied:
+    expected = expected_password(cfg_get)
+    if not supplied or not expected:
         return False
-    ok = hmac.compare_digest(_hash(supplied), _hash(expected_password(cfg_get)))
-    secret = str(cfg_get("ea_secret", "") or "")
-    if secret and not ok:
-        ok = hmac.compare_digest(_hash(supplied), _hash(secret))
-    return ok
+    return hmac.compare_digest(_hash(supplied), _hash(expected))
 
 
 def too_many_failures(ip: str) -> bool:
+    shared = _shared_store()
+    if shared:
+        return shared.blocked(ip, time.time())
     with _LOCK:
         rec = _FAILURES.get(ip)
         return bool(rec and rec[1] > time.time())
 
 
 def note_failure(ip: str) -> None:
+    shared = _shared_store()
+    if shared:
+        shared.failure(ip, time.time(), _FAIL_WINDOW_SEC, _FAIL_BLOCK_SEC,
+                       _FAIL_LIMIT, _MAX_FAILURE_CLIENTS)
+        return
     with _LOCK:
-        count, until = _FAILURES.get(ip, (0, 0.0))
-        if until > time.time():
+        now = time.time()
+        for key in [key for key, (_, until, first) in _FAILURES.items()
+                    if max(until, first + _FAIL_WINDOW_SEC) <= now]:
+            _FAILURES.pop(key, None)
+        count, until, first = _FAILURES.get(ip, (0, 0.0, now))
+        if until > now:
             return
+        if now - first >= _FAIL_WINDOW_SEC:
+            count, first = 0, now
+        if ip not in _FAILURES and len(_FAILURES) >= _MAX_FAILURE_CLIENTS:
+            _FAILURES.pop(next(iter(_FAILURES)))
         count += 1
-        if count > _FAIL_LIMIT:
-            _FAILURES[ip] = (0, time.time() + _FAIL_BLOCK_SEC)
+        if count >= _FAIL_LIMIT:
+            _FAILURES[ip] = (0, now + _FAIL_BLOCK_SEC, first)
         else:
-            _FAILURES[ip] = (count, 0.0)
+            _FAILURES[ip] = (count, 0.0, first)
 
 
 def note_success(ip: str) -> None:
+    shared = _shared_store()
+    if shared:
+        shared.success(ip)
+        return
     with _LOCK:
         _FAILURES.pop(ip, None)
 
@@ -126,6 +180,11 @@ def note_success(ip: str) -> None:
 def login(cfg_get) -> Optional[str]:
     token = secrets.token_urlsafe(32)
     now = time.time()
+    shared = _shared_store()
+    if shared:
+        shared.issue(_hash(token).hex(), _session_proof(token, cfg_get), now,
+                     SESSION_TTL_SEC, _MAX_SESSIONS)
+        return token
     with _LOCK:
         for dead in [t for t, exp in _SESSIONS.items() if exp <= now]:
             _SESSIONS.pop(dead, None)
@@ -138,6 +197,10 @@ def login(cfg_get) -> Optional[str]:
 def logout(token: str) -> None:
     if not token:
         return
+    shared = _shared_store()
+    if shared:
+        shared.revoke(_hash(token).hex())
+        return
     with _LOCK:
         _SESSIONS.pop(token, None)
 
@@ -146,6 +209,11 @@ def session_valid(token: str) -> bool:
     if not token:
         return False
     now = time.time()
+    shared = _shared_store()
+    if shared:
+        from . import config
+        proof = shared.proof(_hash(token).hex(), now)
+        return bool(proof and hmac.compare_digest(proof, _session_proof(token, config.CONFIG.get)))
     with _LOCK:
         exp = _SESSIONS.get(token)
         if exp is None:
@@ -167,11 +235,33 @@ def is_mutating(method: str, path: str) -> bool:
 
 
 def client_ip(request_headers, client_host: str = "") -> str:
-    """Best-effort origin address. ``forwarded_allow_ips="*"`` lets a client lie
-    about X-Forwarded-For, so this is only used to rate-limit password tries and
-    never to authorise anything."""
-    fwd = str(request_headers.get("x-forwarded-for", "") or "").split(",")[0].strip()
-    return (fwd or str(client_host or ""))[:64] or "unknown"
+    """Use the peer resolved by the server's configured trusted proxies."""
+    return str(client_host or "")[:64] or "unknown"
+
+
+def requires_session(method: str, path: str) -> bool:
+    return is_mutating(method, path) or path in {
+        "/api/state", "/api/history", "/api/export.csv", "/api/events", "/api/terminals"
+    } or path.startswith("/api/bot")
+
+
+def origin_allowed(headers, scheme: str, host: str) -> bool:
+    """Allow same-origin browser traffic and clients without an Origin header."""
+    origin = headers.get("origin")
+    if origin is None:
+        return True
+    scheme = {"ws": "http", "wss": "https"}.get(scheme, scheme)
+    try:
+        supplied = urlsplit(origin)
+        expected = urlsplit(scheme + "://" + host)
+        def authority(url):
+            return (url.scheme.lower(), url.hostname,
+                    url.port or (443 if url.scheme == "https" else 80))
+        return (not supplied.username and not supplied.password
+                and supplied.path in ("", "/") and not supplied.query and not supplied.fragment
+                and authority(supplied) == authority(expected))
+    except (ValueError, TypeError):
+        return False
 
 
 def token_from_cookie(cookie_header: str) -> str:
@@ -183,5 +273,8 @@ def token_from_cookie(cookie_header: str) -> str:
 
 
 def session_count() -> int:
+    shared = _shared_store()
+    if shared:
+        return shared.count(time.time())
     with _LOCK:
         return len(_SESSIONS)

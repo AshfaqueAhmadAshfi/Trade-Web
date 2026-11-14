@@ -31,7 +31,7 @@ for %%P in (
   "%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
   "%LOCALAPPDATA%\Programs\Python\Python310\python.exe"
 ) do (
-  if not defined PY if exist %%P set "PY=%%~P"
+  if not defined PY if exist %%P set PY=%%P
 )
 if not defined PY ( py -3.12 -c "import sys" >nul 2>nul && set "PY=py -3.12" )
 if not defined PY ( py -3.11 -c "import sys" >nul 2>nul && set "PY=py -3.11" )
@@ -81,7 +81,7 @@ if errorlevel 1 (
 )
 
 REM ---------- 4. verify ----------
-"%VPY%" -c "import fastapi, uvicorn, websockets" >nul 2>nul
+"%VPY%" -c "import fastapi, uvicorn, requests, a2wsgi; from websockets.sync.client import connect" >nul 2>nul
 if errorlevel 1 (
   echo   [X] The web engine did not install correctly. Run this file again.
   if not defined NOPAUSE pause
@@ -89,13 +89,7 @@ if errorlevel 1 (
 )
 echo   [OK] Web engine installed
 
-"%VPY%" -c "import MetaTrader5" >nul 2>nul
-if errorlevel 1 (
-  echo   [!] MetaTrader5 package unavailable - live MT5 account data will be
-  echo       off; the public market feed still works. 64-bit Python is needed.
-) else (
-  echo   [OK] MetaTrader 5 bridge installed
-)
+echo   [OK] Public API data mode - no trading terminal required
 
 echo.
 echo   Setup complete. Double-click start.bat any time to run the app.

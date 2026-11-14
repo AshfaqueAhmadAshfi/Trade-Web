@@ -13,12 +13,10 @@
 (function () {
   'use strict';
 
-  // --- Feed identity (additive hook) -----------------------------------
-  // The default page keeps the Exness URLs; a page can pre-set
-  // window.SOFTRADEX_CONFIG (see bd.html) to feed this same terminal from
-  // another backend catalogue without touching any Exness behaviour.
+  // --- Feed identity --------------------------------------------------
+  // Pages can pre-set window.SOFTRADEX_CONFIG to select a feed catalogue.
   const FEED_CFG = (typeof window.SOFTRADEX_CONFIG === 'object' && window.SOFTRADEX_CONFIG) || {};
-  const FEED_NAME = FEED_CFG.feedName || 'Exness';
+  const FEED_NAME = FEED_CFG.feedName || 'SoftradeX';
   const SYMBOLS_URL = FEED_CFG.symbolsUrl || '/api/chart/symbols';
   const FEED_WS_PATH = FEED_CFG.wsPath || '/ws/chart';
 
@@ -27,7 +25,7 @@
   const TF_SECONDS = { '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '4h': 14400, '1d': 86400 };
   const PRICE_AXIS_W = 76;
   let marketsReady = false;
-  let feedSource = 'mt5';          // 'public' when no MT5 terminal is connected
+  let feedSource = 'public';
   let pendingSymbol = '';
   let currentSymbol = '';
   let currentInterval = '5m';
@@ -200,11 +198,8 @@
     }
   }
 
-  // BDT markets (BD Stock Market dashboard) must never print a dollar sign.
-  function currencyMark(symbol) {
-    const meta = MARKETS[symbol] || {};
-    const quote = String(meta.pair || meta.currency || 'USD').toUpperCase();
-    return quote === 'BDT' ? '৳' : '$';
+  function currencyMark() {
+    return '$';
   }
 
   function formatTime(timestamp, interval) {
@@ -275,12 +270,12 @@
     pulse.classList.remove('online', 'stale');
     if (state === 'stale') {
       pulse.classList.add('stale');
-      pulse.title = 'Exness ticks paused - market may be closed or the feed is slow';
+      pulse.title = 'Market data paused - the market may be closed or the API is slow';
     } else if (state) {
       pulse.classList.add('online');
-      pulse.title = 'Live Exness MT5 tick stream';
+      pulse.title = 'Live public API market data';
     } else {
-      pulse.title = 'Waiting for the Exness terminal…';
+      pulse.title = 'Waiting for public market data…';
     }
   }
 
@@ -335,6 +330,18 @@
 
   let currentCategory = 'all';
   let marketSearchQuery = '';
+  let marketsCollapsed = false;
+
+  function syncMarketListToggle() {
+    const tabs = $('binance-symbol-tabs');
+    const btn = $('market-list-toggle');
+    if (!tabs || !btn) return;
+    tabs.classList.toggle('market-list-collapsed', marketsCollapsed);
+    const label = marketsCollapsed ? 'Show all markets' : 'Collapse market list';
+    btn.setAttribute('aria-expanded', String(!marketsCollapsed));
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+  }
 
   function renderSymbolTabs() {
     const tabs = $('binance-symbol-tabs');
@@ -390,10 +397,17 @@
     document.querySelectorAll('#exness-cat-tabs .exness-cat-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.cat === currentCategory);
     });
-    if (activeBtn && typeof activeBtn.scrollIntoView === 'function') {
+    // Bring the active symbol into the tab strip ONLY inside that strip.
+    // scrollIntoView() also scrolled every ancestor - including the page - so
+    // selecting a market yanked the reader back to the top of the dashboard.
+    const strip = document.getElementById('binance-symbol-tabs');
+    if (activeBtn && strip) {
       try {
-        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-      } catch (e) {}
+        const left = activeBtn.offsetLeft - (strip.clientWidth - activeBtn.offsetWidth) / 2;
+        strip.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+      } catch (e) {
+        try { strip.scrollLeft = Math.max(0, activeBtn.offsetLeft - strip.clientWidth / 2); } catch (e2) {}
+      }
     }
   }
 
@@ -401,14 +415,14 @@
     try {
       const data = await apiJson(SYMBOLS_URL);
       if (!data || !data.available || !data.symbols || !data.symbols.length) {
-        setStatus(FEED_NAME + ' terminal not connected',
-          (data && data.message) || 'Open the Exness MetaTrader 5 terminal and log in once.', 'error');
+        setStatus(FEED_NAME + ' API unavailable',
+          (data && data.message) || 'Public market data is temporarily unavailable. Check the internet connection and retry.', 'error');
         scheduleMarketsRetry();
         return false;
       }
-      feedSource = data.source === 'public' ? 'public' : 'mt5';
+      feedSource = data.source || 'public';
       const proTag = document.querySelector('#binance-terminal-section .term-pro-tag');
-      if (proTag && feedSource === 'public') proTag.textContent = 'PUBLIC CHART';
+      if (proTag && feedSource === 'public')         proTag.textContent = 'LIVE FEED';
       Object.keys(MARKETS).forEach(k => { delete MARKETS[k]; });
       data.symbols.forEach(m => {
         MARKETS[m.symbol] = Object.assign({}, m, {
@@ -427,7 +441,7 @@
       const first = wanted || resolveSymbol('XAUUSDm') || Object.keys(MARKETS)[0];
       pendingSymbol = '';
       if (first) switchMarket(first, { silent: true });
-      if (feedSource === 'public') scheduleSourceRecheck();
+
       return true;
     } catch (err) {
       setStatus(FEED_NAME + ' feed unavailable', String(err && err.message ? err.message : err), 'error');
@@ -446,26 +460,6 @@
       loadMarkets();
     }, marketsRetryMs);
     marketsRetryMs = Math.min(marketsRetryMs * 2, 10000);
-  }
-
-  // While the chart is on public data, keep looking for the MT5 terminal. As
-  // soon as it appears the catalogue is reloaded and the live chart is
-  // resubscribed, so the terminal takes over without a page reload.
-  let sourceRecheckTimer = null;
-  function scheduleSourceRecheck() {
-    if (sourceRecheckTimer) return;
-    sourceRecheckTimer = setTimeout(async () => {
-      sourceRecheckTimer = null;
-      if (feedSource !== 'public') return;
-      pendingSymbol = currentSymbol || 'XAUUSDm';
-      const ok = await loadMarkets();
-      if (!ok) return;
-      if (feedSource === 'mt5' && currentSymbol) {
-        if (feed && feed.readyState === WebSocket.OPEN) sendSubscription();
-        else connectFeed();
-      }
-      if (feedSource === 'public') scheduleSourceRecheck();
-    }, 30000);
   }
 
   let chartRafPending = false;
@@ -603,6 +597,8 @@
 
   // ------------------------------------------------------- live Exness feed
   function connectFeed() {
+    if (window.SOFTRADEX_PUBLIC_ONLY) { startPolling(); return; }
+    if (window.SOFTRADEX_PUBLIC_ONLY || FEED_CFG.liveStream === false) { startPolling(); return; }
     if (feed && (feed.readyState === WebSocket.CONNECTING || feed.readyState === WebSocket.OPEN)) return;
     if (feedReconnectTimer) {
       clearTimeout(feedReconnectTimer);
@@ -765,6 +761,25 @@
     if (!crosshair) updateLegend(last);
   }
 
+  // The embed and the custom indicator panes use the same TV instrument.
+  // Hiding the iframe must never switch the header back to a proxy price.
+  function tvInstrumentNow() {
+    const host = window.TvChartHost;
+    return window.SOFT_TV_ACTIVE && host && typeof host.symbolFor === 'function'
+      ? host.symbolFor(currentSymbol, MARKETS[currentSymbol] || {}) : '';
+  }
+
+  function tvQuoteNow() {
+    const q = window.SOFT_TV_QUOTE;
+    const instrument = tvInstrumentNow();
+    if (!q || !instrument || q.tv_symbol !== instrument) return null;
+    if (!(Number(q.price) > 0)) return null;
+    if (!q.at || Date.now() - q.at > 25000) return null;
+    if (q.symbol && currentSymbol && q.symbol !== currentSymbol) return null;
+    return { price: Number(q.price), change: Number(q.change) || 0,
+      high: Number(q.high) || 0, low: Number(q.low) || 0 };
+  }
+
   // --- Update Ticker UI ---
   function updateTickerDisplay(data) {
     const elPrice = $('b-live-price');
@@ -775,6 +790,18 @@
 
     const meta = MARKETS[currentSymbol] || { decimals: 2 };
     const decimals = meta.decimals;
+
+    const tvq = tvQuoteNow();
+    if (tvq) data = { ...data, ...tvq };
+    else if (tvInstrumentNow()) {
+      // During a TV outage keep its last price; a public ticker for another
+      // instrument must not replace it, even when indicators hide the iframe.
+      data = { ...data };
+      delete data.price;
+      delete data.change;
+      delete data.high;
+      delete data.low;
+    }
 
     if (elPrice && data.price) {
       const oldPrice = tickerData.price;
@@ -807,6 +834,20 @@
 
     tickerData = { ...tickerData, ...data };
   }
+
+  window.addEventListener('chart:tv-visible', function () {
+    const q = tvQuoteNow();
+    if (q) updateTickerDisplay({ price: q.price, change: q.change });
+  });
+
+  // The TradingView quote arrives on its own clock (every few seconds), so the
+  // ribbon follows it even between MT5 ticks.
+  window.addEventListener('chart:tv-quote', function (ev) {
+    const q = ev.detail || {};
+    if (!(Number(q.price) > 0)) return;
+    if (q.symbol && currentSymbol && q.symbol !== currentSymbol) return;
+    updateTickerDisplay({ price: Number(q.price), change: Number(q.change) || 0 });
+  });
 
   // --- Update Legend (OHLCV & SMA) ---
   function updateLegend(candle) {
@@ -1827,6 +1868,16 @@
         if (!btn || !btn.dataset.symbol) return;
         switchMarket(btn.dataset.symbol);
       });
+    }
+
+    const marketListToggle = $('market-list-toggle');
+    if (marketListToggle) {
+      marketListToggle.addEventListener('click', () => {
+        marketsCollapsed = !marketsCollapsed;
+        syncMarketListToggle();
+        updateActiveTabs();
+      });
+      syncMarketListToggle();
     }
 
     // Market Category Tabs Listener

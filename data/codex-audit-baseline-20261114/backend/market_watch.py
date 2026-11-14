@@ -1,0 +1,830 @@
+"""Market Watch Dial & Pressure Engine:
+Calculates real-time Buyer vs. Seller pressure (Order Flow / Candle Volume Delta)
+for all active trading markets on every engine tick (live stream, no polling timer).
+"""
+from __future__ import annotations
+
+import datetime
+import math
+import os
+import sys
+import time
+from typing import Any, Dict, List, Optional
+
+from .mt5_client import mt5
+
+# every MetaTrader5 IPC call on ANY thread takes this lock - the terminal's
+# single pipe must never see two concurrent callers
+from .mt5_client import IPC_LOCK
+
+PREFERRED_WATCH_SYMBOLS = [
+    # Serial 1 (Top row: 5 markets ending with DXY)
+    "BTCUSDTm",
+    "BTCUSDm",
+    "XAUUSD247m",
+    "XAUUSDm",
+    "DXY",
+    # Serial 2 (Bottom row: 5 markets)
+    "USOILm",     # Crude Oil
+    "XAUGBPm",
+    "USDJPYm",
+    "EURUSDm",
+    "USTECm",
+]
+
+SYMBOL_CANDIDATES: Dict[str, List[str]] = {
+    "BTCUSDTm": ["BTCUSDTm", "BTCUSDT", "BTCUSDT."],
+    "BTCUSDm": ["BTCUSDm", "BTCUSD", "BTCUSD."],
+    "XAUUSD247m": ["XAUUSD247m", "XAUUSD247"],
+    "XAUUSDm": ["XAUUSDm", "XAUUSD", "GOLDm", "GOLD"],
+    "DXY": ["DXY", "DXYm", "USDX", "USDXm", "DXY.", "USD_INDEX"],
+    "USOILm": ["USOILm", "USOIL", "XTIUSDm", "XTIUSD", "CLm", "CL", "Crude Oil"],
+    "XAUGBPm": ["XAUGBPm", "XAUGBP", "XAUGBP."],
+    "USDJPYm": ["USDJPYm", "USDJPY", "USDJPY."],
+    "EURUSDm": ["EURUSDm", "EURUSD", "EURUSD."],
+    "USTECm": ["USTECm", "USTEC", "NAS100m", "NAS100", "US100m", "US100"],
+}
+
+# Freshness window for heavier candle/pressure computation. Live tick prices
+# are continuously streamed by _get_live_quotes_locked at 20 fps.
+WATCH_CACHE_SEC: float = 1.0
+
+_cache_lock_ts: float = 0.0
+_cached_watches: Dict[str, Any] = {}
+_digits_cache: Dict[str, int] = {}
+_resolved_symbol_cache: Dict[str, str] = {}
+
+# ---------------------------------------------------------------------------
+# Offline price fallback
+# ---------------------------------------------------------------------------
+# Without a broker connection there is no MT5 quote - but the dashboard's
+# public chart still shows a real Yahoo / Binance price for the very same
+# market. Reading that same source here keeps the market price (stage 01), the
+# watch dials (stage 02) and the chart on ONE price instead of inventing a
+# third, unrelated one.
+_PUBLIC_QUOTES: Dict[str, Any] = {}
+_PUBLIC_QUOTE_TTL = 12.0
+_PUBLIC_QUOTE_MAX = 16
+
+# Recent 1m candles for the same fallback. Without them the dial had no candle
+# body to read, so its BUY / SELL split was a sine wave of the symbol name -
+# numbers that moved but meant nothing. Filled OUTSIDE the IPC lock by
+# _prefetch_public_quotes and only read inside it.
+_PUBLIC_BARS: Dict[str, Any] = {}
+# Same series under its canonical name, so BTCUSDm reuses BTCUSDTm's download
+# and XAUUSD247m reuses XAUUSDm's instead of asking the provider twice.
+_PUBLIC_BARS_CANON: Dict[str, Any] = {}
+_PUBLIC_BARS_TRIES: Dict[str, float] = {}
+_PUBLIC_BARS_TTL = 18.0
+_PUBLIC_BARS_RETRY = 8.0       # a symbol the provider refuses is not hammered
+# 12 x 5m = the same one-hour window, and unlike Yahoo's 1m quotes these bars
+# carry a real high/low, so body + wick weighting means something.
+_PUBLIC_BARS_TF = "5m"
+_PUBLIC_BARS_COUNT = 12
+# Downloads per refresh call. The engine calls this about once a second, so a
+# small budget warms every dial over a few seconds without opening eight
+# provider connections at once (which is exactly how they start refusing).
+_PUBLIC_BARS_MAX = 2
+
+
+def _public_quotes_enabled() -> bool:
+    """May the offline fallback read the public feed?
+
+    Not inside a unit-test process: the suites fake HTTP payloads instead of
+    opening sockets, so they must stay hermetic (they degrade to the built-in
+    simulation). Operators can also force it off with
+    SOFTRADEX_WATCH_PUBLIC_FEED=0.
+    """
+    if str(os.environ.get("SOFTRADEX_WATCH_PUBLIC_FEED", "1")).strip() == "0":
+        return False
+    return "unittest" not in sys.modules
+
+
+def _prefetch_public_quotes(symbols: List[str], priority: Optional[List[str]] = None) -> None:
+    """Refresh the public price cache for markets without a broker quote.
+
+    Called BEFORE the watch lock is taken, so provider latency can never stall
+    the 20 fps quote loop. Never raises: an unavailable provider simply leaves
+    the cache untouched and the caller keeps its simulated price.
+
+    ``priority`` (the flow-selected markets) is fetched first, so the one dial
+    that is actually on screen always gets the real candle read.
+    """
+    if not _public_quotes_enabled():
+        return
+    if mt5 is not None:
+        # The MetaTrader5 module being importable says nothing about a running
+        # terminal - only skip when a broker connection really answers.
+        try:
+            if mt5.terminal_info():
+                return
+        except Exception:
+            pass
+    try:
+        from . import public_feed
+    except Exception:
+        return
+    now = time.time()
+    ordered: List[str] = []
+    for raw in list(priority or []) + list(symbols):
+        sym = str(raw or "").strip()
+        if sym and sym not in ordered:
+            ordered.append(sym)
+    for sym in ordered[:_PUBLIC_QUOTE_MAX]:
+        hit = _PUBLIC_QUOTES.get(sym)
+        if hit and now < hit["until"]:
+            continue
+        try:
+            if not public_feed.supports(sym):
+                continue
+            row = public_feed.ticker(sym)
+            price = float(row.get("price") or 0.0)
+            if price <= 0:
+                continue
+        except Exception:
+            continue
+        _PUBLIC_QUOTES[sym] = {
+            "until": now + _PUBLIC_QUOTE_TTL,
+            "price": price,
+            "change_pct": float(row.get("change") or 0.0),
+            "source": public_feed.source_of(sym) or "public",
+        }
+
+    # Real candles for the pressure read (see _PUBLIC_BARS above). The budget
+    # counts NETWORK fetches only: two broker names for the same instrument
+    # (XAUUSD247m / XAUUSDm) share one download.
+    budget = _PUBLIC_BARS_MAX
+    fetched: Dict[str, List[Dict[str, float]]] = {}
+    for sym in ordered:
+        hit = _PUBLIC_BARS.get(sym)
+        if hit and now < hit["until"]:
+            continue
+        try:
+            canon = public_feed.canonical(sym)
+        except Exception:
+            continue
+        if canon in fetched:
+            _PUBLIC_BARS[sym] = {"until": now + _PUBLIC_BARS_TTL, "rows": fetched[canon]}
+            continue
+        canon_hit = _PUBLIC_BARS_CANON.get(canon)
+        if canon_hit and now < canon_hit["until"]:
+            _PUBLIC_BARS[sym] = {"until": canon_hit["until"], "rows": canon_hit["rows"]}
+            continue
+        if budget <= 0:
+            continue
+        if now < _PUBLIC_BARS_TRIES.get(sym, 0.0):
+            continue
+        _PUBLIC_BARS_TRIES[sym] = now + _PUBLIC_BARS_RETRY
+        try:
+            if not public_feed.supports(sym):
+                continue
+            bars = public_feed.candles(sym, _PUBLIC_BARS_TF, _PUBLIC_BARS_COUNT)
+        except Exception:
+            continue
+        if not bars:
+            continue
+        rows = [{"open": float(b[1]), "high": float(b[2]), "low": float(b[3]),
+                 "close": float(b[4]), "tick_volume": float(b[5] or 1.0)}
+                for b in bars]
+        if len(rows) < 3:
+            continue
+        # A quote-only series prints open = high = low = close on every bar.
+        # Weights taken from that would be pure noise, so the dial stays neutral
+        # instead of showing a direction the data cannot support.
+        ranged = sum(1 for r in rows if r["high"] > r["low"])
+        if ranged < max(3, len(rows) // 2):
+            continue
+        # Jitter the expiry per symbol so ten dials never expire together and
+        # turn every TTL into a burst of requests.
+        until = now + _PUBLIC_BARS_TTL + (sum(ord(c) for c in sym) % 7)
+        fetched[canon] = rows
+        _PUBLIC_BARS_CANON[canon] = {"until": until, "rows": rows}
+        _PUBLIC_BARS[sym] = {"until": until, "rows": rows}
+        budget -= 1
+
+
+def _public_bars_cached(sym: str) -> Optional[List[Dict[str, float]]]:
+    """Cached 1m candles for ``sym`` - never fetches (callers hold the lock)."""
+    hit = _PUBLIC_BARS.get(sym)
+    if not hit or time.time() >= hit["until"]:
+        return None
+    return hit["rows"]
+
+
+def _public_quote_cached(sym: str) -> Optional[Dict[str, Any]]:
+    """The cached public quote for ``sym`` - never fetches (callers hold the lock)."""
+    hit = _PUBLIC_QUOTES.get(sym)
+    if not hit or time.time() >= hit["until"]:
+        return None
+    return hit
+
+
+
+def _get_live_quotes_locked(symbols: List[str]) -> List[Dict[str, Any]]:
+    """Ultra-light tick snapshot (bid / ask / spread) for the watch dials.
+
+    Called by the engine about 20 times per second, so it deliberately skips the
+    candle-history read: the heavier buyer/seller pressure is computed on the
+    normal engine tick and merged into the same WebSocket frame.
+    """
+    if mt5 is None:
+        return []
+    out: List[Dict[str, Any]] = []
+    for sym in symbols:
+        if not sym:
+            continue
+        try:
+            tick = mt5.symbol_info_tick(sym)
+        except Exception:
+            continue
+        if not tick:
+            continue
+        digits = _digits_cache.get(sym)
+        if digits is None:
+            try:
+                info = mt5.symbol_info(sym)
+                digits = int(getattr(info, "digits", 2)) if info else 2
+            except Exception:
+                digits = 2
+            _digits_cache[sym] = digits
+        ask = float(tick.ask)
+        bid = float(tick.bid)
+        out.append({
+            "symbol": sym,
+            "bid": bid,
+            "ask": ask,
+            "spread": round(ask - bid, digits if digits <= 4 else 4),
+            "digits": digits,
+            "tick_time": int(getattr(tick, "time", 0) or 0),
+            "updated_at": time.time(),
+        })
+    return out
+
+
+def _calc_pressure_for_rates(tick_bid: float, tick_ask: float, rates: Any, digits: int = 2) -> Dict[str, Any]:
+    if rates is None or len(rates) == 0:
+        return {
+            "buyer_pct": 50.0,
+            "seller_pct": 50.0,
+            "dominant": "NEUTRAL",
+            "strength": "BALANCED",
+            "needle_deg": 0.0,
+            "candle_flow": "SIDEWAYS",
+            "direction": "FLAT",
+            "change_pct": 0.0,
+            "details": "Insufficient candle rates",
+        }
+
+    b_vol = 0.0
+    s_vol = 0.0
+    total_tick_vol = 0.0
+    num_rates = len(rates)
+
+    for i, r in enumerate(rates):
+        o = float(r["open"])
+        h = float(r["high"])
+        l = float(r["low"])
+        c = float(r["close"])
+        vol = max(1.0, float(r["tick_volume"]))
+        total_tick_vol += vol
+
+        rng = max(1e-5, h - l)
+        body = abs(c - o)
+        u_wick = max(0.0, h - max(o, c))
+        l_wick = max(0.0, min(o, c) - l)
+
+        # Recency weight: more recent candles count more
+        recency = 0.5 + 0.5 * ((i + 1) / num_rates)
+        w_vol = vol * recency
+
+        if c >= o:
+            # Bullish candle: body + lower wick buying vs upper wick selling
+            b_val = (body + l_wick * 0.7 + (rng - u_wick) * 0.3) / rng
+            s_val = (u_wick * 0.8) / rng
+        else:
+            # Bearish candle: body + upper wick selling vs lower wick buying
+            s_val = (body + u_wick * 0.7 + (rng - l_wick) * 0.3) / rng
+            b_val = (l_wick * 0.8) / rng
+
+        b_vol += max(0.01, b_val) * w_vol
+        s_vol += max(0.01, s_val) * w_vol
+
+    # Factor in the current tick position relative to latest candle range
+    last_r = rates[-1]
+    curr_rng = max(1e-5, float(last_r["high"]) - float(last_r["low"]))
+    pos_ratio = (tick_bid - float(last_r["low"])) / curr_rng
+    pos_ratio = max(0.0, min(1.0, pos_ratio))
+    avg_vol = (total_tick_vol / num_rates) if num_rates else 50.0
+    b_vol += pos_ratio * avg_vol * 0.6
+    s_vol += (1.0 - pos_ratio) * avg_vol * 0.6
+
+    total = max(1e-5, b_vol + s_vol)
+    buyer_pct = round((b_vol / total) * 100.0, 1)
+    seller_pct = round(100.0 - buyer_pct, 1)
+
+    # Determine dominance & strength
+    delta = buyer_pct - seller_pct
+    if delta >= 12.0:
+        dominant = "BUYER"
+        strength = "STRONG" if delta >= 26.0 else "MODERATE"
+    elif delta <= -12.0:
+        dominant = "SELLER"
+        strength = "STRONG" if delta <= -26.0 else "MODERATE"
+    else:
+        dominant = "NEUTRAL"
+        strength = "BALANCED"
+
+    # Candle flow + watch direction (net move across the whole pressure window)
+    first_c = float(rates[0]["open"])
+    last_c = float(rates[-1]["close"])
+    candle_flow = "BULLISH" if last_c > first_c else ("BEARISH" if last_c < first_c else "SIDEWAYS")
+    change_pct = ((last_c - first_c) / first_c * 100.0) if first_c else 0.0
+    direction = "UP" if change_pct > 0.02 else ("DOWN" if change_pct < -0.02 else "FLAT")
+
+    # Needle degree:
+    # 0 deg = 12 o'clock (50/50 Neutral)
+    # -65 deg = Left (Buyer 100%)
+    # +65 deg = Right (Seller 100%)
+    needle_deg = round(((seller_pct - buyer_pct) / 100.0) * 65.0, 1)
+
+    details = f"Buyer: {buyer_pct}% · Seller: {seller_pct}% ({strength} {dominant})"
+
+    return {
+        "buyer_pct": buyer_pct,
+        "seller_pct": seller_pct,
+        "dominant": dominant,
+        "strength": strength,
+        "needle_deg": needle_deg,
+        "candle_flow": candle_flow,
+        "direction": direction,
+        "change_pct": round(change_pct, 3),
+        "details": details,
+    }
+
+
+def _display_name(sym: str) -> str:
+    up = (sym or "").upper()
+    if any(k in up for k in ("USOIL", "XTIUSD", "CRUDE", "CL")):
+        return "Crude Oil"
+    if "DXY" in up or "USDX" in up:
+        return "DXY"
+    if "XAUGBP" in up:
+        return "XAUGBP"
+    if "USDJPY" in up:
+        return "USDJPY"
+    if "EURUSD" in up:
+        return "EURUSD"
+    if "USTEC" in up or "NAS100" in up or "US100" in up:
+        return "USTEC"
+    if "XAUUSD247" in up:
+        return "XAUUSD247m"
+    if "XAUUSD" in up or "GOLD" in up:
+        return "XAUUSDm"
+    if "BTCUSDT" in up:
+        return "BTCUSDTm"
+    if "BTCUSD" in up:
+        return "BTCUSDm"
+    return sym
+
+
+
+
+def is_crypto_or_247(symbol: str) -> bool:
+    up = (symbol or "").upper()
+    return any(k in up for k in ("BTC", "ETH", "CRYPTO", "247"))
+
+
+def check_symbol_market_status(symbol: str, info: Any = None, tick: Any = None,
+                               max_ref_time: Optional[float] = None,
+                               mt5_client: Any = None) -> Dict[str, Any]:
+    """Determines whether a market is currently open for trading.
+    
+    Checks:
+    1. MT5 symbol existence
+    2. Broker trading allowance (trade_mode != 0, trade_allowed is True)
+    3. Weekend closure (Forex, Metals, Indices, Oil closed Fri 21:55 UTC to Sun 21:00 UTC)
+    4. Market session activity / tick freshness (daily breaks or paused feed)
+    """
+    sym = (symbol or "").strip()
+    is_24_7 = is_crypto_or_247(sym)
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    weekday = now_utc.weekday()  # 0=Mon, 4=Fri, 5=Sat, 6=Sun
+    hour_utc = now_utc.hour
+    minute_utc = now_utc.minute
+
+    # DXY is a benchmark index, not tradeable on broker
+    if sym.upper() in ("DXY", "USD INDEX", "USDX"):
+        return {"open": False, "status": "UNAVAILABLE", "reason": "NOT_FOUND", "message": "Symbol not available on broker"}
+
+    active_mt5 = mt5_client if mt5_client is not None else mt5
+
+    # Offline simulation or test environment (e.g. unit tests or disconnected MT5)
+    if active_mt5 is None or not hasattr(active_mt5, "terminal_info"):
+        return {"open": True, "status": "OPEN", "reason": "SIMULATED", "message": "Simulation feed active"}
+
+    try:
+        term = active_mt5.terminal_info()
+        if not term or not getattr(term, "connected", False):
+            return {"open": True, "status": "OPEN", "reason": "SIMULATED", "message": "MT5 offline simulation"}
+    except Exception:
+        return {"open": True, "status": "OPEN", "reason": "SIMULATED", "message": "MT5 offline simulation"}
+
+    # Weekend check: Forex, Metals, Oil, Indices are closed on weekends
+    if not is_24_7:
+        if weekday == 5:  # Saturday all day
+            return {"open": False, "status": "CLOSED", "reason": "WEEKEND_CLOSED", "message": "Weekend market closed"}
+        elif weekday == 6 and hour_utc < 21:  # Sunday before 21:00 UTC
+            return {"open": False, "status": "CLOSED", "reason": "WEEKEND_CLOSED", "message": "Weekend market closed"}
+        elif weekday == 4 and (hour_utc > 21 or (hour_utc == 21 and minute_utc >= 55)):  # Friday after 21:55 UTC
+            return {"open": False, "status": "CLOSED", "reason": "WEEKEND_CLOSED", "message": "Weekend market closed"}
+
+    # Daily break check for gold/metals, crude oil, and US indices: Mon-Thu 21:00 UTC to 22:00 UTC
+    is_break_symbol = any(k in sym.upper() for k in ("XAU", "GOLD", "OIL", "CRUDE", "TEC", "US30", "100", "500"))
+    if not is_24_7 and is_break_symbol and weekday < 4 and hour_utc == 21:
+        return {"open": False, "status": "CLOSED", "reason": "SESSION_CLOSED", "message": "Daily session break (21:00-22:00 UTC)"}
+
+    if info is None:
+        return {"open": False, "status": "UNAVAILABLE", "reason": "NOT_FOUND", "message": "Symbol not available on broker"}
+
+    # Trade mode: SYMBOL_TRADE_MODE_DISABLED = 0
+    trade_mode = getattr(info, "trade_mode", 4)
+    if trade_mode == 0:
+        return {"open": False, "status": "CLOSED", "reason": "TRADE_DISABLED", "message": "Trading disabled by broker"}
+
+    if getattr(info, "trade_allowed", True) is False:
+        return {"open": False, "status": "CLOSED", "reason": "TRADE_NOT_ALLOWED", "message": "Trading not allowed on account"}
+
+    if not tick:
+        return {"open": False, "status": "CLOSED", "reason": "NO_FEED", "message": "No price quotes available"}
+
+    # Tick freshness check for non-24/7 markets
+    # When market closes for daily break (e.g. 21:00 UTC daily session break for gold/oil/indices) or holidays, tick.time stops advancing.
+    if not is_24_7:
+        ref_time = max(float(max_ref_time or 0.0), now_utc.timestamp())
+        tick_time = float(getattr(tick, "time", 0) or 0)
+        if tick_time > 0 and (ref_time - tick_time) > 300.0:  # > 5 minutes without tick while reference ticks are active
+            return {"open": False, "status": "CLOSED", "reason": "SESSION_CLOSED", "message": "Market session closed / daily break"}
+
+    return {"open": True, "status": "OPEN", "reason": "OPEN", "message": "Market is open"}
+
+
+def get_live_quotes(symbols: List[str]) -> List[Dict[str, Any]]:
+    with IPC_LOCK:
+        return _get_live_quotes_locked(symbols)
+
+
+def _calculate_symbol_watch_locked(symbol: str, max_ref_time: Optional[float] = None) -> Dict[str, Any]:
+    """Calculates pressure and market stats for a single symbol."""
+    sym = symbol.strip()
+    if mt5 is None:
+        # Fallback simulated response
+        return _fallback_symbol_watch(sym)
+
+    try:
+        if not mt5.terminal_info():
+            return _fallback_symbol_watch(sym)
+    except Exception:
+        return _fallback_symbol_watch(sym)
+
+    candidates = [sym] + SYMBOL_CANDIDATES.get(sym, [])
+    tick = None
+    info = None
+    resolved_sym = sym
+
+    cached_res = _resolved_symbol_cache.get(sym)
+    if cached_res:
+        try:
+            t = mt5.symbol_info_tick(cached_res)
+            i = mt5.symbol_info(cached_res)
+            if t and i:
+                tick = t
+                info = i
+                resolved_sym = cached_res
+        except Exception:
+            pass
+
+    if not tick:
+        for c in candidates:
+            try:
+                t = mt5.symbol_info_tick(c)
+                i = mt5.symbol_info(c)
+                if not t:
+                    mt5.symbol_select(c, True)
+                    t = mt5.symbol_info_tick(c)
+                    i = mt5.symbol_info(c)
+                if t and i:
+                    tick = t
+                    info = i
+                    resolved_sym = c
+                    _resolved_symbol_cache[sym] = c
+                    break
+            except Exception:
+                continue
+
+    if not tick:
+        fb = _fallback_symbol_watch(sym)
+        try:
+            term = mt5.terminal_info()
+            if term and getattr(term, "connected", False):
+                fb["market_open"] = False
+                fb["market_status"] = "UNAVAILABLE"
+                fb["market_reason"] = "NOT_FOUND"
+                fb["market_message"] = "Symbol not available on broker"
+        except Exception:
+            pass
+        return fb
+
+    digits = int(getattr(info, "digits", 2)) if info else 2
+    ask = float(tick.ask)
+    bid = float(tick.bid)
+    spread = round(ask - bid, digits if digits <= 4 else 4)
+
+    # Fetch last 10 M1 rates
+    try:
+        rates = mt5.copy_rates_from_pos(resolved_sym, mt5.TIMEFRAME_M1, 0, 10)
+    except Exception:
+        rates = None
+
+    pressure = _calc_pressure_for_rates(bid, ask, rates, digits)
+    m_stat = check_symbol_market_status(resolved_sym, info=info, tick=tick, max_ref_time=max_ref_time)
+
+    return {
+        "symbol": resolved_sym,
+        "displayName": _display_name(sym),
+        "ask": ask,
+        "bid": bid,
+        "spread": spread,
+        "digits": digits,
+        "buyer_pct": pressure["buyer_pct"],
+        "seller_pct": pressure["seller_pct"],
+        "dominant": pressure["dominant"],
+        "strength": pressure["strength"],
+        "needle_deg": pressure["needle_deg"],
+        "candle_flow": pressure["candle_flow"],
+        "direction": pressure["direction"],
+        "change_pct": pressure["change_pct"],
+        "details": pressure["details"],
+        "updated_at": time.time(),
+        "live": True,
+        "market_open": m_stat["open"],
+        "market_status": m_stat["status"],
+        "market_reason": m_stat["reason"],
+        "market_message": m_stat["message"],
+    }
+
+
+def _fallback_symbol_watch(sym: str) -> Dict[str, Any]:
+    """Generates realistic fallback data if MT5 is offline/uninitialized."""
+    now = time.time()
+    seed = sum(ord(c) for c in sym) + int(now // 5)
+
+    # Neutral until a real candle read exists: a dial that has no order flow to
+    # show must say 50/50, never invent a direction.
+    buyer_pct = 50.0
+    seller_pct = 50.0
+    delta = 0.0
+    dominant = "NEUTRAL"
+    strength = "BALANCED"
+    needle_deg = 0.0
+
+    up = sym.upper()
+    if "BTC" in up:
+        digits = 2
+        base_price = 83650.0
+        spread = 10.0
+    elif "DXY" in up or "USDX" in up:
+        digits = 2
+        base_price = 104.50
+        spread = 0.05
+    elif any(k in up for k in ("USOIL", "XTIUSD", "CRUDE", "CL")):
+        digits = 2
+        base_price = 71.20
+        spread = 0.04
+    elif "XAUGBP" in up:
+        digits = 2
+        base_price = 2045.0
+        spread = 0.40
+    elif "USDJPY" in up or "JPY" in up:
+        digits = 3
+        base_price = 152.350
+        spread = 0.015
+    elif "EURUSD" in up:
+        digits = 5
+        base_price = 1.08550
+        spread = 0.00015
+    elif any(k in up for k in ("USTEC", "NAS100", "US100")):
+        digits = 2
+        base_price = 19850.0
+        spread = 1.50
+    elif "XAU" in up or "GOLD" in up:
+        digits = 2
+        base_price = 4087.50
+        spread = 0.25
+    else:
+        digits = 2
+        base_price = 100.0
+        spread = 0.10
+
+    # Prefer the public feed when its cache has this market: the price shown
+    # here must match the public chart. Only when no provider answered do we
+    # fall back to the simulated walk.
+    public = _public_quote_cached(sym)
+    if public:
+        price = float(public.get("price") or 0.0)
+        bid = round(price, digits)
+        ask = round(bid + spread, digits)
+        change_pct = float(public.get("change_pct") or 0.0)
+        direction = "UP" if change_pct > 0.02 else ("DOWN" if change_pct < -0.02 else "FLAT")
+        price_source = "public"
+    else:
+        bid = round(base_price + math.cos(seed) * (base_price * 0.0008), digits)
+        ask = round(bid + spread, digits)
+        change_pct = 0.0
+        direction = "FLAT"
+        price_source = "sim"
+
+    # ---- real buyer / seller pressure from the public 1m candles ----------
+    # Same body/wick/volume-delta weighting the MT5 path uses, so the dial
+    # shows the same kind of reading whether a broker terminal exists or not.
+    pressure_source = "none"
+    candle_flow = "SIDEWAYS"
+    details = ""
+    bars = _public_bars_cached(sym)
+    if bars:
+        pressure = _calc_pressure_for_rates(bid, ask, bars, digits)
+        buyer_pct = pressure["buyer_pct"]
+        seller_pct = pressure["seller_pct"]
+        delta = buyer_pct - seller_pct
+        dominant = pressure["dominant"]
+        strength = pressure["strength"]
+        needle_deg = pressure["needle_deg"]
+        candle_flow = pressure["candle_flow"]
+        if price_source == "public":
+            change_pct = pressure["change_pct"]
+            direction = pressure["direction"]
+        details = pressure["details"]
+        pressure_source = "public"
+
+    m_stat = check_symbol_market_status(sym, info=None, tick=None)
+    if mt5 is not None:
+        try:
+            term = mt5.terminal_info()
+            if term and getattr(term, "connected", False):
+                m_stat = {"open": False, "status": "UNAVAILABLE", "reason": "NOT_FOUND", "message": "Symbol not available on broker"}
+        except Exception:
+            pass
+
+    return {
+        "symbol": sym,
+        "displayName": _display_name(sym),
+        "ask": ask,
+        "bid": bid,
+        "spread": spread,
+        "digits": digits,
+        "buyer_pct": buyer_pct,
+        "seller_pct": seller_pct,
+        "dominant": dominant,
+        "strength": strength,
+        "needle_deg": needle_deg,
+        "candle_flow": candle_flow,
+        "direction": direction,
+        "change_pct": change_pct,
+        "price_source": price_source,
+        "pressure_source": pressure_source,
+        "details": details or (
+            f"Buyer: {buyer_pct}% · Seller: {seller_pct}% (no candle feed)"),
+        "updated_at": now,
+        "live": False,
+        "market_open": m_stat["open"],
+        "market_status": m_stat["status"],
+        "market_reason": m_stat["reason"],
+        "market_message": m_stat["message"],
+    }
+
+
+
+
+def calculate_symbol_watch(symbol: str, max_ref_time: Optional[float] = None) -> Dict[str, Any]:
+    _prefetch_public_quotes([symbol], priority=[symbol])
+    with IPC_LOCK:
+        return _calculate_symbol_watch_locked(symbol, max_ref_time=max_ref_time)
+
+
+def _get_all_market_watches_locked(custom_symbols: Optional[List[str]] = None, force: bool = False,
+                                   extra: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Gathers buyer vs seller pressure for all available markets.
+    Recomputed on every engine tick (WATCH_CACHE_SEC freshness window).
+
+    ``extra`` appends markets to the default set without replacing it - the flow
+    pipeline asks for the market the user selected, so the one dial that is shown
+    always has live order-flow data even when that market is not one of the ten
+    serial dials.
+    """
+    global _cache_lock_ts, _cached_watches
+    now = time.time()
+
+    extra_syms = [str(s).strip() for s in (extra or []) if str(s).strip()]
+
+    # include the requested symbol set in the cache key: two callers asking for
+    # different custom sets within the freshness window must not share a row
+    cache_key = (",".join(sorted(str(s).strip() for s in (custom_symbols or []) if str(s).strip())) or "default")
+    if extra_syms:
+        cache_key += "|extra:" + ",".join(sorted(extra_syms))
+    cached = _cached_watches.get(cache_key)
+    if not force and cached and (now - _cache_lock_ts) < WATCH_CACHE_SEC:
+        return cached
+
+    symbols_to_check: List[str] = []
+    if custom_symbols:
+        symbols_to_check = [s.strip() for s in custom_symbols if s.strip()]
+
+    if not symbols_to_check:
+        # Discover available markets
+        symbols_to_check = list(PREFERRED_WATCH_SYMBOLS)
+        if mt5 is not None:
+            try:
+                allsym = mt5.symbols_get()
+                if allsym:
+                    for s in allsym:
+                        name = str(getattr(s, "name", "") or "")
+                        up = name.upper()
+                        if any(b in up for b in ("BTCUSD", "BTCUSDT", "XAUUSD", "GOLD", "DXY", "USDX", "USOIL", "XTIUSD", "XAUGBP", "USDJPY", "EURUSD", "USTEC", "NAS100")) and not any(x in up for x in ("XAG", "ETH")):
+                            if name not in symbols_to_check:
+                                symbols_to_check.append(name)
+            except Exception:
+                pass
+
+    # Keep unique symbols
+    seen = set()
+    ordered_syms: List[str] = []
+    for s in symbols_to_check:
+        if s and s not in seen:
+            seen.add(s)
+            ordered_syms.append(s)
+
+    # The flow-selected markets get a dial of their own right after the ten
+    # serial ones. Everything the discovery walk found stays behind them, so a
+    # selected market can never be pushed out of the computed window.
+    head = ordered_syms[:10]
+    add: List[str] = []
+    for s in extra_syms:
+        if s not in head and s not in add:
+            add.append(s)
+    tail = [s for s in ordered_syms[10:] if s not in head and s not in add]
+    ordered_syms = head + add + tail
+    dial_count = 10 + len(add)
+
+    # Calculate watch data for each symbol (top 10 covers both 5-market rows;
+    # the flow-selected extras follow right after them)
+    # H9: the stale-tick check compares MT5 tick.time (broker server clock)
+    # against a reference. It used to receive None, which fell back to the UTC
+    # wall clock, so the difference was always negative and a halted feed kept
+    # reporting OPEN. Pass the broker's own clock instead.
+    ref_now = 0.0
+    if mt5 is not None:
+        try:
+            ref_now = float(mt5.server_now() or 0.0)
+        except Exception:
+            ref_now = 0.0
+    watches = [_calculate_symbol_watch_locked(s, max_ref_time=ref_now)
+               for s in ordered_syms[:dial_count]]
+
+    market_statuses: Dict[str, Dict[str, Any]] = {}
+    for w in watches:
+        sym_name = w.get("symbol")
+        disp_name = w.get("displayName")
+        st_data = {
+            "open": w.get("market_open", True),
+            "status": w.get("market_status", "OPEN"),
+            "reason": w.get("market_reason", ""),
+            "message": w.get("market_message", ""),
+        }
+        if sym_name:
+            market_statuses[sym_name] = st_data
+        if disp_name and disp_name not in market_statuses:
+            market_statuses[disp_name] = st_data
+
+    res = {
+        "ok": True,
+        "updated_at": now,
+        "interval_sec": WATCH_CACHE_SEC,
+        "live_stream": True,
+        "count": len(watches),
+        "watches": watches,
+        "market_statuses": market_statuses,
+    }
+
+    _cached_watches[cache_key] = res
+    _cache_lock_ts = now
+    return res
+
+
+def get_all_market_watches(custom_symbols: Optional[List[str]] = None, force: bool = False,
+                           extra: Optional[List[str]] = None) -> Dict[str, Any]:
+    # Warm the offline price cache OUTSIDE the watch lock: provider latency must
+    # never stall the 20 fps quote loop or the IPC pipe.
+    _prefetch_public_quotes(list(PREFERRED_WATCH_SYMBOLS) + list(custom_symbols or []),
+                            priority=list(extra or []))
+    with IPC_LOCK:
+        return _get_all_market_watches_locked(custom_symbols, force, extra)
+

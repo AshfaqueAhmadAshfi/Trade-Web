@@ -1,0 +1,134 @@
+{
+  "result": "partial-provider-availability",
+  "checked_at": "2026-11-13T22:03:49.629Z",
+  "selected_calendar_events": [
+    {
+      "currency": "USD",
+      "sources": [
+        "forex-factory",
+        "exness"
+      ],
+      "title": "Fed Jefferson Speech",
+      "ts": 1794614400
+    },
+    {
+      "currency": "GBP",
+      "sources": [
+        "forex-factory",
+        "exness"
+      ],
+      "title": "BoE Greene Speech",
+      "ts": 1794654000
+    }
+  ],
+  "selected_headline_counts": {
+    "google-news": 158,
+    "investing.com": 4
+  },
+  "source_summary": "NEWS SOURCES · 1 CALENDAR FEEDS UNAVAILABLE / CACHED",
+  "sources": [
+    {
+      "count": 436,
+      "name": "tradingview",
+      "parts": {
+        "calendar": {
+          "count": 440,
+          "state": "ok",
+          "updated": 1794607381.8642733
+        }
+      },
+      "state": "ok",
+      "updated": 1794607381.8642733
+    },
+    {
+      "count": 103,
+      "name": "forex-factory",
+      "parts": {
+        "calendar": {
+          "count": 103,
+          "state": "ok",
+          "updated": 1794607381.8642733
+        }
+      },
+      "state": "ok",
+      "updated": 1794607381.8642733
+    },
+    {
+      "count": 20,
+      "name": "investing.com",
+      "parts": {
+        "calendar": {
+          "count": 0,
+          "error": "HTTP Error 403: Forbidden",
+          "state": "unavailable",
+          "updated": 1794588478.9095283
+        },
+        "headline": {
+          "count": 20,
+          "state": "ok",
+          "updated": 1794607381.8642733
+        }
+      },
+      "state": "partial",
+      "updated": 1794607381.8642733
+    },
+    {
+      "count": 5,
+      "name": "exness",
+      "parts": {
+        "calendar": {
+          "count": 5,
+          "state": "ok",
+          "transport": "browser",
+          "updated": 1794607410.431
+        },
+        "headline": {
+          "count": 0,
+          "error": "News provider returned invalid RSS",
+          "state": "unavailable",
+          "updated": 1794606615.4600573
+        }
+      },
+      "state": "partial",
+      "updated": 1794607410.431
+    },
+    {
+      "count": 615,
+      "name": "google-news",
+      "parts": {
+        "headline": {
+          "count": 635,
+          "state": "ok",
+          "updated": 1794607381.8642733
+        }
+      },
+      "state": "ok",
+      "updated": 1794607381.8642733
+    }
+  ],
+  "symbol": "XAUUSDm",
+  "public_browser_fallback": {
+    "exness": {
+      "endpoint": "https://pwapi.ex2b.com/api/v1/calendar/events/",
+      "credentials": "omit",
+      "refresh_seconds": 300,
+      "retry_seconds": 60,
+      "status": "verified on the dashboard origin"
+    },
+    "investing": {
+      "endpoint": "https://sslecal2.investing.com?lang=1&calType=week",
+      "status": "Browser fetch failed; server calendar returned HTTP 403"
+    }
+  },
+  "validation": {
+    "python_news_source_tests": 10,
+    "javascript_focused_news_tests": 6,
+    "server_root_http": 200,
+    "news_api_http": 200,
+    "visual_spacing_review": false
+  },
+  "preview": {
+    "url": "http://127.0.0.1:8810/",
+    "pid": 24248
+  }
+}

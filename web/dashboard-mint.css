@@ -1,0 +1,163 @@
+/* Access-page palette. This layer changes colours, never workspace geometry. */
+html:has(body.softradex-glass-ui) { background: var(--sx-bg); color-scheme: dark; }
+body.softradex-glass-ui {
+  --gx-ink: var(--sx-text);
+  --gx-muted: var(--sx-muted);
+  --gx-accent: var(--sx-mint);
+  --gx-line: var(--sx-line);
+  --gx-edge: var(--sx-line);
+  --gx-surface: var(--sx-surface);
+  --gx-card: var(--sx-panel);
+  --gx-inset: var(--sx-inset);
+  --gx-canvas: var(--sx-bg);
+  --gx-shadow: inset 0 1px 0 rgba(206, 233, 208, .025), 0 14px 36px -22px rgba(0, 0, 0, .6);
+  --gx-card-shadow: inset 0 1px 0 rgba(206, 233, 208, .025), 0 8px 22px -16px rgba(0, 0, 0, .5);
+  --gx-blur: none;
+  --bg: var(--sx-bg);
+  --bg-soft: var(--sx-surface);
+  --bg-elevated: var(--sx-panel);
+  --panel: var(--sx-surface);
+  --panel-2: var(--sx-panel);
+  --panel-solid: var(--sx-panel);
+  --txt: var(--sx-text);
+  --txt-dim: var(--sx-muted);
+  --txt-faint: #819489;
+  --txt-muted: var(--sx-muted);
+  --ink: var(--sx-text);
+  --ink-dim: var(--sx-muted);
+  --ink-faint: #819489;
+  --accent: var(--sx-mint);
+  --accent-neon: var(--sx-mint);
+  --accent-ink: var(--sx-mint);
+  --accent-dim: rgba(183, 234, 182, .12);
+  --accent-wash: rgba(183, 234, 182, .08);
+  --accent-wash-2: rgba(183, 234, 182, .14);
+  --line: var(--sx-line);
+  --line-soft: rgba(206, 233, 208, .07);
+  --line-bright: rgba(183, 234, 182, .3);
+  --hairline: var(--sx-line);
+  --hairline-soft: rgba(206, 233, 208, .07);
+  --hairline-bright: rgba(183, 234, 182, .3);
+  --win: var(--sx-buy);
+  --win-neon: var(--sx-buy);
+  --win-soft: rgba(156, 226, 176, .1);
+  --loss: var(--sx-sell);
+  --loss-neon: var(--sx-sell);
+  --loss-soft: rgba(239, 150, 156, .1);
+  --ok: var(--sx-buy);
+  --warn: var(--sx-amber);
+  --gold: var(--sx-amber);
+  --glass-border: 1px solid var(--sx-line);
+  --glass-edge-ring: inset 0 0 0 1px rgba(183, 234, 182, .02);
+  --glass-inner-hi: inset 0 1px 0 rgba(183, 234, 182, .03);
+  --glass-card-bg: var(--sx-surface);
+  --glass-subcard-bg: var(--sx-panel);
+  --glass-tint: var(--sx-panel);
+  --glass-tint-soft: var(--sx-surface);
+  --glass-tint-strong: var(--sx-inset);
+  --glass-card-line: 1px solid var(--sx-line);
+  --glass-card-shadow: var(--gx-card-shadow);
+  --steel-hi: var(--sx-inset);
+  --steel-edge: var(--sx-line);
+  --steel-dark: var(--sx-bg);
+  --lift-1: var(--gx-card-shadow);
+  --lift-2: var(--gx-shadow);
+  --lift-3: var(--gx-shadow);
+  background: var(--sx-bg) !important;
+  color: var(--sx-text) !important;
+  color-scheme: dark;
+}
+body.softradex-glass-ui #app { color: var(--sx-text) !important; }
+body.softradex-glass-ui #app::before,
+body.softradex-glass-ui #app::after { background: none !important; }
+body.softradex-glass-ui #app > :is(.topbar, .market-ticker-bar, .footer) { background: var(--sx-surface) !important; border-color: var(--sx-line) !important; }
+body.softradex-glass-ui #app #dash :where(h1, h2, h3, h4, h5, strong, b, p, span, small, em, label, td, th, summary, a, div, section, article, header, footer, nav, li, ul, ol, details, time, i):where(:not([style*="color"])) { color: inherit !important; }
+body.softradex-glass-ui #app #dash { color: var(--sx-text) !important; }
+body.softradex-glass-ui #app #dash :is(.panel, [class*="-panel"], [class*="-board"], [class*="-card"], .flow-stage, .binance-terminal-section, .whale-flow-section, .multi-order-flow-terminal, .venues-flow-terminal, .stats-strip, .account-strip, .news-list, .feed-panel-drawer) {
+  background: var(--sx-surface) !important;
+  border-color: var(--sx-line) !important;
+  box-shadow: var(--gx-card-shadow) !important;
+}
+body.softradex-glass-ui #app #dash :is(.binance-chart-wrapper, .binance-canvas-box, .chart-ind-pane, #tv-chart-box, .tv-chart-placeholder) { background: var(--sx-bg) !important; border-color: var(--sx-line) !important; }
+body.softradex-glass-ui #app #dash :is(.binance-term-topbar, .binance-ticker-strip, .binance-tf-tabs, .binance-term-actions, .chart-workspace-tools, .chart-indicator-bar, .chart-ind-pane-head, .flow-step-row, .panel-head, .mnt-head, .live-panel-head, .sai-head, .tvs-head, .sessions-head, .vft-head, .vft-columns, .vft-row, .tvs-row, .tt-header, .tt-columns, .bof-columns, .wf-columns) {
+  background: var(--sx-panel) !important;
+  border-color: var(--sx-line) !important;
+  box-shadow: none !important;
+}
+body.softradex-glass-ui #app #dash :is(.mnt-row, .mnt-details, .slz-row, .slz-details, .sess-row, .sess-fc-card, .watch-card, .ticker-item, .outlook-pill, .outlook-date-row, .sai-cell, .sai-chip, .mnt-provider, .mnt-plan > div, .vft-total, .vfb-advisory, .mnt-source-report, .mnt-bias-note, .mnt-timing-guide, .imp-market-pill, .ai-cell, .ai-row, .bot2-trend-box, .trend-box-head, .trend-box-details, .trend-box-footer) {
+  background: var(--sx-panel) !important;
+  border-color: var(--sx-line) !important;
+  box-shadow: none !important;
+}
+body.softradex-glass-ui #app #dash :is(.mnt-row.running, .sess-row.live, .watch-card.selected, .b-tab-btn.active, .ticker-item.active-sym) { border-color: rgba(183, 234, 182, .4) !important; }
+body.softradex-glass-ui #app #dash :is(.mnt-row.high, .slz-row.sell, .sess-fc-card.sell) { background: rgba(239, 150, 156, .07) !important; }
+body.softradex-glass-ui #app #dash :is(.mnt-row.medium, .slz-disclosure, .mnt-entry-timer) { background: rgba(228, 194, 149, .08) !important; }
+body.softradex-glass-ui #app #dash :is(.mnt-row.low, .slz-row.buy, .sess-fc-card.buy) { background: rgba(156, 226, 176, .07) !important; }
+body.softradex-glass-ui #app #dash .mnt-row.running { background: rgba(183, 234, 182, .1) !important; }
+/* Light-theme inset surfaces, including pressure gauges and live tape. */
+body.softradex-glass-ui #app #dash :is(.chart-status-overlay, .vfb-venue, .mh-price-block, .mh-side-block, .mh-quote-block, .mh-quote, .flow-balance, .news-impact-filter-bar, .news-bias-row, .news-predicted-move, .news-impacted-block, .news-filtered-item, .watch-timer-badge, .machine-clock, .watch-case, .watch-bezel, .watch-pressure-bigrack, .machine-specs-row, .tt-stats-bar, .tt-stat-chip, .tt-tape-body, .tt-foot-total, .outlook-window, .flow-curve-box, .bof-toolbar, .bof-tape, .mof-tape, .sessions-summary, .sessions-radar-counts, .sessions-radar-chips, .bset-chip, .tv-cross-chip, .tvo-pressure, .tvo-flow-call, .tvo-n-row) {
+  background: var(--sx-panel) !important;
+  border-color: var(--sx-line) !important;
+  box-shadow: none !important;
+}
+body.softradex-glass-ui #app #dash :is(.watch-bezel, .vu-meter-rack) { background: var(--sx-bg) !important; }
+body.softradex-glass-ui #app #dash .watch-glass-sheen { background: none !important; }
+body.softradex-glass-ui #app #dash :is(.ai-tab, .ai-verdict, .ai-targets, .ai-target, .planned-timer-pill, .planned-trades-footer, .planned-last-updated, .drawer-head, .bots-quick-nav, .all-news-sources-bar, .news-sources, .news-src-badge, .news-row, .bot-chip, .bot-body, .bot-left, .bot-market-row, .bot-info, .pricemap, .bot-structure-wrap, .struct-tf-toggle, .trend-radar-wrap, .trend-countdown-pill, .ladder-col, .ladder-col-head, .feed-item, .k-engine, .wf-topbar, .wf-market-wrap, .wf-actions, .wf-stats, .wf-stat, .wf-tape, .wf-legend) {
+  background: var(--sx-panel) !important;
+  border-color: var(--sx-line) !important;
+  box-shadow: none !important;
+}
+body.softradex-glass-ui #app #dash .ai-tf-name { color: var(--sx-text) !important; }
+body.softradex-glass-ui #app #dash .ai-tab.sel { border-color: var(--sx-mint) !important; }
+body.softradex-glass-ui #app #dash .watch-gauge-svg :is(.gauge-tech-hash, .gauge-center-zero) { fill: var(--sx-muted) !important; }
+body.softradex-glass-ui #app #dash .watch-gauge-svg :is(.gauge-label-buy, .gauge-sub-buy) { fill: var(--sx-buy) !important; }
+body.softradex-glass-ui #app #dash .watch-gauge-svg :is(.gauge-label-sell, .gauge-sub-sell) { fill: var(--sx-sell) !important; }
+body.softradex-glass-ui #app #dash .vfb-advisory-bar { background: var(--sx-sell) !important; }
+body.softradex-glass-ui #app #dash .vfb-advisory-bar i { background: var(--sx-buy) !important; }
+body.softradex-glass-ui #app #dash .chart-indicator-btn.active .chart-ind-dot { background: #172d21 !important; }
+body.softradex-glass-ui #app :is(.icon-btn, button, select, input, textarea, .flow-rail, .badge, .pill, .ticker-item, .ticker-off-pill, .conn-widget, .clock) {
+  color: var(--sx-text) !important;
+  background: var(--sx-panel) !important;
+  border-color: var(--sx-line) !important;
+  box-shadow: none !important;
+}
+body.softradex-glass-ui #app #dash :is(button, select, input, textarea, .flow-rail, .pill, .badge, .sai-timer, .term-source-badge, .rail-badge) { background: var(--sx-inset) !important; color: var(--sx-text) !important; border-color: var(--sx-line) !important; box-shadow: none !important; }
+body.softradex-glass-ui #app #dash :is(button, .flow-rail):hover { background: #263d2d !important; border-color: rgba(183, 234, 182, .35) !important; }
+body.softradex-glass-ui #app #dash :is(button.active, .b-tab-btn.active, .b-tf-btn.active, .exness-cat-btn.active, .chart-indicator-btn.active, .term-expand-btn.active, .btn.primary) { background: var(--sx-mint) !important; color: #172d21 !important; border-color: var(--sx-mint) !important; }
+body.softradex-glass-ui #app #dash :is(button.active, .b-tab-btn.active, .b-tf-btn.active, .exness-cat-btn.active, .chart-indicator-btn.active, .btn.primary) * { color: #172d21 !important; }
+body.softradex-glass-ui #app #dash :is(.btn-start, .bot-start, .btn.primary) { background: var(--sx-mint) !important; color: #172d21 !important; }
+body.softradex-glass-ui #app #dash :is(.btn-stop, .bot-stop, .danger-btn) { background: rgba(239, 150, 156, .1) !important; color: var(--sx-sell) !important; }
+body.softradex-glass-ui #app #dash :is(input, select, textarea)::placeholder { color: var(--sx-muted) !important; }
+body.softradex-glass-ui #app #dash :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--sx-mint); outline-offset: 3px; }
+body.softradex-glass-ui #app #dash :is(.muted, .acc-label, .b-lbl, .b-strip-lbl, .flow-step-hint, .watch-subtitle, .watch-caption, .chart-indicator-hint, .chart-ind-kicker, .vft-status, .sai-src, .sai-foot, .sai-why, .sess-sub, .sessions-sub, .slz-foot, .mnt-window, .live-panel-meta, .tt-stat-lbl, .tt-unit, .outlook-count, .outlook-window, .wf-stat-lbl, .mnt-plan small, .sai-cell small) { color: var(--sx-muted) !important; }
+body.softradex-glass-ui #app #dash :is(.vft-columns, .tvo-head, .tvo-w-time, .tvo-w-part, .tvo-w-cap, .tvo-empty, .sessions-summary, .sessions-updated, .sessions-markets-list, .sess-count, .sess-markets-list, .spec-k, .tele-divider, .tvs-meta, .tvs-foot, .tvs-rank, .sai-meta, .sai-conf, .sai-score, .vft-foot, .mnt-legend, .mnt-reason, .mnt-reference-note, .news-impacted-title) { color: var(--sx-muted) !important; }
+body.softradex-glass-ui #app #dash :is(.buy, .buyer, .bullish, .pos, .positive, .win, .up, .ok, .wf-buy, .tt-buy-vol, .b-open-buy-val, .vft-buy, .fb-buy, .vft-row[data-status="LIVE"] .vft-status, .tvs-status.status-trigger, .sai-phase.done) { color: var(--sx-buy) !important; }
+body.softradex-glass-ui #app #dash :is(.sell, .seller, .bearish, .neg, .negative, .loss, .down, .fail, .wf-sell, .tt-sell-vol, .b-open-sell-val, .vft-sell, .fb-sell) { color: var(--sx-sell) !important; }
+body.softradex-glass-ui #app #dash :is(.warning, .warn, .wait, .slz-disclosure, .mnt-entry-timer, .vft-row[data-status="UNAVAILABLE"] .vft-status, .tvs-status.status-imminent) { color: var(--sx-amber) !important; }
+body.softradex-glass-ui #app #dash .mnt-legend :is(.low, .medium, .high) { background: var(--sx-inset) !important; }
+body.softradex-glass-ui #app #dash .mnt-legend .low { color: var(--sx-buy) !important; }
+body.softradex-glass-ui #app #dash .mnt-legend .medium { color: var(--sx-amber) !important; }
+body.softradex-glass-ui #app #dash .mnt-legend .high { color: var(--sx-sell) !important; }
+body.softradex-glass-ui #app #dash :is(.sess-fc-card.buy .sess-fc-amt, .sess-fc-card.buy .sess-fc-tag) { color: var(--sx-buy) !important; }
+body.softradex-glass-ui #app #dash :is(.sess-fc-card.sell .sess-fc-amt, .sess-fc-card.sell .sess-fc-tag) { color: var(--sx-sell) !important; }
+body.softradex-glass-ui #app :is(.brand-text strong, .ticker-sym, .ticker-price, .acc-value) { color: var(--sx-text) !important; -webkit-text-fill-color: var(--sx-text) !important; }
+body.softradex-glass-ui #app :is(.brand-text span, .clock-label, .conn-text, .footer, .ticker-spread) { color: var(--sx-muted) !important; }
+body.softradex-glass-ui #app :is(.clock-value, .term-brand-name) { color: var(--sx-mint) !important; }
+body.softradex-glass-ui #app .ticker-badge { background: var(--sx-mint) !important; }
+body.softradex-glass-ui #app .ticker-badge-text { color: #172d21 !important; }
+body.softradex-glass-ui #app .brand-mark { background: var(--sx-panel) !important; }
+body.softradex-glass-ui #app #dash .binance-terminal-section.workspace-expanded,
+body.softradex-glass-ui #binance-terminal-section:fullscreen { background: var(--sx-bg) !important; }
+body.softradex-glass-ui :is(.modal-card, .about-me-dialog, .dashboard-password-dialog, .connect-card, .bots-drawer, .markets-drawer, .drawer-header, .toast) { background: var(--sx-surface) !important; color: var(--sx-text) !important; border-color: var(--sx-line) !important; box-shadow: var(--gx-shadow) !important; }
+body.softradex-glass-ui :is(.about-me-copy, .dashboard-password-dialog, .modal-card) :is(h2, h3, strong, label) { color: var(--sx-text) !important; }
+body.softradex-glass-ui :is(.about-me-copy p, .dashboard-password-help) { color: var(--sx-muted) !important; }
+body.softradex-glass-ui :is(.about-me-kicker, .about-me-trigger) { color: var(--sx-mint) !important; }
+body.softradex-glass-ui :is(.about-me-trigger, .about-me-close, .dashboard-password-dialog input, .modal-card input, .dashboard-password-dialog .btn) { color: var(--sx-text) !important; background: var(--sx-inset) !important; border-color: var(--sx-line) !important; }
+body.softradex-glass-ui .dashboard-password-dialog .btn.primary { color: #172d21 !important; background: var(--sx-mint) !important; }
+body.softradex-glass-ui .dashboard-password-dialog::before { background: var(--sx-inset) !important; }
+body.softradex-glass-ui .dashboard-password-error { color: var(--sx-sell) !important; }
+body.softradex-glass-ui .drawer-scrim { background: rgba(3, 12, 8, .65) !important; }
+body.softradex-glass-ui #app * { scrollbar-color: #3e5a46 var(--sx-bg); }
+body.softradex-glass-ui ::-webkit-scrollbar-track { background: var(--sx-bg); }
+body.softradex-glass-ui ::-webkit-scrollbar-thumb { background: #3e5a46; }
+body.softradex-glass-ui ::selection { background: var(--sx-mint) !important; color: #172d21 !important; }

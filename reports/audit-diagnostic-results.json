@@ -1,0 +1,111 @@
+[
+  {
+    "issue": "TradingView quote race",
+    "requested": "/api/chart/tvquote?symbol=XAUUSDm",
+    "stored": {
+      "symbol": "BTCUSDT",
+      "tv_symbol": "OANDA:XAUUSD",
+      "price": 3900,
+      "change": 0,
+      "high": 0,
+      "low": 0,
+      "at": 1794562967147
+    }
+  },
+  {
+    "issue": "Setup levels race",
+    "state": {
+      "symbol": "BTCUSDT",
+      "price": 3890,
+      "levels": [
+        {
+          "action": "BUY",
+          "label": "Today Low",
+          "scope": "DAY",
+          "price": 3800
+        },
+        {
+          "action": "SELL",
+          "label": "Today High",
+          "scope": "DAY",
+          "price": 3900
+        },
+        {
+          "action": "BUY",
+          "label": "Previous Day Low",
+          "scope": "PREV DAY",
+          "price": 3800
+        },
+        {
+          "action": "SELL",
+          "label": "Previous Day High",
+          "scope": "PREV DAY",
+          "price": 3900
+        },
+        {
+          "action": "BUY",
+          "label": "This Week Low",
+          "scope": "WEEK",
+          "price": 3800
+        },
+        {
+          "action": "SELL",
+          "label": "This Week High",
+          "scope": "WEEK",
+          "price": 3900
+        },
+        {
+          "action": "BUY",
+          "label": "Previous Week Low",
+          "scope": "PREV WEEK",
+          "price": 3800
+        },
+        {
+          "action": "SELL",
+          "label": "Previous Week High",
+          "scope": "PREV WEEK",
+          "price": 3900
+        },
+        {
+          "action": "SELL",
+          "label": "This Month High",
+          "scope": "MONTH",
+          "price": 3900
+        },
+        {
+          "action": "BUY",
+          "label": "This Month Low",
+          "scope": "MONTH",
+          "price": 3800
+        }
+      ]
+    }
+  },
+  {
+    "issue": "Swing candle race",
+    "symbol": "BTCUSDT",
+    "price": 3890,
+    "m5Close": 3890
+  },
+  {
+    "issue": "Unconfirmed entry shown as running",
+    "entry": 100,
+    "price": 95,
+    "running": false,
+    "phase": "SWING RUNNING · OPEN 00:01"
+  },
+  {
+    "issue": "Unarmed target counted as success",
+    "now": 1200,
+    "startAt": 1500,
+    "hit": true,
+    "phase": "TARGET HIT · SWING COMPLETE"
+  },
+  {
+    "issue": "Expired plan still running",
+    "now": 20000,
+    "endAt": 10000,
+    "phase": "SWING RUNNING · OPEN 00:19",
+    "clock": "00:00"
+  }
+]

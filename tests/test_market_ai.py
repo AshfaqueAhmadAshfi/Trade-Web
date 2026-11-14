@@ -322,6 +322,20 @@ class TestNewsBotAiBoard(unittest.TestCase):
     def setUp(self):
         self.bot = NewsBot()
         self.now = NOW
+        # Offline tests must not start real public requests or daemon fetches.
+        for target in ("backend.news_bot.public_feed.candles", "backend.news_bot.public_feed.tick"):
+            stub = patch(target, side_effect=OSError("offline test"))
+            stub.start()
+            self.addCleanup(stub.stop)
+        stub = patch.object(self.bot, "_read_public_session_stats", return_value={})
+        stub.start()
+        self.addCleanup(stub.stop)
+        def finish_public_reads():
+            worker = getattr(self.bot, "_public_ai_thread", None)
+            if worker:
+                worker.join(timeout=5)
+                self.assertFalse(worker.is_alive(), "public AI worker leaked into another test")
+        self.addCleanup(finish_public_reads)
 
     def _mock(self, m, rising=True):
         m.TIMEFRAME_M1, m.TIMEFRAME_M5, m.TIMEFRAME_M15 = 1, 5, 15
@@ -340,7 +354,7 @@ class TestNewsBotAiBoard(unittest.TestCase):
     def test_board_without_a_terminal(self):
         with patch("backend.news_bot.mt5", None):
             board = self.bot.ai_board(now=self.now)
-        self.assertEqual(board["source"], "no terminal")
+        self.assertEqual(board["source"], "public")
         self.assertFalse(board["ready"])
         self.assertEqual(len(board["rows"]), len(A.TIMEFRAMES))
         self.assertEqual(board["symbol"], "XAUUSDm")      # falls back to the bot market
@@ -419,7 +433,7 @@ class TestNewsBotAiBoard(unittest.TestCase):
             data = stub(engine_obj)
         self.assertIn("ai", data)
         self.assertEqual(len(data["ai"]["rows"]), len(A.TIMEFRAMES))
-        self.assertEqual(data["ai"]["source"], "no terminal")
+        self.assertEqual(data["ai"]["source"], "public")
 
 
 if __name__ == "__main__":
