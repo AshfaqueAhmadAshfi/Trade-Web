@@ -94,6 +94,7 @@ class NewsLifecycleTests(unittest.TestCase):
             finally:
                 if not already_imported:
                     module.store.close()
+                    sys.modules.pop("backend.app", None)
 
 
 if __name__ == "__main__":

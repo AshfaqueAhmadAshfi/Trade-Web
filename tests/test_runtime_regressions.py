@@ -177,3 +177,5 @@ class EndpointAccessTests(unittest.TestCase):
                         ws.close.assert_awaited_once_with(code=1008)
             finally:
                 isolated_store.close()
+                if not already_loaded:
+                    sys.modules.pop('backend.app', None)

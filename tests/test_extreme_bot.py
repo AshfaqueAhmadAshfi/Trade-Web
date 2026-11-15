@@ -175,6 +175,31 @@ class TestExtremeStructureBot(unittest.TestCase):
             self.assertEqual(closed, 2)
             self.assertFalse(self.bot.cfg["running"])
 
+    def test_update_config_tolerates_invalid_inputs_and_as_dict_is_safe(self):
+        from types import SimpleNamespace
+        from backend.extreme_bot import _as_dict
+
+        self.assertEqual(_as_dict(None), {})
+        self.assertEqual(_as_dict(SimpleNamespace(high=10.0, low=5.0)), {"high": 10.0, "low": 5.0})
+        cfg = self.bot.update_config({
+            "lot": "bad",
+            "max_trades": "2.0",
+            "tp": "not-a-float",
+            "sl": "",
+            "magic": "invalid",
+            "slippage_points": "abc",
+            "cooldown_sec": None,
+            "tolerance_pct": "bad",
+        })
+        self.assertEqual(cfg["lot"], 0.01)
+        self.assertEqual(cfg["max_trades"], 2)
+        self.assertEqual(cfg["tp"], 0.50)
+        self.assertEqual(cfg["sl"], 5.00)
+        self.assertEqual(cfg["magic"], 777003)
+        self.assertEqual(cfg["slippage_points"], 30)
+        self.assertEqual(cfg["cooldown_sec"], 2.0)
+        self.assertEqual(cfg["tolerance_pct"], 0.0006)
+
 
 if __name__ == "__main__":
     unittest.main()

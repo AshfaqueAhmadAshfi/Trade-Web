@@ -20,15 +20,15 @@
     <!-- Full-coverage glass pass: closes the remaining 185 unstyled classes -->
     <link rel="stylesheet" href="/static/styles-glass-v2.css?v=dashboard20261114c" />
     <!-- Fullscreen workspace, 24h market-news terminal and chart pressure overlay -->
-    <link rel="stylesheet" href="/static/workspace-enhanced.css?v=20261114_allsetups2" />
+    <link rel="stylesheet" href="/static/workspace-enhanced.css?v=20261115_profit3" />
     <link rel="stylesheet" href="/static/mobile-overflow-fix.css?v=20261106_contain2" />
     <link rel="stylesheet" href="/static/about.css?v=20261030_about3" />
     <link rel="stylesheet" href="/static/extreme-levels.css?v=20261102_levels2" />
     <!-- Final frosted-glass surfaces and controls; keep after component styles. -->
-    <link rel="stylesheet" href="/static/glass-ui.css?v=20261114_matchedcards1" />
+    <link rel="stylesheet" href="/static/glass-ui.css?v=20261115_profit2" />
     <link rel="stylesheet" href="/static/page-performance.css?v=20261114_smooth3" />
     <link rel="stylesheet" href="/static/running-news-alert.css?v=20261114_compact2" />
-    <link rel="stylesheet" href="/static/whale-positions.css?v=20261114_matchedcards1" />
+    <link rel="stylesheet" href="/static/whale-positions.css?v=20261115_profit2" />
     <link rel="stylesheet" href="/static/contact.css?v=20261114_social4" />
   <link rel="icon" type="image/jpeg" href="/static/logo.jpg" />
 </head>
@@ -348,6 +348,17 @@
             <div class="slz-foot" id="slz-foot">Zones disappear when the observed TradingView quote crosses them.</div>
           </section>
 
+          <!-- Profit Radar: 6-factor confluence & stop-hunt protected TP/SL beneath the right half of the chart. -->
+          <section class="live-market-panel stop-liquidity-panel profit-radar-panel" id="profit-radar-panel" aria-label="Profit Radar TP/SL execution panel">
+            <div class="live-panel-head"><div><strong>PROFIT RADAR · TP/SL</strong><em id="prp-edge-badge">CONFLUENCE</em></div><span id="prp-verdict">SCANNING</span></div>
+            <div class="live-panel-meta"><b id="prp-market">MARKET</b><span id="prp-status">6-Factor Confluence · Stop-Hunt Buffer</span></div>
+            <div class="slz-disclosure prp-disclosure" id="prp-rule">Waiting for live structure, 13-venue order flow &amp; liquidity zones…</div>
+            <div class="slz-groups">
+              <div class="slz-group buy prp-sniper-group"><div class="slz-group-head"><b>SNIPER SETUP · TP / SL</b><span id="prp-rr-badge">R:R —</span></div><div id="prp-plan-list" class="slz-list prp-list" tabindex="0" role="region" aria-label="Executable entry, stop-loss and take-profit plan"><div class="slz-empty">Calculating entry, safe SL &amp; TP targets…</div></div></div>
+            </div>
+            <div class="slz-foot" id="prp-foot">SL placed beyond nearest stop-liquidity cluster · lock Break-Even at +1R.</div>
+          </section>
+
           <!-- Left: selected-market upcoming news, swing and flow intelligence -->
           <div class="binance-book-sidebar" id="binance-book-sidebar">
             <!-- ================= COMBINED 12-VENUE ORDER FLOW + TRADERS POSITIONS ================= -->
@@ -420,6 +431,16 @@
                 <div class="sai-src" id="sai-src">Waiting for the live TradingView reference…</div>
                 <div class="sai-why" id="sai-why">Reading the M1 · M5 · M15 · H1 · H4 · D1 candles…</div>
                 <div class="sai-foot"><span>EMA9/21/50 · RSI14 · MACD · BB20 · VWAP · Stoch · ATR · 6-TF vote</span><span>estimates, not guarantees</span></div>
+              </section>
+              <section class="live-market-panel stop-liquidity-panel smart-money-panel" id="smart-money-panel" aria-label="Smart Money Order Blocks, Fair Value Gaps and OTE zones">
+                <div class="live-panel-head"><div><strong>SMART MONEY · OB &amp; FVG</strong><em>SMC · ICT</em></div><span id="smc-price">—</span></div>
+                <div class="live-panel-meta"><b id="smc-market">MARKET</b><span id="smc-status">M5 / M15 / H1 · demand &amp; supply</span></div>
+                <div class="slz-disclosure">Unmitigated Order Blocks (OB), Fair Value Gaps &amp; OTE 61.8% zones.</div>
+                <div class="slz-groups">
+                  <div class="slz-group buy"><div class="slz-group-head"><b>BUY DEMAND · OB/FVG</b><span id="smc-buy-count">0 zones</span></div><div id="smc-buy-list" class="slz-list smc-list" tabindex="0" role="region" aria-label="Scrollable BUY demand zones"><div class="slz-empty">Scanning M5 / M15 / H1 demand zones…</div></div></div>
+                  <div class="slz-group sell"><div class="slz-group-head"><b>SELL SUPPLY · OB/FVG</b><span id="smc-sell-count">0 zones</span></div><div id="smc-sell-list" class="slz-list smc-list" tabindex="0" role="region" aria-label="Scrollable SELL supply zones"><div class="slz-empty">Scanning M5 / M15 / H1 supply zones…</div></div></div>
+                </div>
+                <div class="slz-foot" id="smc-foot">Unmitigated zones only · auto-removed when price invalidates the block.</div>
               </section>
               <div class="vfb-list" id="vfb-list"></div>
               <div class="vfb-foot"><span>12 VENUE 45s FLOW + BINANCE SESSION + TRADERS POSITIONS · READ-ONLY</span><span id="vfb-updated">—</span></div>
@@ -2170,7 +2191,7 @@
   <script src="/static/softradex-terminal.js?v=20261114_cpanel2"></script>
   <script src="/static/chart-news-events.js?v=20261115_cpanel_auth1"></script>
   <script src="/static/news-list-renderer.js?v=20261114_smooth2"></script>
-  <script src="/static/app.js?v=20261115_cpanel_auth1"></script>
+  <script src="/static/app.js?v=20261115_profit3"></script>
   <script src="/static/traders-terminal.js?v=20261114_selectedflow1"></script>
   <script src="/static/binance-order-flow-terminal.js?v=20261114_smooth2"></script>
   <script src="/static/multi-exchange-order-flow.js?v=20261114_smooth2"></script>
@@ -2184,9 +2205,10 @@
   <script src="/static/running-news-alert.js?v=20261114_headlines24h1"></script>
   <script src="/static/chart-workspace.js?v=20261114_runningheadlines3"></script>
   <script src="/static/tv-setups.js?v=audit20261114b"></script>
-  <script src="/static/swing-ai.js?v=20261115_swingcalc4"></script>
+  <script src="/static/swing-ai.js?v=20261115_profit2"></script>
   <script src="/static/market-outlook-data.js?v=event-priority1"></script>
   <script src="/static/stop-liquidity.js?v=20261114_slbelow1"></script>
+  <script src="/static/profit-systems.js?v=20261115_profit3"></script>
   <script src="/static/public-whale-feed.js?v=20261114_whales3"></script>
   <script src="/static/whale-positions.js?v=20261114_matchedcards1"></script>
   <script src="/static/setups-strip.js?v=20261114_allsetups2"></script>

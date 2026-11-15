@@ -163,11 +163,11 @@ def _headline_relevant(title: str) -> bool:
 TRADINGVIEW_FEED_URL = "https://economic-calendar.tradingview.com/events"
 FEED_URLS = (
     "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
-    "https://nfs.faireconomy.media/ff_calendar_nextweek.json",
 )
 INVESTING_RSS_URLS = (
     "https://www.investing.com/rss/forex.rss",
     "https://www.investing.com/rss/news_25.rss",
+    "https://www.investing.com/rss/news_14.rss",
 )
 YAHOO_RSS_URL = "https://finance.yahoo.com/news/rssindex"
 # Google News RSS headline search ("google theke data niye"): one RSS feed per
@@ -1067,6 +1067,8 @@ class NewsFeed:
         self._start_lock = threading.Lock()
         self._wake = threading.Event()
         self._last_scan_request = 0.0
+        self._ff_cache_at: float = 0.0
+        self._ff_cache_rows: List[Dict[str, Any]] = []
         self._load_cache()
 
     # ------------------------------------------------------------- cache io
@@ -1082,8 +1084,14 @@ class NewsFeed:
                 with self.lock:
                     self.events = [e for e in rows if isinstance(e, dict) and e.get("ts")]
                     self.updated_at = float((data or {}).get("updated_at") or 0.0)
-                    self.source = "cache"
                     self.provider_status = (data or {}).get("provider_status") or {}
+                    counts: Dict[str, int] = {}
+                    for r in self.events:
+                        for s in (r.get("sources") or [r.get("source") or "calendar"]):
+                            if s:
+                                counts[str(s)] = counts.get(str(s), 0) + 1
+                    self.source_counts = counts
+                    self.source = "+".join(counts) if counts else "cache"
         except Exception:
             pass
 
@@ -1231,6 +1239,9 @@ class NewsFeed:
         return out
 
     def _fetch_forexfactory(self) -> List[Dict[str, Any]]:
+        now = time.time()
+        if self._ff_cache_rows and (now - self._ff_cache_at) < 900.0:
+            return [dict(r) for r in self._ff_cache_rows]
         out = []
         errors = []
         succeeded = False
@@ -1252,6 +1263,9 @@ class NewsFeed:
                 continue
         if not succeeded and errors:
             raise RuntimeError("; ".join(errors))
+        if out:
+            self._ff_cache_at = now
+            self._ff_cache_rows = [dict(r) for r in out]
         return out
 
     def _fetch_investing_calendar(self) -> List[Dict[str, Any]]:
@@ -1266,7 +1280,11 @@ class NewsFeed:
         return exness_calendar()
 
     def _fetch_exness_rss(self) -> List[Dict[str, Any]]:
-        return self._fetch_rss(("https://insights.exness.com/feed/",), "exness")
+        try:
+            return self._fetch_rss(("https://insights.exness.com/feed/",), "exness")
+        except Exception:
+            fallback_url = GOOGLE_NEWS_RSS.format(q=quote_plus("site:exness.com OR Exness forex OR gold"))
+            return self._fetch_rss((fallback_url,), "exness")
 
     def _fetch_binance_calendar(self) -> List[Dict[str, Any]]:
         from .binance_news import fetch_binance
@@ -1512,14 +1530,18 @@ class NewsFeed:
 
     @staticmethod
     def _get_json(url: str) -> Any:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "application/json,text/plain,*/*",
+        }
         if requests is not None:
-            resp = requests.get(url, timeout=12, headers={"User-Agent": "Mozilla/5.0 (SoftradeX)"})
+            resp = requests.get(url, timeout=12, headers=headers)
             if resp.status_code != 200:
                 raise _FeedHttpError(resp.status_code)
             return resp.json()
         import urllib.request  # pragma: no cover - fallback path
 
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (SoftradeX)"})
+        req = urllib.request.Request(url, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=12) as r:
                 return json.loads(r.read().decode("utf-8", "replace"))
@@ -2647,8 +2669,9 @@ class NewsBot:
         counts: Dict[str, int] = dict(getattr(self.feed, "source_counts", {}) or {})
         if not counts:
             for ev in self.feed.events:
-                name = str(ev.get("source") or "calendar")
-                counts[name] = counts.get(name, 0) + 1
+                for name in (ev.get("sources") or [ev.get("source") or "calendar"]):
+                    if name:
+                        counts[str(name)] = counts.get(str(name), 0) + 1
         return [{"name": k, "count": int(v)}
                 for k, v in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))]
 

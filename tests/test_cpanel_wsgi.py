@@ -19,6 +19,7 @@ class PassengerWSGITests(unittest.TestCase):
 import os,io,json,gzip,sys
 from pathlib import Path
 from unittest.mock import patch
+import tests.conftest
 from backend import config
 config.DATA_DIR=Path(os.environ['TEST_RUNTIME'])
 config.DB_FILE=config.DATA_DIR/'test.db'

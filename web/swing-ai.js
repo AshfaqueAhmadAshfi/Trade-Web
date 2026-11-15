@@ -1202,7 +1202,8 @@
     structure: function () {
       return { symbol: symbol, at: structureAt, source: 'TradingView', frames: {
         M5: (candleInstruments.M5 === instrument() ? candleBars.M5 || [] : []).map(function(b) { return b.slice(); }),
-        M15: (candleInstruments.M15 === instrument() ? candleBars.M15 || [] : []).map(function(b) { return b.slice(); })
+        M15: (candleInstruments.M15 === instrument() ? candleBars.M15 || [] : []).map(function(b) { return b.slice(); }),
+        H1: (candleInstruments.H1 === instrument() ? candleBars.H1 || [] : []).map(function(b) { return b.slice(); })
       } };
     },
     // Pure candle analysis shared with the independent all-market daily reads.

@@ -2945,18 +2945,29 @@ function renderBot5(d) {
   window.__lastPollData = d;
 
   // ---- next-event card + bias + impacted markets --------------------
-  const curImpactFilter = (window.__activeNewsImpactFilter || 'high').toLowerCase();
+  let curImpactFilter = (window.__activeNewsImpactFilter || 'high').toLowerCase();
   const panelSymbol = flowSymbol() || shown;
   const workspace = window.ChartWorkspace;
   const relevantNews = (event, market) => workspace && workspace.relevanceFor
     ? !!workspace.relevanceFor(event, market)
     : (event.impacted_markets || []).some(m => window.DashboardPanels.canonical(m.market) === window.DashboardPanels.canonical(market));
-  const marketNews = (Array.isArray(b.news) ? b.news : [])
+  const wsNewsState = workspace && typeof workspace.newsState === 'function' ? workspace.newsState() : null;
+  const baseNews = (Array.isArray(b.news) && b.news.length) ? b.news : (wsNewsState && Array.isArray(wsNewsState.events) ? wsNewsState.events : []);
+  const marketNews = baseNews
     .filter(e => e && window.DashboardPanels.newsPhase(e, Date.now()/1000) !== 'expired');
   renderBot5.nextNewsExpiry = marketNews.reduce((deadline, e) =>
     Math.min(deadline, window.DashboardPanels.newsExpires(e)), Infinity);
   const allNewsList = marketNews.filter(e => relevantNews(e, panelSymbol));
-  const matchingNews = allNewsList.filter(n => String(n.impact || 'low').toLowerCase() === curImpactFilter);
+  const scheduledForMarket = allNewsList.filter(n => window.DashboardPanels.newsKind(n) !== 'headline');
+  if (!window.__userPickedNewsImpactFilter && !scheduledForMarket.some(n => String(n.impact || 'low').toLowerCase() === curImpactFilter)) {
+    const fallbackTier = ['high', 'medium', 'low'].find(tier =>
+      scheduledForMarket.some(n => String(n.impact || 'low').toLowerCase() === tier));
+    if (fallbackTier) {
+      curImpactFilter = fallbackTier;
+      window.__activeNewsImpactFilter = fallbackTier;
+    }
+  }
+  const matchingNews = scheduledForMarket.filter(n => String(n.impact || 'low').toLowerCase() === curImpactFilter);
 
   const filterBar = $('news-impact-filter-bar');
   if (filterBar) {
@@ -3156,7 +3167,7 @@ function renderBot5(d) {
       wFilteredList.innerHTML = matchingNews.slice(0, 5).map(n => {
         const side = String(n.side || '').toUpperCase();
         const sideClass = side === 'BUY' ? 'buy' : side === 'SELL' ? 'sell' : '';
-        const mins = Number(n.minutes_to || 0);
+        const mins = Number(n.ts) > 0 ? Math.round((Number(n.ts) - Date.now() / 1000) / 60) : Number(n.minutes_to || 0);
         const timeStr = mins >= 0 ? `in ${fmtCountdown(mins)}` : `${fmtCountdown(-mins)} ago`;
         return `<div class="news-filtered-item">
           <div class="nfi-left">
@@ -3251,7 +3262,7 @@ function renderBot5(d) {
   // Shows ALL news (every currency + impact). Expired rows are skipped here and
   // removed live by tickBot5Countdown the second their time passes.
   const nowSec = Date.now() / 1000;
-  const rawNews = Array.isArray(b.news) ? b.news : [];
+  const rawNews = (Array.isArray(b.news) && b.news.length) ? b.news : baseNews;
   // Upcoming releases leave this reading list when they start. Headlines
   // leave at their monitoring deadline, including stale cached responses.
   // ALL ECONOMIC NEWS panel impact filter: 'all' | 'high' | 'medium' | 'low'
@@ -3263,7 +3274,8 @@ function renderBot5(d) {
   document.querySelectorAll('#news-impact-all-bar .news-impact-btn').forEach(btn => {
     btn.classList.toggle('active', (btn.dataset.imp || '').toLowerCase() === allFilt);
   });
-  const totalTxt = b.news_total ? ` <span class="news-total-pill">${b.news_total}</span>` : '';
+  const totalCount = Number(b.news_total || news.filter(n => window.DashboardPanels.newsKind(n) !== 'headline').length || 0);
+  const totalTxt = totalCount ? ` <span class="news-total-pill">${totalCount}</span>` : '';
   const headEl = $('bot5-news-count');
   if (headEl && headEl.dataset.sig !== totalTxt) {
     headEl.dataset.sig = totalTxt;
@@ -3272,7 +3284,9 @@ function renderBot5(d) {
   // which news sites are feeding this list, and how many events each brought
   const srcEl = $('bot5-news-sources');
   if (srcEl) {
-    const srcs = Array.isArray(b.feed_sources) ? b.feed_sources : [];
+    const srcs = (Array.isArray(b.feed_sources) && b.feed_sources.length)
+      ? b.feed_sources
+      : (wsNewsState && Array.isArray(wsNewsState.sources) ? wsNewsState.sources.filter(s => Number(s.count || 0) > 0) : []);
     const srcHtml = srcs.length
       ? srcs.map(s => {
           const name = String(s.name || '');
@@ -4338,7 +4352,7 @@ function initFlowUI() {
     if (botsView) botsView.classList.toggle('active', isBots);
     if (actView) actView.classList.toggle('active', !isBots);
     if (!isBots) $('bot5-news')?.__renderer?.pause();
-    else if (S && botsDrawerOpen()) { renderBot5(S); $('bot5-news')?.__renderer?.resume(); }
+    else if ((typeof botsDrawerOpen === 'function' ? botsDrawerOpen() : !!dash?.classList?.contains('drawer-right-open')) && typeof renderBot5 === 'function') { renderBot5(S || window.__lastPollData || {}); $('bot5-news')?.__renderer?.resume(); }
   };
   window.__switchRightDrawerTab = switchRightDrawerTab;
 
@@ -4364,8 +4378,9 @@ function initFlowUI() {
     const bd = $('bots-drawer');
     if (bd) bd.setAttribute('aria-hidden', side === 'right' ? 'false' : 'true');
     // the drawer was paused while shut - paint it with the newest engine state
-    if (side === 'right' && S) {
-      renderBotsPanels(S);
+    if (side === 'right') {
+      if (S && typeof renderBotsPanels === 'function') renderBotsPanels(S);
+      if (typeof renderBot5 === 'function') renderBot5(S || window.__lastPollData || {});
       $('bot5-news')?.__renderer?.resume();
     }
 
@@ -4519,12 +4534,11 @@ function initFlowUI() {
       const btn = e.target && e.target.closest ? e.target.closest('.news-impact-btn') : null;
       if (!btn || !btn.dataset.impact) return;
       playTactileClick('click');
+      window.__userPickedNewsImpactFilter = true;
       window.__activeNewsImpactFilter = btn.dataset.impact.toLowerCase();
       newsFilterBar.querySelectorAll('.news-impact-btn').forEach(b => b.classList.toggle('active', b === btn));
-      const payload = window.__lastPollData || (typeof S !== 'undefined' ? S : null);
-      if (payload) {
-        renderBot5(payload);
-      }
+      const payload = window.__lastPollData || (typeof S !== 'undefined' ? S : null) || {};
+      renderBot5(payload);
     });
   }
 

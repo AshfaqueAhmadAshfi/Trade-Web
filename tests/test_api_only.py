@@ -108,6 +108,7 @@ class PublicAnalysisTests(unittest.TestCase):
 
 class PublicEndpointTests(unittest.TestCase):
     def test_broker_endpoints_are_disabled_and_config_has_no_saved_account(self):
+        already_imported = "backend.app" in sys.modules
         with tempfile.TemporaryDirectory(prefix="softradex-api-routes-") as folder:
             with patch.object(cfg, "DB_FILE", Path(folder) / "test.db"), patch.object(Engine, "start"):
                 app_module = importlib.import_module("backend.app")
@@ -144,7 +145,9 @@ class PublicEndpointTests(unittest.TestCase):
                 self.assertEqual(config["saved_login"], "")
                 self.assertEqual(config["terminals"], [])
             finally:
-                app_module.store.close()
+                if not already_imported:
+                    app_module.store.close()
+                    sys.modules.pop("backend.app", None)
 
 
 if __name__ == "__main__":

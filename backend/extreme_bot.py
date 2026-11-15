@@ -70,15 +70,50 @@ _RETCODE_NAMES = {
 }
 
 
+def _f(v: Any, default: float) -> float:
+    """Best-effort float conversion that falls back to *default* instead of raising."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return float(default)
+
+
 def _as_dict(obj: Any) -> Dict[str, Any]:
+    if obj is None:
+        return {}
     if isinstance(obj, dict):
         return dict(obj)
-    if hasattr(obj, "_asdict"):
-        return dict(obj._asdict())
+    asdict = getattr(obj, "_asdict", None)
+    if callable(asdict):
+        return dict(asdict())
+    names = getattr(getattr(obj, "dtype", None), "names", None)
+    if names:
+        out: Dict[str, Any] = {}
+        for n in names:
+            try:
+                out[str(n)] = obj[n]
+            except Exception:
+                continue
+        if out:
+            return out
+    slots = getattr(obj, "__slots__", None) or getattr(obj, "_fields", None)
+    if slots:
+        out = {}
+        for s in slots:
+            try:
+                out[str(s)] = getattr(obj, s)
+            except Exception:
+                continue
+        if out:
+            return out
     try:
-        return {s: getattr(obj, s) for s in obj.__slots__}
+        return dict(obj)
     except (TypeError, ValueError):
+        pass
+    try:
         return dict(vars(obj))
+    except TypeError:
+        return {}
 
 
 class ExtremeStructureBot:
@@ -130,11 +165,15 @@ class ExtremeStructureBot:
             self._resolve_ts = 0.0
             self._levels_cache.clear()
 
-        # Sanitize numeric fields
-        self.cfg["lot"] = self._round_lot(float(self.cfg.get("lot") or 0.01))
-        self.cfg["max_trades"] = max(1, int(self.cfg.get("max_trades") or 1))
-        self.cfg["tp"] = max(0.01, round(float(self.cfg.get("tp") or 0.50), 2))
-        self.cfg["sl"] = max(0.05, round(float(self.cfg.get("sl") or 5.00), 2))
+        # Sanitize numeric fields (never raise: see _f)
+        self.cfg["lot"] = self._round_lot(_f(self.cfg.get("lot"), 0.01))
+        self.cfg["max_trades"] = min(20, max(1, int(_f(self.cfg.get("max_trades"), 1))))
+        self.cfg["tp"] = max(0.01, round(_f(self.cfg.get("tp"), 0.50), 2))
+        self.cfg["sl"] = max(0.05, round(_f(self.cfg.get("sl"), 5.00), 2))
+        self.cfg["magic"] = int(_f(self.cfg.get("magic"), 777003)) or 777003
+        self.cfg["slippage_points"] = max(1, int(_f(self.cfg.get("slippage_points"), 30)))
+        self.cfg["cooldown_sec"] = max(0.2, _f(self.cfg.get("cooldown_sec"), 2.0))
+        self.cfg["tolerance_pct"] = max(0.00001, _f(self.cfg.get("tolerance_pct"), 0.0006))
         tf = str(self.cfg.get("timeframe") or "D1").upper()
         self.cfg["timeframe"] = tf if tf in ("D1", "W1", "PREV") else "D1"
         return dict(self.cfg)

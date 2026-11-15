@@ -270,6 +270,9 @@ class TrendStructureBot:
         self.cfg["max_trades"] = min(20, max(1, int(_f(self.cfg.get("max_trades"), 1))))
         self.cfg["tp"] = max(0.01, round(_f(self.cfg.get("tp"), 0.10), 2))
         self.cfg["sl"] = max(0.05, round(_f(self.cfg.get("sl"), 2.00), 2))
+        self.cfg["magic"] = int(_f(self.cfg.get("magic"), 777002)) or 777002
+        self.cfg["slippage_points"] = max(1, int(_f(self.cfg.get("slippage_points"), 30)))
+        self.cfg["cooldown_sec"] = max(0.2, _f(self.cfg.get("cooldown_sec"), 2.5))
         self.cfg["trend_check_interval"] = max(1.0, _f(self.cfg.get("trend_check_interval"), 2.5))
         # lock trend_check_interval to the strict 2.5s trade timer unless set deliberately
         if "trend_check_interval" not in (patch or {}):

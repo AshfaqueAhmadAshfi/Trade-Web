@@ -151,20 +151,23 @@ body.softradex-glass-ui #dash #tv-chart-box .tvo-card {
 }
 body.softradex-glass-ui #dash #tv-chart-box .tvo-head { color: #40516d !important; }
 
-/* Side rails: upcoming news, swing, running releases and stop liquidity. */
-body.softradex-glass-ui #dash #binance-book-sidebar,
+/* Side rails: upcoming news, swing, running releases, stop liquidity, profit radar and smart money. */
+body.softradex-glass-ui #dash #binance-book-sidebar {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+body.softradex-glass-ui #dash #market-news-terminal,
 body.softradex-glass-ui #dash #running-news-panel,
-body.softradex-glass-ui #dash #stop-liquidity-panel {
+body.softradex-glass-ui #dash #stop-liquidity-panel,
+body.softradex-glass-ui #dash #profit-radar-panel,
+body.softradex-glass-ui #dash #smart-money-panel {
   background: var(--gx-card) !important;
   border-color: var(--gx-edge) !important;
   border-radius: 18px !important;
   box-shadow: var(--gx-card-shadow) !important;
 }
-body.softradex-glass-ui #dash #venue-flow-board { background: transparent !important; border-color: var(--gx-line) !important; }
-body.softradex-glass-ui #dash #market-news-terminal {
-  background: var(--gx-card) !important;
-  border-color: var(--gx-line) !important;
-}
+body.softradex-glass-ui #dash #venue-flow-board { background: transparent !important; border-color: transparent !important; }
 body.softradex-glass-ui #dash .swing-ai-board,
 body.softradex-glass-ui #dash .tv-setup-board {
   background: var(--gx-card) !important;

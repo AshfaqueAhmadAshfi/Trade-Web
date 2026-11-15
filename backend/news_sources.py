@@ -116,7 +116,13 @@ class InvestingCalendar(HTMLParser):
 
 def investing_calendar():
     url = "https://sslecal2.investing.com?lang=1&calType=week"
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.investing.com/economic-calendar/",
+    }
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=12) as response:
         parser = InvestingCalendar()
         parser.feed(response.read().decode("utf-8", "replace"))
@@ -198,15 +204,21 @@ def exness_calendar():
     base = "https://pwapi.ex2b.com/api/v1/calendar/events/"
     now, deadline = time.time(), time.monotonic() + 20
     rows = []
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Origin": "https://www.exness.com",
+        "Referer": "https://www.exness.com/",
+    }
     for page in range(1, 21):
         query = urllib.parse.urlencode({
             "start": datetime.fromtimestamp(now-21600, timezone.utc).isoformat(),
-            "end": datetime.fromtimestamp(now+86400, timezone.utc).isoformat(),
+            "end": datetime.fromtimestamp(now+7*86400, timezone.utc).isoformat(),
             "lang": "en", "page": page})
         remaining = deadline-time.monotonic()
         if remaining <= 0:
             raise TimeoutError("Exness calendar pagination timed out")
-        req = urllib.request.Request(base+"?"+query, headers={"User-Agent":"Mozilla/5.0"})
+        req = urllib.request.Request(base+"?"+query, headers=headers)
         with urllib.request.urlopen(req, timeout=min(12, remaining)) as response:
             data = json.loads(response.read().decode("utf-8", "replace"))
         rows.extend(parse_exness_events(data))

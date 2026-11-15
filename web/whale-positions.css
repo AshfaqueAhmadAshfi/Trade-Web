@@ -1,8 +1,9 @@
 /* Public wallet holdings: match the white dashboard without nested blur. */
 #dash #whale-positions-panel {
   flex: 0 0 auto;
-  height: var(--sidebar-swing-height, 260px);
-  min-height: 0;
+  height: var(--sidebar-bottom-height, 260px);
+  min-height: var(--sidebar-bottom-height, 260px);
+  max-height: var(--sidebar-bottom-height, 260px);
   box-sizing: border-box;
   overflow: hidden;
   background: var(--gx-card, #fff);

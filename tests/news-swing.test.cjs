@@ -629,3 +629,45 @@ test('stale or foreign-market quote cannot falsely remove a stop zone', () => {
   s.api.setSymbol('BTCUSDT'); s.api.acceptQuote({...quote('BTCUSDT',70000),at:NOW+16000});
   assert.equal(s.window.StopLiquidity.state().zones.length,0); // old gold history is rejected
 });
+
+test('SmartMoneyZones detects unmitigated Order Blocks, FVG and OTE zones and ProfitRadar sizes lots with SL pool guard', () => {
+  const { detectSmartMoney, computeProfitRadar } = require('../web/profit-systems.js');
+  // Build deterministic 35 closed M5 candles with a clear Bullish OB + Bullish FVG below price 2650.
+  const m5 = Array.from({ length: 35 }, (_, i) => {
+    const t = NOW - (36 - i) * 300000;
+    if (i === 18) return [t, 2635, 2636, 2628, 2629, 120]; // Bearish candle before displacement (BU-OB)
+    if (i === 19) return [t, 2629, 2644, 2629, 2643, 250]; // Strong displacement breaking prior highs
+    if (i === 20) return [t, 2643, 2652, 2640, 2650, 180]; // Leaves FVG between bar 18 high (2636) and bar 20 low (2640)
+    return [t, 2646, 2651, 2644, 2648, 100];
+  });
+  const smc = detectSmartMoney({ M5: m5, M15: m5, H1: m5 }, 2650, NOW);
+  assert.ok(smc.buy.length >= 1, 'Expected at least 1 unmitigated BUY SMC zone');
+  assert.ok(smc.buy.every(z => z.entry < 2650 && z.stop < z.entry && z.tp1 > z.entry && z.tp2 > z.tp1));
+
+  // Verify ProfitRadar 6-factor confluence, SL liquidity pool protection & $10/$25/$50/$100 lot sizing
+  const radar = computeProfitRadar({
+    symbol: 'XAUUSDm',
+    price: 2650,
+    swing: {
+      reads: {
+        M5: { score: 3, atr: 4, vwap: 2644, close: 2650 },
+        M15: { score: 2, atr: 6, vwap: 2642, close: 2650 },
+        H1: { score: 2 },
+        H4: { score: 2 },
+        D1: { score: 1 }
+      }
+    },
+    stopLiquidity: {
+      zones: [{ side: 'buy', price: 2645, touches: 3 }]
+    },
+    orderFlow: { buy: 750000, sell: 250000 },
+    smc
+  });
+  assert.equal(radar.side, 'BUY');
+  assert.equal(radar.strongEdge, true);
+  assert.equal(radar.slPoolProtected, true);
+  assert.ok(radar.stop < 2645, 'Safe SL must be buffered below the 2645 BUY stop-liquidity pool');
+  assert.equal(radar.sizing.length, 4);
+  assert.deepEqual(radar.sizing.map(r => r.riskUsd), [10, 25, 50, 100]);
+  assert.ok(radar.sizing.every(r => r.lots >= 0.01 && r.profitTp2 > r.profitTp1 && r.profitTp1 > 0));
+});

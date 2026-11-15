@@ -13,7 +13,7 @@ import urllib.error
 from .news_sources import plain_text
 from .config import DATA_DIR
 
-API = "https://www.binance.com/bapi/composite/v1/public/cms/article/"
+API = "https://www.binance.com/bapi/apex/v1/public/apex/cms/article/"
 _lock = threading.Lock()
 _cached = None
 _expires = 0
@@ -21,6 +21,7 @@ _last_error = ""
 _blocked_until = 0
 _request_lock = threading.Lock()
 _next_request = 0
+_detail_cache = {}
 CACHE_PATH = DATA_DIR / "binance_news_cache.json"
 _TIME = re.compile(r"\b(20\d\d-\d\d-\d\d)(?:\s+at)?[ T]+(\d\d?:\d\d(?::\d\d)?)\s*\(?UTC(?:\s*([+-])\s*(\d{1,2})(?::(\d\d))?)?\)?", re.I)
 
@@ -143,7 +144,11 @@ def _get(path, query, deadline):
     if remaining <= 0:
         raise TimeoutError("Binance announcement scan timed out")
     url = API+path+"?"+urllib.parse.urlencode(query)
-    req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0"})
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Clienttype": "web",
+        "Lang": "en",
+    })
     try:
         with urllib.request.urlopen(req, timeout=min(10, remaining)) as response:
             payload = json.load(response)
@@ -183,16 +188,32 @@ def _scan():
             articles = [a for c in data.get("catalogs", []) for a in c.get("articles", [])]
     # Publication timestamps establish headlines even when article details fail.
     calendar, headlines, errors = [], [], []
+    sched_re = re.compile(r"\b(will|launch|list|delist|support|upgrade|maintenance|suspend|resume|removal|futures|perpetual|margin|contract)\b", re.I)
+    def needs_detail(a):
+        if len(candidates) <= 60:
+            return True
+        rel_ts = float(a.get("releaseDate") or 0) / 1000
+        return rel_ts >= now - 2 * 86400 or bool(sched_re.search(str(a.get("title") or "")))
     def detail(a):
-        return _get("detail/query", {"articleCode":a["code"]}, deadline)
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        pending = [(a,pool.submit(detail,a)) for a in candidates.values()]
+        cache_key = (id(_get), a["code"])
+        if cache_key in _detail_cache:
+            return _detail_cache[cache_key]
+        res = _get("detail/query", {"articleCode":a["code"]}, deadline)
+        if len(_detail_cache) > 500:
+            _detail_cache.clear()
+        _detail_cache[cache_key] = res
+        return res
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        pending = [(a, pool.submit(detail, a) if needs_detail(a) else None) for a in candidates.values()]
         for a, future in pending:
-            try:
-                rows = parse_announcement(future.result(), now)
-            except Exception as exc:
-                errors.append(str(exc))
+            if future is None:
                 rows = parse_announcement(a, now)
+            else:
+                try:
+                    rows = parse_announcement(future.result(), now)
+                except Exception as exc:
+                    errors.append(str(exc))
+                    rows = parse_announcement(a, now)
             calendar.extend(r for r in rows if r["kind"]=="calendar")
             headlines.extend(r for r in rows if r["kind"]=="headline")
     return {"calendar":calendar,"headline":headlines,"error":"; ".join(dict.fromkeys(errors))[:180],

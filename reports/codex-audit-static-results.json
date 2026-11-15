@@ -1,7 +1,7 @@
 {
   "summary": {
     "python-syntax": 68,
-    "javascript-syntax": 44,
+    "javascript-syntax": 45,
     "html-assets-ids-inline-syntax": 2
   },
   "failures": 0,
@@ -513,6 +513,11 @@
     },
     {
       "file": "web/news-list-renderer.js",
+      "check": "javascript-syntax",
+      "ok": true
+    },
+    {
+      "file": "web/profit-systems.js",
       "check": "javascript-syntax",
       "ok": true
     },
